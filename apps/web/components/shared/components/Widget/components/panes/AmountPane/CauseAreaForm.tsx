@@ -4,18 +4,6 @@ import { NumericFormat } from "react-number-format";
 import Link from "next/link";
 import { usePlausible } from "next-plausible";
 import AnimateHeight from "react-animate-height";
-import {
-  FormWrapper,
-  CauseAreaTitle,
-  CauseAreaContext,
-  TotalSumWrapper,
-  SumWrapper,
-  SumButtonsWrapper,
-  InputList,
-  OrganizationInputWrapper,
-  OperationsPercentageInputWrapper,
-} from "../AmountPane.style";
-import { getCauseAreaIconById } from "../SelectionPane.style";
 import { CauseArea } from "../../../types/CauseArea";
 import { ShareType } from "../../../types/Enums";
 import {
@@ -30,7 +18,6 @@ import {
 import { thousandize } from "../../../../../../../util/formatting";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
-import { CheckBoxWrapper, HiddenCheckBox } from "../Forms.style";
 import { CustomCheckBox } from "../DonorPane/CustomCheckBox";
 import {
   OperationsConfig,
@@ -41,6 +28,9 @@ import { CauseAreaRollout } from "../../shared/CauseAreaRollout/CauseAreaRollout
 import { splitOperationsLabelTemplate } from "../../../utils/operationsLabel";
 import { useIsMobile } from "../../../../../../../hooks/useIsMobile";
 import { splitAmountByShares, standardShareByOrgId } from "../../../utils/donationCalculations";
+import styles from "../AmountPane.module.scss";
+import forms from "../Forms.module.scss";
+import { getCauseAreaIconById } from "../../shared/CauseAreaIcon/CauseAreaIcon";
 
 interface CauseAreaFormProps {
   causeArea: CauseArea;
@@ -187,23 +177,23 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
   };
 
   return (
-    <FormWrapper key={causeArea.id}>
+    <div className={styles.formWrapper} key={causeArea.id}>
       <div>
-        <CauseAreaTitle>
+        <div className={styles.causeAreaTitle}>
           {getCauseAreaIconById(causeArea.id)}
           {causeArea.widgetDisplayName || causeArea.name}
-        </CauseAreaTitle>
+        </div>
         {getCauseAreaContext(causeArea.id, causeAreaDisplayConfig) && (
-          <CauseAreaContext>
+          <div className={styles.causeAreaContext}>
             {getCauseAreaContext(causeArea.id, causeAreaDisplayConfig)}
-          </CauseAreaContext>
+          </div>
         )}
       </div>
       <div>
         {hideDistributionToggle ? (
-          <TotalSumWrapper>
+          <div className={styles.totalSumWrapper}>
             {isSingleSelection && (
-              <SumButtonsWrapper>
+              <div className={styles.sumButtonsWrapper}>
                 {suggestedSums.map((suggested) => (
                   <div key={suggested.amount}>
                     <EffektButton
@@ -216,9 +206,9 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                     {suggested.subtext && <i>{suggested.subtext}</i>}
                   </div>
                 ))}
-              </SumButtonsWrapper>
+              </div>
             )}
-            <SumWrapper>
+            <div className={styles.sumWrapper}>
               <span>
                 <NumericFormat
                   name={`sum-${causeArea.id}`}
@@ -233,8 +223,8 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                   onValueChange={handleAmountChange}
                 />
               </span>
-            </SumWrapper>
-          </TotalSumWrapper>
+            </div>
+          </div>
         ) : (
           <>
             <AnimateHeight
@@ -248,9 +238,9 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
               duration={300}
             >
               <div style={{ paddingBottom: "30px" }}>
-                <TotalSumWrapper>
+                <div className={styles.totalSumWrapper}>
                   {isSingleSelection && (
-                    <SumButtonsWrapper>
+                    <div className={styles.sumButtonsWrapper}>
                       {suggestedSums.map((suggested) => (
                         <div key={suggested.amount}>
                           <EffektButton
@@ -265,9 +255,9 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                           {suggested.subtext && <i>{suggested.subtext}</i>}
                         </div>
                       ))}
-                    </SumButtonsWrapper>
+                    </div>
                   )}
-                  <SumWrapper>
+                  <div className={styles.sumWrapper}>
                     <span>
                       <NumericFormat
                         name={`sum-${causeArea.id}`}
@@ -283,8 +273,8 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                         onValueChange={handleAmountChange}
                       />
                     </span>
-                  </SumWrapper>
-                </TotalSumWrapper>
+                  </div>
+                </div>
               </div>
             </AnimateHeight>
             <RadioButtonGroup
@@ -299,9 +289,9 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                   value: ShareType.CUSTOM,
                   data_cy: `radio-custom-share-${causeArea.id}`,
                   content: (
-                    <InputList>
+                    <div className={styles.inputList}>
                       {visibleOrganizations.map((org) => (
-                        <OrganizationInputWrapper key={org.id}>
+                        <div className={styles.organizationInputWrapper} key={org.id}>
                           <Link
                             href={org.informationUrl || "#"}
                             target={isMobile ? "_blank" : undefined}
@@ -332,7 +322,7 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                               }}
                             />
                           </span>
-                        </OrganizationInputWrapper>
+                        </div>
                       ))}
                       {hasPrefilledOrganizations && !showAllOrganizations && (
                         <EffektButton
@@ -343,7 +333,7 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                           {smartDistributionContext.show_all_organizations_text} ↓
                         </EffektButton>
                       )}
-                    </InputList>
+                    </div>
                   ),
                 },
               ]}
@@ -377,8 +367,9 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
       {showOperationsOption && (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <CheckBoxWrapper>
-              <HiddenCheckBox
+            <div className={forms.checkBoxWrapper}>
+              <input
+                className={forms.hiddenCheckBox}
                 type="checkbox"
                 checked={isOperationsEnabled}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -387,8 +378,8 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                 data-cy={`cut-checkbox-${causeArea.id}`}
               />
               <CustomCheckBox checked={isOperationsEnabled} label="" />
-            </CheckBoxWrapper>
-            <OperationsPercentageInputWrapper>
+            </div>
+            <div className={styles.operationsPercentageInputWrapper}>
               {operationsLabelPrefix && <span>{operationsLabelPrefix}</span>}
               <span>
                 <NumericFormat
@@ -406,13 +397,13 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
                 />
               </span>
               {operationsLabelSuffix && <span>{operationsLabelSuffix}</span>}
-            </OperationsPercentageInputWrapper>
+            </div>
           </div>
         </div>
       )}
 
       <CauseAreaRollout causeAreaId={causeArea.id} config={causeAreaDisplayConfig} />
-    </FormWrapper>
+    </div>
   );
 };
 

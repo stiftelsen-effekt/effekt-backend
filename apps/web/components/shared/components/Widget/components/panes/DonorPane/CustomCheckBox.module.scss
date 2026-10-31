@@ -1,6 +1,4 @@
-import styled from "styled-components";
-
-export const CustomCheckBoxWrapper = styled.span`
+.customCheckBoxWrapper {
   cursor: pointer;
   margin-top: 5px;
   -webkit-user-select: none;
@@ -12,38 +10,36 @@ export const CustomCheckBoxWrapper = styled.span`
   display: flex;
   flex-direction: row;
   align-items: center;
-`;
+}
 
-export const CheckBoxWrapper = styled.span`
+.checkBox {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 23px;
   height: 23px;
   border: 1px solid var(--primary);
-`;
+}
 
-export const CheckMark = styled.span`
+.checkMark {
   font-size: 14px;
   color: var(--primary);
   display: none;
-`;
+}
 
-export const StyledInput = styled.input`
+.input {
   position: absolute;
   opacity: 0;
   cursor: pointer;
   height: 0;
   width: 0;
 
-  &:checked ~ ${CheckBoxWrapper} ${CheckMark} {
+  &:checked ~ .checkBox .checkMark {
     display: block;
   }
-`;
+}
 
-export const CheckBoxLabelWrapper = styled.div``;
-
-export const CheckBoxLabel = styled.p`
+.label {
   display: inline-block;
   font-size: 18px;
   margin: 0;
@@ -57,15 +53,15 @@ export const CheckBoxLabel = styled.p`
     font-size: 22px;
     line-height: 30px;
   }
-`;
+}
 
-export const InputWrapper = styled.div`
+.inputWrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
-`;
+}
 
-export const ToolTipWrapper = styled.div`
+.toolTipWrapper {
   display: inline-flex;
   align-items: center;
-`;
+}

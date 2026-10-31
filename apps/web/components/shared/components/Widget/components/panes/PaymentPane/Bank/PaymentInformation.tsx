@@ -1,7 +1,6 @@
 import React from "react";
 import { Donation } from "../../../../store/state";
-import { RoundedBorder } from "../../../shared/Layout/Layout.style";
-import { TextWrapper } from "./BankPane.style";
+import payment from "../PaymentPane.module.scss";
 
 export const PaymentInformation: React.FC<{
   accountTitle: string;
@@ -11,18 +10,18 @@ export const PaymentInformation: React.FC<{
 }> = ({ donation, accountTitle, kidTitle, accountNr }) => {
   return (
     <>
-      <RoundedBorder>
-        <TextWrapper>
+      <div className={payment.roundedBorder}>
+        <div className={payment.textWrapper}>
           <span>{accountTitle}</span>
           <span>{accountNr}</span>
-        </TextWrapper>
-      </RoundedBorder>
-      <RoundedBorder>
-        <TextWrapper>
+        </div>
+      </div>
+      <div className={payment.roundedBorder}>
+        <div className={payment.textWrapper}>
           <span>{kidTitle}</span>
           <span data-cy="kidNumber">{donation.kid}</span>
-        </TextWrapper>
-      </RoundedBorder>
+        </div>
+      </div>
     </>
   );
 };

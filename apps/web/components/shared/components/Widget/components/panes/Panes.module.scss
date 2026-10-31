@@ -1,6 +1,4 @@
-import styled from "styled-components";
-
-export const Pane = styled.div`
+.pane {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -14,9 +12,9 @@ export const Pane = styled.div`
     font-size: 20px;
     line-height: 30px;
   }
-`;
+}
 
-export const PaneContainer = styled.div`
+.paneContainer {
   padding: 0;
   min-height: 500px;
   display: grid;
@@ -25,20 +23,19 @@ export const PaneContainer = styled.div`
   padding-bottom: 20px;
   padding-left: 40px;
   padding-right: 40px;
-`;
+}
 
-export const PaneTitle = styled.h2`
+.paneTitle {
   font-family: "ESKlarheitKurrent";
   font-size: 27px;
-  margin-top: 0px;
   margin-top: 20px;
   margin-bottom: 20px;
   line-height: normal;
-`;
+}
 
-export const CenterDiv = styled.div`
+.centerDiv {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-`;
+}

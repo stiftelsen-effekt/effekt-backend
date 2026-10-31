@@ -1,19 +1,14 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Pane, PaneContainer, PaneTitle } from "./Panes.style";
 import { setCauseAreaSelection, setGlobalOperationsEnabled } from "../../store/donation/actions";
 import { nextPane } from "../../store/layout/actions";
 import { State } from "../../store/state";
-import {
-  ButtonsWrapper,
-  CauseAreaButton,
-  CauseAreaButtonsDividerLine,
-  getCauseAreaIconById,
-  MultipleCauseAreaIcon,
-} from "./SelectionPane.style";
 import { Spinner } from "../../../Spinner/Spinner";
 import { CauseAreaDisplayConfig } from "../../types/WidgetProps";
 import { usePrefilledCauseAreaIds } from "../hooks";
+import panes from "./Panes.module.scss";
+import styles from "./SelectionPane.module.scss";
+import { getCauseAreaIconById, MultipleCauseAreaIcon } from "../shared/CauseAreaIcon/CauseAreaIcon";
 
 /**
  * First pane: select one-time vs monthly, then choose a cause area or multiple.
@@ -58,8 +53,8 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
 
   if (!causeAreas) {
     return (
-      <Pane>
-        <PaneContainer>
+      <div className={panes.pane}>
+        <div className={panes.paneContainer}>
           <div
             style={{
               display: "flex",
@@ -70,19 +65,20 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
           >
             <Spinner />
           </div>
-        </PaneContainer>
-      </Pane>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         <div>
-          <PaneTitle>{causeAreaDisplayConfig?.cause_area_selection_title}</PaneTitle>
+          <h2 className={panes.paneTitle}>{causeAreaDisplayConfig?.cause_area_selection_title}</h2>
 
-          <ButtonsWrapper>
-            <CauseAreaButton
+          <div className={styles.buttonsWrapper}>
+            <button
+              className={styles.causeAreaButton}
               key="default"
               onClick={() => onSelectArea(-1)}
               style={{
@@ -97,12 +93,12 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
               data-cy="cause-area-recommendation"
             >
               {causeAreaDisplayConfig?.recommendation_button_text}
-            </CauseAreaButton>
-          </ButtonsWrapper>
+            </button>
+          </div>
 
-          <CauseAreaButtonsDividerLine />
+          <div className={styles.causeAreaButtonsDividerLine} />
 
-          <ButtonsWrapper>
+          <div className={styles.buttonsWrapper}>
             {causeAreas
               .filter((ca) => ca.isActive || prefilledCauseAreaIds.has(ca.id))
               .filter((ca) => {
@@ -110,28 +106,30 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
                 return !belowLineIds.includes(ca.id); // Exclude below-line cause areas (e.g. operations, "andet")
               })
               .map((ca) => (
-                <CauseAreaButton
+                <button
+                  className={styles.causeAreaButton}
                   key={ca.id}
                   onClick={() => onSelectArea(ca.id)}
                   data-cy={`cause-area-${ca.id}`}
                 >
                   {getCauseAreaIconById(ca.id)}
                   {ca.widgetDisplayName || ca.name}
-                </CauseAreaButton>
+                </button>
               ))}
-            <CauseAreaButton
+            <button
+              className={styles.causeAreaButton}
               onClick={() => onSelectArea(undefined)}
               style={{ marginTop: "20px" }}
               data-cy="cause-area-multiple"
             >
               <MultipleCauseAreaIcon />
               {causeAreaDisplayConfig?.multiple_cause_areas_button_text}
-            </CauseAreaButton>
-          </ButtonsWrapper>
+            </button>
+          </div>
 
-          <CauseAreaButtonsDividerLine />
+          <div className={styles.causeAreaButtonsDividerLine} />
 
-          <ButtonsWrapper>
+          <div className={styles.buttonsWrapper}>
             {causeAreas
               .filter((ca) => ca.isActive || prefilledCauseAreaIds.has(ca.id))
               .filter((ca) => {
@@ -139,18 +137,19 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
                 return belowLineIds.includes(ca.id); // Include below-line cause areas (e.g. operations, "andet")
               })
               .map((ca) => (
-                <CauseAreaButton
+                <button
+                  className={styles.causeAreaButton}
                   key={ca.id}
                   onClick={() => onSelectArea(ca.id)}
                   data-cy={`cause-area-${ca.id}`}
                 >
                   {getCauseAreaIconById(ca.id)}
                   {ca.widgetDisplayName || ca.name}
-                </CauseAreaButton>
+                </button>
               ))}
-          </ButtonsWrapper>
+          </div>
         </div>
-      </PaneContainer>
-    </Pane>
+      </div>
+    </div>
   );
 };

@@ -1,0 +1,81 @@
+.infoText {
+  margin-left: 5px;
+  margin-top: 15px;
+  font-size: 18px;
+  white-space: pre-wrap;
+  color: var(--primary);
+
+  @media only screen and (max-width: 768px) {
+    font-size: 22px;
+    line-height: 30px;
+  }
+}
+
+/* Bank and Danish bank transfers */
+.roundedBorder {
+  border: 1px solid var(--primary);
+  border-radius: 15px;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-bottom: 20px;
+}
+
+.textWrapper {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24px;
+}
+
+.completeButtonWrapper {
+  padding-top: 40px;
+  padding-bottom: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.completeButton {
+  cursor: pointer;
+  font-size: 20px;
+  padding: 14px 40px;
+  border-radius: 45px;
+  min-width: 140px;
+  background-color: var(--primary);
+  color: var(--secondary);
+}
+
+.vippsButtonWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 30px;
+  border-radius: 5px;
+}
+
+/* Vipps and AvtaleGiro charge day pickers */
+.datePickerWrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dateBoxWrapper {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.dateText {
+  display: inline-block;
+  vertical-align: middle;
+  padding-bottom: 12px;
+  font-size: 20px;
+  white-space: pre-wrap;
+  max-width: 60%;
+}
+
+.dateTextWrapper {
+  padding-left: 3px;
+  padding-bottom: 4px;
+}

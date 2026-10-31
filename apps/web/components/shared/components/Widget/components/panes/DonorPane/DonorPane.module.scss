@@ -1,6 +1,4 @@
-import styled from "styled-components";
-
-export const DonorForm = styled.form`
+.donorForm {
   margin: 0 auto;
   display: flex;
   flex: 1;
@@ -45,9 +43,9 @@ export const DonorForm = styled.form`
   @media only screen and (max-width: 768px) {
     font-size: 22px;
   }
-`;
+}
 
-export const ActionBar = styled.div`
+.actionBar {
   display: flex;
   flex-direction: row;
   flex: 1;
@@ -56,19 +54,19 @@ export const ActionBar = styled.div`
   align-items: flex-end;
   padding-top: 30px;
   padding-bottom: 40px;
-`;
+}
 
-export const CheckBoxGroupWrapper = styled.div`
+.checkBoxGroupWrapper {
   margin-top: 40px;
   margin-bottom: 40px;
   display: grid;
   grid-auto-rows: max-content;
-`;
+}
 
-export const InfoMessageWrapper = styled.div`
+.infoMessageWrapper {
   display: flex;
   align-items: center;
   flex-direction: row;
   gap: 10px;
   margin-top: 16px;
-`;
+}

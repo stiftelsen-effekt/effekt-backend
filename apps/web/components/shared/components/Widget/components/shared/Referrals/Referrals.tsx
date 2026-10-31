@@ -9,15 +9,12 @@ import {
 import { State } from "../../../store/state";
 import { ReferralData } from "../../../types/Temp";
 import { WidgetPane3ReferralsProps } from "../../../types/WidgetProps";
-import { PaneTitle } from "../../panes/Panes.style";
-import {
-  ReferralButtonsWrapper,
-  ReferralTextInput,
-} from "../../panes/PaymentPane/Bank/ReferralPane.style";
 import { ReferralActionTypes } from "../../../store/referrals/types";
 import { Action } from "typescript-fsa";
 import { Dispatch } from "@reduxjs/toolkit";
 import { widgetAsksForReferrals } from "../../../store/widgetApi";
+import panes from "../../panes/Panes.module.scss";
+import styles from "./Referrals.module.scss";
 
 // The "other" answer is saved once the donor pauses typing, not on every keystroke
 const OTHER_TEXT_DEBOUNCE_MS = 600;
@@ -77,8 +74,8 @@ export const Referrals: React.FC<{ text: WidgetPane3ReferralsProps }> = ({ text 
           Sorry, your browser does not support inline SVG.
         </svg>
       </div>
-      <PaneTitle>{text.referrals_title}</PaneTitle>
-      <ReferralButtonsWrapper>
+      <h2 className={panes.paneTitle}>{text.referrals_title}</h2>
+      <div className={styles.buttonsWrapper}>
         {referrals
           ?.filter((ref) => ref.id !== OTHER_REFERRAL_ID)
           .map((ref) => (
@@ -112,8 +109,9 @@ export const Referrals: React.FC<{ text: WidgetPane3ReferralsProps }> = ({ text 
               {ref.name}
             </EffektButton>
           ))}
-      </ReferralButtonsWrapper>
-      <ReferralTextInput
+      </div>
+      <input
+        className={styles.textInput}
         data-cy="referral-text-input"
         type="text"
         placeholder={text.other_referral_input_placeholder}

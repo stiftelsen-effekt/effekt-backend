@@ -1,16 +1,7 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import { NumericFormat } from "react-number-format";
-import {
-  FormWrapper,
-  CauseAreaTitle,
-  CauseAreaContext,
-  TotalSumWrapper,
-  SumWrapper,
-  SumButtonsWrapper,
-} from "../AmountPane.style";
 
-import { getCauseAreaIconById } from "../SelectionPane.style";
 import { setCauseAreaAmount } from "../../../store/donation/actions";
 import { usePlausible } from "next-plausible";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
@@ -18,6 +9,8 @@ import { thousandize } from "../../../../../../../util/formatting";
 import { CauseArea } from "../../../types/CauseArea";
 import { CauseAreaDisplayConfig } from "../../../types/WidgetProps";
 import { CauseAreaRollout } from "../../shared/CauseAreaRollout/CauseAreaRollout";
+import styles from "../AmountPane.module.scss";
+import { getCauseAreaIconById } from "../../shared/CauseAreaIcon/CauseAreaIcon";
 
 interface OperationsCauseAreaFormProps {
   causeArea: CauseArea;
@@ -36,19 +29,19 @@ export const OperationsCauseAreaForm: React.FC<OperationsCauseAreaFormProps> = (
   const plausible = usePlausible();
 
   return (
-    <FormWrapper>
+    <div className={styles.formWrapper}>
       <div>
-        <CauseAreaTitle>
+        <div className={styles.causeAreaTitle}>
           {getCauseAreaIconById(causeArea.id)}
           {causeArea.widgetDisplayName || causeArea.name}
-        </CauseAreaTitle>
-        <CauseAreaContext>
+        </div>
+        <div className={styles.causeAreaContext}>
           {getCauseAreaContext(causeArea.id, causeAreaDisplayConfig)}
-        </CauseAreaContext>
+        </div>
       </div>
       <div>
-        <TotalSumWrapper>
-          <SumButtonsWrapper>
+        <div className={styles.totalSumWrapper}>
+          <div className={styles.sumButtonsWrapper}>
             {suggestedSums.map((suggested) => (
               <div key={suggested.amount}>
                 <EffektButton
@@ -63,8 +56,8 @@ export const OperationsCauseAreaForm: React.FC<OperationsCauseAreaFormProps> = (
                 {suggested.subtext && <i>{suggested.subtext}</i>}
               </div>
             ))}
-          </SumButtonsWrapper>
-          <SumWrapper>
+          </div>
+          <div className={styles.sumWrapper}>
             <span>
               <NumericFormat
                 name="sum-operations"
@@ -85,11 +78,11 @@ export const OperationsCauseAreaForm: React.FC<OperationsCauseAreaFormProps> = (
                 decimalScale={0}
               />
             </span>
-          </SumWrapper>
-        </TotalSumWrapper>
+          </div>
+        </div>
       </div>
       <CauseAreaRollout causeAreaId={causeArea.id} config={causeAreaDisplayConfig} />
-    </FormWrapper>
+    </div>
   );
 };
 

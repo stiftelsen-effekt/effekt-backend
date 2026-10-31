@@ -18,10 +18,7 @@ import { PaymentMethod } from "../../../types/Enums";
 import { WidgetPane2Props, WidgetProps } from "../../../types/WidgetProps";
 import { ErrorField } from "../../shared/Error/ErrorField";
 import { ToolTip } from "../../shared/ToolTip/ToolTip";
-import { CheckBoxWrapper, HiddenCheckBox, InputFieldWrapper } from "../Forms.style";
-import { Pane, PaneContainer, PaneTitle } from "../Panes.style";
 import { CustomCheckBox } from "./CustomCheckBox";
-import { ActionBar, CheckBoxGroupWrapper, DonorForm, InfoMessageWrapper } from "./DonorPane.style";
 import { getEstimatedLtv } from "../../../../../../../util/ltv";
 import { widgetTrpc } from "../../../store/widgetApi";
 import AnimateHeight from "react-animate-height";
@@ -32,15 +29,16 @@ import { LayoutActionTypes } from "../../../store/layout/types";
 import { calculateDonationBreakdown } from "../../../utils/donationCalculations";
 import { DonationSummary, DonationSummaryText } from "../../shared/DonationSummary/DonationSummary";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
-import { StyledSpinner } from "../../shared/Buttons/NavigationButtons.style";
-import {
-  PaymentButton,
-  PaymentButtonsWrapper,
-} from "../../shared/DonationSummary/DonationSummary.style";
 import { paymentMethodConfigurations } from "../../../config/methods";
 import { useSsnValidation } from "./useSsnValidation";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
 import { currencyForLocale } from "../../../utils/currency";
+import panes from "../Panes.module.scss";
+import forms from "../Forms.module.scss";
+import styles from "./DonorPane.module.scss";
+import navigationButtons from "../../shared/Buttons/NavigationButtons.module.scss";
+import summary from "../../shared/DonationSummary/DonationSummary.module.scss";
+import { Spinner } from "../../../../Spinner/Spinner";
 
 // Capitalizes each first letter of all first, middle and last names
 const capitalizeNames = (string: string) => {
@@ -286,22 +284,23 @@ export const DonorPane: React.FC<{
   };
 
   return (
-    <Pane>
-      <DonorForm autoComplete="on">
-        <PaneContainer>
+    <div className={panes.pane}>
+      <form className={styles.donorForm} autoComplete="on">
+        <div className={panes.paneContainer}>
           <div>
             {isSingleCauseArea ? (
-              <PaneTitle>
+              <h2 className={panes.paneTitle}>
                 <wbr />
-              </PaneTitle>
+              </h2>
             ) : (
               <DonationSummary text={summaryText} />
             )}
 
             {text.allow_anonymous_donations && (
               <div style={{ marginBottom: "20px" }}>
-                <CheckBoxWrapper data-cy="anon-button-div">
-                  <HiddenCheckBox
+                <div className={forms.checkBoxWrapper} data-cy="anon-button-div">
+                  <input
+                    className={forms.hiddenCheckBox}
                     data-cy="anon-checkbox"
                     type="checkbox"
                     onKeyDown={(e) => {
@@ -318,13 +317,13 @@ export const DonorPane: React.FC<{
                   />
                   <CustomCheckBox label={text.anon_button_text} checked={isAnonymous} />
                   <ToolTip text={text.anon_button_text_tooltip} />
-                </CheckBoxWrapper>
+                </div>
               </div>
             )}
 
             <AnimateHeight height={isAnonymous ? 0 : "auto"} animateOpacity>
               {text.show_name_field && (
-                <InputFieldWrapper>
+                <div className={forms.inputFieldWrapper}>
                   <input
                     data-cy="name-input"
                     type="text"
@@ -337,9 +336,9 @@ export const DonorPane: React.FC<{
                     })}
                   />
                   {errors.name && <ErrorField text={text.name_invalid_error_text} />}
-                </InputFieldWrapper>
+                </div>
               )}
-              <InputFieldWrapper>
+              <div className={forms.inputFieldWrapper}>
                 <input
                   data-cy="email-input"
                   type="email"
@@ -353,9 +352,9 @@ export const DonorPane: React.FC<{
                   })}
                 />
                 {errors.email && <ErrorField text={text.email_invalid_error_text} />}
-              </InputFieldWrapper>
+              </div>
               {text.show_referral_code_field && (
-                <InputFieldWrapper>
+                <div className={forms.inputFieldWrapper}>
                   <input
                     data-cy="referral-code-input"
                     type="text"
@@ -363,12 +362,13 @@ export const DonorPane: React.FC<{
                     placeholder={text.referral_code_placeholder}
                     {...register("referralCode")}
                   />
-                </InputFieldWrapper>
+                </div>
               )}
-              <CheckBoxGroupWrapper>
+              <div className={styles.checkBoxGroupWrapper}>
                 <div>
-                  <CheckBoxWrapper>
-                    <HiddenCheckBox
+                  <div className={forms.checkBoxWrapper}>
+                    <input
+                      className={forms.hiddenCheckBox}
                       data-cy="tax-deduction-checkbox"
                       type="checkbox"
                       onKeyDown={(e) => {
@@ -389,14 +389,14 @@ export const DonorPane: React.FC<{
                       checked={taxDeductionChecked}
                     />
                     {taxDeductionChecked && <ToolTip text={text.tax_deduction_tooltip_text} />}
-                  </CheckBoxWrapper>
+                  </div>
 
                   <AnimateHeight
                     height={taxDeductionChecked ? "auto" : 0}
                     animateOpacity
                     duration={200}
                   >
-                    <InputFieldWrapper>
+                    <div className={forms.inputFieldWrapper}>
                       <input
                         data-cy="ssn-input"
                         type="text"
@@ -414,15 +414,16 @@ export const DonorPane: React.FC<{
                         <ErrorField text={text.tax_deduction_ssn_invalid_error_text} />
                       )}
                       {cprSuspicious && text.tax_deduction_ssn_suspicious_message && (
-                        <InfoMessageWrapper data-cy="cpr-suspicious-message">
+                        <div className={styles.infoMessageWrapper} data-cy="cpr-suspicious-message">
                           {text.tax_deduction_ssn_suspicious_message}
-                        </InfoMessageWrapper>
+                        </div>
                       )}
-                    </InputFieldWrapper>
+                    </div>
                   </AnimateHeight>
                 </div>
-                <CheckBoxWrapper>
-                  <HiddenCheckBox
+                <div className={forms.checkBoxWrapper}>
+                  <input
+                    className={forms.hiddenCheckBox}
                     data-cy="newsletter-checkbox"
                     type="checkbox"
                     onKeyDown={(e) => {
@@ -441,14 +442,15 @@ export const DonorPane: React.FC<{
                     mobileLabel={text.newsletter_selector_text}
                     checked={newsletterChecked}
                   />
-                </CheckBoxWrapper>
+                </div>
                 {text.privacy_policy_link && (
                   <div style={{ marginTop: "10px" }}>
                     {text.require_privacy_policy_checkbox && (
                       <>
                         <div style={{ display: "flex", flexDirection: "row" }}>
-                          <CheckBoxWrapper>
-                            <HiddenCheckBox
+                          <div className={forms.checkBoxWrapper}>
+                            <input
+                              className={forms.hiddenCheckBox}
                               data-cy="privacy-policy-checkbox"
                               type="checkbox"
                               onKeyDown={(e) => {
@@ -467,7 +469,7 @@ export const DonorPane: React.FC<{
                               label={text.privacy_policy_text}
                               checked={watch("privacyPolicy")}
                             />
-                          </CheckBoxWrapper>
+                          </div>
                           <Link
                             href={`/${text.privacy_policy_link.slug}`}
                             target={"_blank"}
@@ -507,7 +509,7 @@ export const DonorPane: React.FC<{
                     )}
                   </div>
                 )}
-              </CheckBoxGroupWrapper>
+              </div>
             </AnimateHeight>
 
             {isSingleCauseArea ? (
@@ -526,7 +528,7 @@ export const DonorPane: React.FC<{
                     if (method) setSelectedPaymentMethodId(method._id);
                   }}
                 />
-                <ActionBar data-cy="next-button-div">
+                <div className={styles.actionBar} data-cy="next-button-div">
                   <NextButton
                     type="button"
                     disabled={!selectedPaymentMethodId}
@@ -536,14 +538,19 @@ export const DonorPane: React.FC<{
                     }}
                     data-cy="next-button"
                   >
-                    {loadingMethod ? <StyledSpinner /> : text.pane2_button_text}
+                    {loadingMethod ? (
+                      <Spinner className={navigationButtons.spinner} />
+                    ) : (
+                      text.pane2_button_text
+                    )}
                   </NextButton>
-                </ActionBar>
+                </div>
               </>
             ) : (
-              <PaymentButtonsWrapper style={{ marginTop: "20px" }}>
+              <div className={summary.paymentButtonsWrapper} style={{ marginTop: "20px" }}>
                 {paymentMethods.map((method) => (
-                  <PaymentButton
+                  <button
+                    className={summary.paymentButton}
                     key={method._id}
                     aria-busy={loadingMethod === method._id || undefined}
                     onClick={(e) => {
@@ -552,15 +559,19 @@ export const DonorPane: React.FC<{
                     }}
                     data-cy={`payment-method-${method._id}`}
                   >
-                    {loadingMethod === method._id ? <StyledSpinner /> : method.selector_text}
-                  </PaymentButton>
+                    {loadingMethod === method._id ? (
+                      <Spinner className={navigationButtons.spinner} />
+                    ) : (
+                      method.selector_text
+                    )}
+                  </button>
                 ))}
-              </PaymentButtonsWrapper>
+              </div>
             )}
           </div>
-        </PaneContainer>
-      </DonorForm>
-    </Pane>
+        </div>
+      </form>
+    </div>
   );
 };
 

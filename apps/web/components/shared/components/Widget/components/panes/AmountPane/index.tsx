@@ -1,17 +1,10 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Pane, PaneContainer } from "../Panes.style";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
 import { State } from "../../../store/state";
 import { setSum, setRecurring } from "../../../store/donation/actions";
 import { nextPane } from "../../../store/layout/actions";
 import { RecurringDonation } from "../../../types/Enums";
-import {
-  ActionBar,
-  CauseAreasWrapper,
-  RecurringSelectionWrapper,
-  TotalAmountWrapper,
-} from "../AmountPane.style";
 import {
   AmountContext,
   OperationsConfig,
@@ -27,6 +20,8 @@ import { useAmountCalculation } from "./useAmountCalculation";
 import { thousandize } from "../../../../../../../util/formatting";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
 import { usePrefilledCauseAreaIds } from "../../hooks";
+import panes from "../Panes.module.scss";
+import styles from "../AmountPane.module.scss";
 
 interface AmountPaneProps {
   nextButtonText: string;
@@ -80,10 +75,10 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
   if (!causeAreaDisplayConfig) return <span>Missing cause area display config</span>;
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         <div>
-          <RecurringSelectionWrapper>
+          <div className={styles.recurringSelectionWrapper}>
             <RadioButtonGroup
               options={[
                 {
@@ -102,9 +97,9 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
               selected={recurring}
               onSelect={(val: RecurringDonation) => dispatch(setRecurring(val))}
             />
-          </RecurringSelectionWrapper>
+          </div>
 
-          <CauseAreasWrapper>
+          <div className={styles.causeAreasWrapper}>
             {/* For multiple cause areas */}
             {selectionType === "multiple" && selectedCauseAreaId !== -1 && (
               <>
@@ -138,10 +133,10 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
                     />
                   ))}
                 <GlobalCutToggle operationsConfig={operationsConfig} />
-                <TotalAmountWrapper data-cy="total-amount-wrapper">
+                <div className={styles.totalAmountWrapper} data-cy="total-amount-wrapper">
                   <div>{uiLabels?.total_label}</div>
                   <div>{thousandize(totalAmount)} kr</div>
-                </TotalAmountWrapper>
+                </div>
               </>
             )}
 
@@ -190,15 +185,15 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
                 <GlobalCutToggle operationsConfig={operationsConfig} />
               </>
             )}
-          </CauseAreasWrapper>
+          </div>
         </div>
 
-        <ActionBar>
+        <div className={styles.actionBar}>
           <NextButton disabled={effectiveTotal <= 0} onClick={handleNext} data-cy="next-button">
             {nextButtonText}
           </NextButton>
-        </ActionBar>
-      </PaneContainer>
-    </Pane>
+        </div>
+      </div>
+    </div>
   );
 };

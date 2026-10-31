@@ -6,21 +6,6 @@ import { PortableText } from "@portabletext/react";
 import { Dispatch } from "@reduxjs/toolkit";
 import AnimateHeight from "react-animate-height";
 
-import { Pane, PaneContainer, PaneTitle } from "../Panes.style";
-import {
-  ActionBar,
-  AmountInputSection,
-  InfoParagraph,
-  ShareContainer,
-  ShareInputContainer,
-  ShareLink,
-  ShareSelectionSpacer,
-  ShareSelectionWrapper,
-  SharesSelectorContainer,
-  ShowAllOrganizationsLink,
-  SumButtonsWrapper,
-  SumWrapper,
-} from "./SingleCauseAreaPane.style";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
 import { ToolTip } from "../../shared/ToolTip/ToolTip";
 import { Spinner } from "../../../../Spinner/Spinner";
@@ -45,6 +30,8 @@ import { useAmountCalculation } from "../AmountPane/useAmountCalculation";
 import { AmountContext, SmartDistributionContext } from "../../../types/WidgetProps";
 import { useIsMobile } from "../../../../../../../hooks/useIsMobile";
 import { splitAmountByShares, standardShareByOrgId } from "../../../utils/donationCalculations";
+import panes from "../Panes.module.scss";
+import styles from "./SingleCauseAreaPane.module.scss";
 
 interface SingleCauseAreaPaneProps {
   nextButtonText: string;
@@ -125,8 +112,8 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
 
   if (!causeAreas) {
     return (
-      <Pane>
-        <PaneContainer>
+      <div className={panes.pane}>
+        <div className={panes.paneContainer}>
           <div
             style={{
               display: "flex",
@@ -137,18 +124,18 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
           >
             <Spinner />
           </div>
-        </PaneContainer>
-      </Pane>
+        </div>
+      </div>
     );
   }
 
   if (!causeArea) {
     return (
-      <Pane>
-        <PaneContainer>
+      <div className={panes.pane}>
+        <div className={panes.paneContainer}>
           <div>Missing cause area</div>
-        </PaneContainer>
-      </Pane>
+        </div>
+      </div>
     );
   }
 
@@ -203,7 +190,7 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
 
   const amountInput = (
     <>
-      <SumButtonsWrapper>
+      <div className={styles.sumButtonsWrapper}>
         {suggestedSums.map((suggested) => (
           <div key={suggested.amount}>
             <EffektButton
@@ -219,8 +206,8 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
             {suggested.subtext && <i>{suggested.subtext}</i>}
           </div>
         ))}
-      </SumButtonsWrapper>
-      <SumWrapper>
+      </div>
+      <div className={styles.sumWrapper}>
         <label>{amountContext.custom_amount_text}</label>
         <span>
           <NumericFormat
@@ -236,17 +223,17 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
             onValueChange={(values) => setAmount(values.floatValue ?? 0)}
           />
         </span>
-      </SumWrapper>
+      </div>
     </>
   );
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         <div>
-          <PaneTitle>
+          <h2 className={panes.paneTitle}>
             <wbr />
-          </PaneTitle>
+          </h2>
 
           <RadioButtonGroup
             options={[
@@ -268,11 +255,19 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
           />
 
           <AnimateHeight height={hideAmountInput ? 0 : "auto"} animateOpacity duration={300}>
-            <AmountInputSection $padBottom={!hasMultipleOrgs}>{amountInput}</AmountInputSection>
+            <div
+              className={
+                hasMultipleOrgs
+                  ? styles.amountInputSection
+                  : `${styles.amountInputSection} ${styles.amountInputSectionPadBottom}`
+              }
+            >
+              {amountInput}
+            </div>
           </AnimateHeight>
 
           {hasMultipleOrgs && (
-            <ShareSelectionSpacer>
+            <div className={styles.shareSelectionSpacer}>
               <RadioButtonGroup
                 options={[
                   {
@@ -300,11 +295,11 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
                 animateOpacity
                 duration={300}
               >
-                <InfoParagraph>
+                <div className={styles.infoParagraph}>
                   {smartDistributionContext.smart_distribution_description && (
                     <PortableText value={smartDistributionContext.smart_distribution_description} />
                   )}
-                </InfoParagraph>
+                </div>
               </AnimateHeight>
 
               <AnimateHeight
@@ -312,24 +307,25 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
                 animateOpacity
                 duration={300}
               >
-                <SharesSelectorContainer>
-                  <ShareSelectionWrapper>
-                    <ShareContainer>
+                <div className={styles.sharesSelectorContainer}>
+                  <div className={styles.shareSelectionWrapper}>
+                    <div className={styles.shareContainer}>
                       {(hasPrefilledOrgs && !showAllOrganizations
                         ? activeOrganizations.filter(
                             (org) => prefilledShares?.[org.id] !== undefined,
                           )
                         : activeOrganizations
                       ).map((org) => (
-                        <ShareInputContainer key={org.id}>
+                        <div className={styles.shareInputContainer} key={org.id}>
                           <div>
-                            <ShareLink
+                            <a
+                              className={styles.shareLink}
                               href={org.informationUrl}
                               target={isMobile ? "_blank" : undefined}
                               rel={isMobile ? "noopener noreferrer" : undefined}
                             >
                               {org.widgetDisplayName || org.name}
-                            </ShareLink>
+                            </a>
                             {org.widgetContext && <ToolTip text={org.widgetContext} />}
                           </div>
                           <NumericFormat
@@ -358,26 +354,27 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
                               dispatch(setOrgAmount(org.id, values.floatValue ?? 0));
                             }}
                           />
-                        </ShareInputContainer>
+                        </div>
                       ))}
-                    </ShareContainer>
+                    </div>
                     {hasPrefilledOrgs && !showAllOrganizations && (
-                      <ShowAllOrganizationsLink
+                      <button
+                        className={styles.showAllOrganizationsLink}
                         type="button"
                         onClick={() => dispatch(setShowAllOrganizations(true))}
                         data-cy="show-all-organizations-button"
                       >
                         {smartDistributionContext.show_all_organizations_text} ↓
-                      </ShowAllOrganizationsLink>
+                      </button>
                     )}
-                  </ShareSelectionWrapper>
-                </SharesSelectorContainer>
+                  </div>
+                </div>
               </AnimateHeight>
-            </ShareSelectionSpacer>
+            </div>
           )}
         </div>
 
-        <ActionBar>
+        <div className={styles.actionBar}>
           <NextButton
             // Matches the pre-rewrite behavior: don't dim the button just
             // because no amount has been entered yet - only after the donor
@@ -400,8 +397,8 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
           >
             {nextButtonText}
           </NextButton>
-        </ActionBar>
-      </PaneContainer>
-    </Pane>
+        </div>
+      </div>
+    </div>
   );
 };

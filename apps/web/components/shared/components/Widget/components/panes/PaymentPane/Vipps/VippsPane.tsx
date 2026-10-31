@@ -6,14 +6,14 @@ import { draftAgreementAction, setVippsAgreement } from "../../../../store/donat
 import { State } from "../../../../store/state";
 import { RecurringDonation } from "../../../../types/Enums";
 import { SubmitButton } from "../../../shared/Buttons/NavigationButtons";
-import { CenterDiv, Pane, PaneContainer, PaneTitle } from "../../Panes.style";
 import { VippsDatePicker } from "./VippsDatePicker/VippsDatePicker";
-import { VippsButtonWrapper } from "./VippsPane.style";
 import { VippsPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
 import { usePlausible } from "next-plausible";
 import { Dispatch } from "@reduxjs/toolkit";
 import { DonationActionTypes } from "../../../../store/donation/types";
 import { Action } from "typescript-fsa";
+import panes from "../../Panes.module.scss";
+import payment from "../PaymentPane.module.scss";
 
 export const VippsPane: React.FC<{
   referrals: WidgetPane3ReferralsProps;
@@ -26,12 +26,12 @@ export const VippsPane: React.FC<{
   const plausible = usePlausible();
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         {recurring === RecurringDonation.RECURRING && (
           <>
             <div>
-              <PaneTitle>{config.recurring_title}</PaneTitle>
+              <h2 className={panes.paneTitle}>{config.recurring_title}</h2>
               <div style={{ paddingTop: 20, marginBottom: 30 }}>
                 <RadioButtonGroup
                   options={[
@@ -56,7 +56,7 @@ export const VippsPane: React.FC<{
                 <VippsDatePicker config={config.recurring_selector_date_picker_configuration} />
               )}
             </div>
-            <CenterDiv>
+            <div className={panes.centerDiv}>
               <div data-cy="vipps-recurring-button" style={{ marginBottom: 30 }}>
                 <SubmitButton
                   onClick={async () => {
@@ -70,16 +70,16 @@ export const VippsPane: React.FC<{
                   {config.recurring_button_text}
                 </SubmitButton>
               </div>
-            </CenterDiv>
+            </div>
           </>
         )}
         {recurring === RecurringDonation.NON_RECURRING && (
           <>
             <div>
-              <PaneTitle>{config.single_title}</PaneTitle>
+              <h2 className={panes.paneTitle}>{config.single_title}</h2>
             </div>
-            <CenterDiv>
-              <VippsButtonWrapper data-cy="vipps-single-button">
+            <div className={panes.centerDiv}>
+              <div className={payment.vippsButtonWrapper} data-cy="vipps-single-button">
                 <SubmitButton
                   onClick={async () => {
                     plausible("InitiateSingleVippsPayment");
@@ -91,8 +91,8 @@ export const VippsPane: React.FC<{
                 >
                   {config.single_button_text}
                 </SubmitButton>
-              </VippsButtonWrapper>
-            </CenterDiv>
+              </div>
+            </div>
           </>
         )}
 
@@ -104,7 +104,7 @@ export const VippsPane: React.FC<{
             }}
           />
         )}
-      </PaneContainer>
-    </Pane>
+      </div>
+    </div>
   );
 };

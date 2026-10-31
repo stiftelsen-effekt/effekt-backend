@@ -1,19 +1,18 @@
-import styled from "styled-components";
-
-export const InputFieldWrapper = styled.div`
+.inputFieldWrapper {
   display: flex;
   flex-direction: column;
   margin-bottom: 20px;
-`;
+}
 
-export const CheckBoxWrapper = styled.div`
+.checkBoxWrapper {
   display: inline-flex;
   vertical-align: middle;
   margin-bottom: 12px;
   position: relative;
-`;
+}
 
-export const HiddenCheckBox = styled.input`
+/* An invisible native checkbox over CustomCheckBox, which draws the box */
+.hiddenCheckBox {
   position: absolute;
   margin: 5px;
   margin-left: 0;
@@ -29,4 +28,4 @@ export const HiddenCheckBox = styled.input`
   &:active + span > div > span {
     outline: none;
   }
-`;
+}

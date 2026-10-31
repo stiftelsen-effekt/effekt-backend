@@ -1,0 +1,34 @@
+.icon {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  display: inline-flex;
+  background-size: contain;
+  background-repeat: no-repeat;
+  border: none;
+  filter: var(--cause-area-icon-filter, invert(0));
+}
+
+.globalHealth {
+  background-image: url("/images/cause-areas/global-health.png");
+}
+
+.futureGenerations {
+  background-image: url("/images/cause-areas/future-generations.png");
+}
+
+.animalWelfare {
+  background-image: url("/images/cause-areas/animal-welfare.png");
+}
+
+.other {
+  background-image: url("/images/cause-areas/other.png");
+}
+
+.operations {
+  background-image: url("/images/cause-areas/operations.png");
+}
+
+.multiple {
+  background-image: url("/images/cause-areas/multiple-cause-area.png");
+}

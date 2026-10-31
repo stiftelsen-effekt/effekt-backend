@@ -1,4 +1,5 @@
 import { groq } from "next-sanity";
+import Link from "next/link";
 import { createContext, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getClient } from "../../../../../lib/sanity.client";
@@ -23,11 +24,6 @@ import { ProgressBar } from "./shared/ProgressBar/ProgressBar";
 import { ApiErrorNotification } from "./shared/ApiErrorNotification/ApiErrorNotification";
 import { token } from "../../../../../token";
 import {
-  TooltipContent,
-  TooltipLink,
-  TooltipWrapper,
-} from "./shared/ProgressBar/ProgressBar.style";
-import {
   useAvailablePaymentMethods,
   useAvailableRecurringOptions,
   useDefaultPaymentMethodEffect,
@@ -43,6 +39,7 @@ import { useElementHeight } from "../../../../../hooks/useElementHeight";
 import { PrefilledDistribution } from "../../../../main/layout/WidgetPane/WidgetPane";
 import { RecurringDonation } from "../types/Enums";
 import { applyWidgetDefaults, DEFAULT_OPERATIONS_CONFIG } from "../utils/widgetDefaults";
+import progressBar from "./shared/ProgressBar/ProgressBar.module.scss";
 
 export const widgetContentQuery = groq`
   ...,
@@ -266,14 +263,14 @@ export const Widget = withStaticProps(
       >
         <WidgetTooltipContext.Provider value={[tooltip, setTooltip]}>
           {tooltip !== null && (
-            <TooltipWrapper top={20 + 0}>
-              <TooltipContent>{tooltip.text}</TooltipContent>
+            <div className={progressBar.tooltipWrapper}>
+              <div className={progressBar.tooltipContent}>{tooltip.text}</div>
               {tooltip.link && (
-                <TooltipLink href={tooltip.link} target="_blank">
+                <Link className={progressBar.tooltipLink} href={tooltip.link} target="_blank">
                   {tooltipReadmoreText} ↗
-                </TooltipLink>
+                </Link>
               )}
-            </TooltipWrapper>
+            </div>
           )}
           <ApiErrorNotification genericErrorMessage={widget.api_generic_error_message} />
           {/*(() => {
