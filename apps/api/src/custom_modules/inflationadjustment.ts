@@ -115,9 +115,8 @@ export async function getAllInflationEligibleAgreements() {
   const now = DateTime.now();
 
   // Assume these DAO calls exist
-  let [avtaleGiroAgreements, autoGiroAgreements, vippsAgreements] = await Promise.all([
+  let [avtaleGiroAgreements, vippsAgreements] = await Promise.all([
     DAO.avtalegiroagreements.getActiveAgreements(),
-    DAO.autogiroagreements.getActiveAgreements(),
     DAO.vipps.getActiveAgreements(),
   ]);
 
@@ -135,10 +134,6 @@ export async function getAllInflationEligibleAgreements() {
   );
   avtaleGiroAgreements = avtaleGiroAgreements.filter(
     (agreement) => !pendingAgreementIDsSet.has(`${agreementType.avtaleGiro}-${agreement.ID}`),
-  );
-
-  autoGiroAgreements = autoGiroAgreements.filter(
-    (agreement) => !pendingAgreementIDsSet.has(`${agreementType.autoGiro}-${agreement.ID}`),
   );
 
   vippsAgreements = vippsAgreements.filter(
@@ -170,24 +165,8 @@ export async function getAllInflationEligibleAgreements() {
     }
   }
 
-  // Process AutoGiro agreements
-  for (const agreement of autoGiroAgreements) {
-    let donor = await DAO.donors.getByKID(agreement.KID);
-    if (donor!.id === ANON_DONOR_ID) continue; // Skip anonymous donors
-    const eligible = await isEligibleForAdjustment(
-      {
-        ...agreement,
-        amount: agreement.amount / 100,
-        last_updated: agreement.last_updated!,
-        type: agreementType.autoGiro,
-      },
-      now,
-    );
-    if (eligible) {
-      eligibleAgreements.autoGiro.push(eligible);
-    }
-  }
-
+  // AutoGiro agreements (Sweden) are not adjusted: their amounts are whole SEK, and the
+  // adjustment uses Norwegian CPI and NOK thresholds
   // Process Vipps agreements
   for (const agreement of vippsAgreements) {
     if (agreement.donorID === ANON_DONOR_ID) continue; // Skip anonymous donors
@@ -208,16 +187,6 @@ export async function getAllInflationEligibleAgreements() {
     await DAO.inflationadjustments.createAdjustment({
       agreementId: eligibleAgreement.ID,
       agreementType: agreementType.avtaleGiro,
-      currentAmount: eligibleAgreement.amount * 100,
-      proposedAmount: eligibleAgreement.currentInflationAdjustedAmount * 100,
-      inflationPercentage: eligibleAgreement.percentageIncrease,
-    });
-  }
-
-  for (const eligibleAgreement of eligibleAgreements.autoGiro) {
-    await DAO.inflationadjustments.createAdjustment({
-      agreementId: eligibleAgreement.ID,
-      agreementType: agreementType.autoGiro,
       currentAmount: eligibleAgreement.amount * 100,
       proposedAmount: eligibleAgreement.currentInflationAdjustedAmount * 100,
       inflationPercentage: eligibleAgreement.percentageIncrease,

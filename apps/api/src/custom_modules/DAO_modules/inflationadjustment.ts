@@ -88,22 +88,31 @@ export const inflationadjustments = {
   },
 
   /**
-   * Accept an adjustment and update the corresponding agreement
+   * Marks a pending, unexpired adjustment as accepted. Returns false if the token is unknown,
+   * the adjustment isn't pending (e.g. already accepted) or it has expired. This is the claim
+   * that makes accepting idempotent: only one request can move it out of pending.
    */
   acceptAdjustment: async function (token: string): Promise<boolean> {
-    try {
-      // Update adjustment status
-      const [res] = await DAO.query(
-        `UPDATE Agreement_inflation_adjustments 
-         SET status = 'accepted', updated = NOW() 
-         WHERE token = ?`,
-        [token],
-      );
+    const [res] = await DAO.query(
+      `UPDATE Agreement_inflation_adjustments
+       SET status = 'accepted', updated = NOW()
+       WHERE token = ? AND status = 'pending' AND expires > UTC_TIMESTAMP()`,
+      [token],
+    );
+    return res.affectedRows === 1;
+  },
 
-      return res.affectedRows > 0;
-    } catch (error) {
-      throw error;
-    }
+  /**
+   * Puts an accepted adjustment back to pending, when the agreement could not be updated
+   */
+  releaseAcceptedAdjustment: async function (token: string): Promise<boolean> {
+    const [res] = await DAO.query(
+      `UPDATE Agreement_inflation_adjustments
+       SET status = 'pending', updated = NOW()
+       WHERE token = ? AND status = 'accepted'`,
+      [token],
+    );
+    return res.affectedRows === 1;
   },
 
   /**
