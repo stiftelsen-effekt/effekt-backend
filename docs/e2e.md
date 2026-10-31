@@ -55,7 +55,8 @@ fall back to rendering without the figures.
 
 In CI (`web-e2e-fullstack.yml`) the backend services run from the plain `node:24.22.1` image with
 the runner's own install mounted (`E2E_BACKEND_FROM_HOST=1`, `compose.e2e-ci.yml`) instead of from
-the `effekt-backend-dev:local` image: the runner's `pnpm install` already includes the API
+the `effekt-backend-dev:local` image, read-only, with `scripts/e2e/pnpm-exec.sh` as their `pnpm`
+(real pnpm would reinstall the workspace into the mount): the runner's `pnpm install` already includes the API
 package, and getting the image from a layer cache and loading it into Docker took ~45s. That only
 works on Linux x64 (native builds such as Prisma's engines); locally the script builds the image
 as before. The stack's images are pulled in the background while the job sets up Node.

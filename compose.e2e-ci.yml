@@ -14,14 +14,11 @@
 x-from-host: &from-host
   image: node:24.22.1
   pull_policy: missing
-  # The commands run `pnpm exec`; the image has corepack, but no pnpm on the PATH
-  entrypoint: ["sh", "-c", 'corepack enable && exec "$$@"', "--"]
-  environment:
-    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
-    COREPACK_HOME: /corepack
+  # Read-only: nothing in these containers may change the runner's install. The commands' `pnpm
+  # exec` is a stand-in (pnpm itself would reinstall the workspace into the mount).
   volumes:
-    - .:/app
-    - corepack:/corepack
+    - .:/app:ro
+    - ./scripts/e2e/pnpm-exec.sh:/usr/local/bin/pnpm:ro
 
 services:
   migrate:
@@ -34,6 +31,3 @@ services:
   api:
     <<: *from-host
     build: !reset null
-
-volumes:
-  corepack:

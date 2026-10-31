@@ -95,7 +95,9 @@ if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then
     pnpm --filter main-site types:api &&
       E2E_DEFER_API_PAGES=1 pnpm --filter main-site exec next build
   } >"$LOG_DIR/web-build.log" 2>&1 || {
-    tail -50 "$LOG_DIR/web-build.log" >&2
+    # The first errors (stack traces can push them out of the tail), then the tail
+    grep -m 10 -E "Error|⨯" "$LOG_DIR/web-build.log" >&2 || true
+    tail -30 "$LOG_DIR/web-build.log" >&2
     exit 1
   }
   echo "    web built in $(elapsed "$tb")"
