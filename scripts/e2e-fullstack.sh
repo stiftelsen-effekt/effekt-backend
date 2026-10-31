@@ -10,7 +10,13 @@
 #   E2E_KEEP_UP=1      leave the stack and the web server running afterwards (for `cypress open`)
 #   E2E_SKIP_BUILD=1   reuse the existing apps/web/.next build (same ports as the last build)
 #   E2E_SKIP_STACK_BUILD=1
-#                      use the effekt-backend-dev:local image as it is (CI builds it with a layer cache)
+#                      use the effekt-backend-dev:local image as it is, without building it
+#   E2E_BACKEND_FROM_HOST=1
+#                      run the backend from node:24.22.1 with this checkout's install mounted
+#                      (compose.e2e-ci.yml; Linux x64 only, as in CI) instead of from that image
+#   E2E_WAIT_FOR=<file>
+#                      wait (up to 3 min) until this file exists before starting the stack: CI
+#                      starts db, auth and oidc ahead in the background and writes it when done
 #   E2E_WEB_PORT (3100), E2E_API_PORT (5150), E2E_AUTH_PORT (8191), E2E_DB_PORT (3317)
 #
 # The production build is written to apps/web/.next, replacing any earlier `next build`.
@@ -25,7 +31,11 @@ export E2E_DB_PORT="${E2E_DB_PORT:-3317}"
 LOG_DIR="${E2E_LOG_DIR:-apps/web/cypress/logs}"
 mkdir -p "$LOG_DIR"
 
-compose() { docker compose -f compose.dev.yml -f compose.e2e.yml "$@"; }
+COMPOSE_FILES=(-f compose.dev.yml -f compose.e2e.yml)
+if [ "${E2E_BACKEND_FROM_HOST:-0}" = "1" ]; then
+  COMPOSE_FILES+=(-f compose.e2e-ci.yml)
+fi
+compose() { docker compose "${COMPOSE_FILES[@]}" "$@"; }
 
 WEB_PID=""
 cleanup() {
@@ -51,12 +61,17 @@ elapsed() { echo "$(($(date +%s) - $1))s"; }
 t=$(timer)
 echo "==> Starting backend stack (db, migrate + seed, auth, oidc, api) in the background"
 # Build first: migrate and api share one image tag, building it from both at once can race.
-if [ "${E2E_SKIP_STACK_BUILD:-0}" != "1" ]; then
+if [ "${E2E_SKIP_STACK_BUILD:-0}" != "1" ] && [ "${E2E_BACKEND_FROM_HOST:-0}" != "1" ]; then
   compose build migrate
 fi
-# The stack starts while the tRPC types build below; the web build waits for it, because static
-# generation reads from the API (a fundraiser page).
-compose up -d --wait >"$LOG_DIR/stack-up.log" 2>&1 &
+# The stack starts while the web app builds below. The fundraiser pages, which read the API, are
+# left out of the build (E2E_DEFER_API_PAGES) and rendered on first request, once it is up.
+{
+  if [ -n "${E2E_WAIT_FOR:-}" ]; then
+    for _ in $(seq 1 180); do [ -e "$E2E_WAIT_FOR" ] && break; sleep 1; done
+  fi
+  compose up -d --wait
+} >"$LOG_DIR/stack-up.log" 2>&1 &
 STACK_PID=$!
 
 # Public, non-secret build settings. Content comes read-only from the production Sanity dataset
@@ -80,26 +95,22 @@ wait_for_stack() {
 }
 
 if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then
-  echo "==> Building the tRPC types"
-  # As `pnpm build` does: without dist-types the tRPC client is untyped (docs/web-trpc.md)
-  pnpm build:types >"$LOG_DIR/web-build.log" 2>&1 || {
-    tail -50 "$LOG_DIR/web-build.log" >&2
-    exit 1
-  }
-  wait_for_stack
   tb=$(timer)
-  echo "==> Building apps/web (next build)"
-  # `next build` directly: the package's prebuild step builds the Sanity studio, not needed here.
-  # CI=1 turns on the build's shared Sanity fetch cache (apps/web/lib/sanity.client.ts), as on
-  # Vercel; GitHub Actions sets CI=true.
-  CI=1 pnpm --filter main-site exec next build >>"$LOG_DIR/web-build.log" 2>&1 || {
-    tail -50 "$LOG_DIR/web-build.log" >&2
+  echo "==> Building the tRPC types and apps/web (next build), while the stack starts"
+  # As `pnpm build` does, without the prebuild step (the Sanity studio, not needed here). The types
+  # come from .next/cache when the API is unchanged (apps/web/build-api-types.mjs).
+  {
+    pnpm --filter main-site types:api &&
+      E2E_DEFER_API_PAGES=1 pnpm --filter main-site exec next build
+  } >"$LOG_DIR/web-build.log" 2>&1 || {
+    # The first errors (stack traces can push them out of the tail), then the tail
+    grep -m 10 -E "Error|⨯" "$LOG_DIR/web-build.log" >&2 || true
+    tail -30 "$LOG_DIR/web-build.log" >&2
     exit 1
   }
   echo "    web built in $(elapsed "$tb")"
-else
-  wait_for_stack
 fi
+wait_for_stack
 
 echo "==> Serving apps/web on http://localhost:${E2E_WEB_PORT}"
 pnpm --filter main-site exec next start -p "$E2E_WEB_PORT" >"$LOG_DIR/web.log" 2>&1 &

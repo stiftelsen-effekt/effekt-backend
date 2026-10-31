@@ -12,6 +12,7 @@ on:
       - "apps/api/**"
       - "compose.dev.yml"
       - "compose.e2e.yml"
+      - "compose.e2e-ci.yml"
       - ".env.docker"
       - "scripts/e2e-fullstack.sh"
       - "package.json"
@@ -19,7 +20,7 @@ on:
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-e2e-fullstack.yml"
   # Also on main: GitHub Actions caches made on main are the ones every PR can restore (the
-  # backend image layers, the Next.js build cache, the Cypress binary).
+  # Next.js build cache, the Cypress binary).
   push:
     branches: [main]
     paths:
@@ -27,6 +28,7 @@ on:
       - "apps/api/**"
       - "compose.dev.yml"
       - "compose.e2e.yml"
+      - "compose.e2e-ci.yml"
       - ".env.docker"
       - "scripts/e2e-fullstack.sh"
       - "package.json"
@@ -46,6 +48,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The stack's images (MySQL, the mock OIDC issuer, nginx, Node) download, and the services
+      # that need nothing from the install (db, auth, oidc) start, while the next steps set up
+      # Node and install. The e2e step waits for this to finish before its own `compose up`.
+      - name: Start the database and OIDC issuer in the background
+        run: |
+          (
+            compose() { docker compose -f compose.dev.yml -f compose.e2e.yml -f compose.e2e-ci.yml "$@"; }
+            compose pull --quiet && compose up -d db auth oidc
+            echo "$?" >"$RUNNER_TEMP/e2e-early-stack.done"
+          ) >"$RUNNER_TEMP/e2e-early-stack.log" 2>&1 &
       # The pnpm version comes from packageManager in the root package.json.
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -70,35 +82,20 @@ jobs:
           restore-keys: |
             web-next-e2e-${{ hashFiles('pnpm-lock.yaml') }}-
             web-next-e2e-
-      # The website (and Cypress), plus the API package for mysql2, which the Cypress
-      # resetE2EData task uses to rewrite the seed data (apps/api/prisma/e2e/seed.mjs), and for
-      # the tRPC type build (pnpm build:types).
+      # The website (and Cypress), plus the API package: for the tRPC type build, for mysql2,
+      # which the Cypress resetE2EData task uses to rewrite the seed data
+      # (apps/api/prisma/e2e/seed.mjs), and as the backend's install, mounted into the stack's
+      # migrate, seed-e2e and api containers (compose.e2e-ci.yml).
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
           pnpm --filter main-site exec cypress cache prune
-      # The backend dev image (compose.dev.yml, used by migrate, seed-e2e and api), built from the
-      # compose file with its layers cached in GitHub Actions. Without the cache its dependency
-      # install alone takes about a minute.
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build the backend dev image
-        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
-        with:
-          source: .
-          files: |
-            compose.dev.yml
-            compose.e2e.yml
-          targets: migrate
-          load: true
-          set: |
-            migrate.cache-from=type=gha,scope=e2e-backend-dev
-            migrate.cache-to=type=gha,scope=e2e-backend-dev,mode=max
       # Brings the stack up, builds and serves the web app, runs Cypress and tears down.
       - name: Run full-stack e2e
         run: pnpm e2e:fullstack
         env:
-          E2E_SKIP_STACK_BUILD: "1"
+          E2E_BACKEND_FROM_HOST: "1"
+          E2E_WAIT_FOR: ${{ runner.temp }}/e2e-early-stack.done
       - name: Upload screenshots and logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
