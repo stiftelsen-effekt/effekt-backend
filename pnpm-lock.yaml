@@ -693,9 +693,6 @@ importers:
       react-youtube:
         specifier: ^10.1.0
         version: 10.1.0(react@19.3.1)(supports-color@8.1.1)
-      redux:
-        specifier: ^5.0.1
-        version: 5.0.1
       redux-saga:
         specifier: ^1.5.1
         version: 1.5.1
@@ -10213,7 +10210,7 @@ packages:
   react-redux@9.3.0:
     resolution: {integrity: sha512-KQopgqFo/p/fgmAs5qz6p5RWaNAzq40WAu7fJIXnQpYxFPbJYtsJPWvGeF2rOBaY/kEuV77AVsX8TsQzKm+A/g==}
     peerDependencies:
-      '@types/react': ^18.2.25 || ^19
+      '@types/react': ^19.3.0
       react: ^18.0 || ^19
       redux: ^5.0.0
     peerDependenciesMeta:
