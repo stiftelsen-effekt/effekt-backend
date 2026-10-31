@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "lint": "pnpm -r --if-present lint",
+    "lint": "oxlint",
     "typecheck": "pnpm build:types && pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "build": "pnpm -r --if-present build",
@@ -48,9 +48,11 @@
   "devDependencies": {
     "husky": "^8.0.3",
     "lint-staged": "^17.6.0",
+    "oxlint": "catalog:",
     "prettier": "catalog:"
   },
   "lint-staged": {
+    "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": "oxlint",
     "*": "prettier --write --ignore-unknown",
     "schema.prisma": "pnpm --dir apps/api exec prisma format --schema"
   },

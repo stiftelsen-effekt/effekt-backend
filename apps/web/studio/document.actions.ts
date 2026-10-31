@@ -22,6 +22,8 @@ export const documentActions: (
     const prevWithoutPublish = prev.filter((item) => item.action !== "publish");
 
     const publishWrapper: DocumentActionComponent = (props: DocumentActionProps) => {
+      // A Sanity document action is a hook-style component, so it may use hooks
+      // oxlint-disable-next-line react-hooks/rules-of-hooks
       const [dialogOpen, setDialogOpen] = useState(false);
       const publishAction = publish(props);
 
