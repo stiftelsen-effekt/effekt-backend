@@ -55,6 +55,13 @@ for (const path of files(studio)) {
 }
 const key = hash.digest("hex").slice(0, 32);
 const cached = join(cacheRoot, key);
+const present = existsSync(cacheRoot) ? readdirSync(cacheRoot) : [];
+// Names only (never values), to see why a build doesn't match the cached one
+console.log(
+  `Studio build key ${key}; cached: ${present.join(", ") || "none"}; env: ${buildEnv()
+    .map((entry) => entry.split("=")[0])
+    .join(", ")}`,
+);
 
 if (existsSync(join(cached, "index.html"))) {
   rmSync(output, { recursive: true, force: true });
