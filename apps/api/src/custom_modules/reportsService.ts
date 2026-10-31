@@ -172,7 +172,9 @@ export async function processVippsReport(
       }
 
       try {
-        if (config.env === "production") sendDonationReceipt(donationID);
+        if (donationID != null && config.env === "production") {
+          await sendDonationReceipt(donationID);
+        }
       } catch (ex) {
         console.error("Failed to send donation reciept");
         console.error(ex);
