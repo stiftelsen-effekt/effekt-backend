@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useRef } from "react";
-import { GoogleAnalytics } from "../GoogleAnalytics";
 import { GoogleTagManager } from "../GoogleTagManager";
 import styles from "./CookieBanner.module.scss";
 import { LinkComponent } from "../../../main/blocks/Links/Links";
@@ -41,7 +40,6 @@ export const CookieBanner: React.FC<{
   }, [bannerContext.consentState]);
 
   if (!configuration) return null;
-  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
   const hotjarId = process.env.NEXT_PUBLIC_HOTJAR_ID;
   const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -77,7 +75,6 @@ export const CookieBanner: React.FC<{
       {bannerContext.consentState === "accepted" && !bannerContext.consentExpired && tracking && (
         <>
           {gtmId ? <GoogleTagManager gtmId={gtmId} /> : null}
-          {gaMeasurementId ? <GoogleAnalytics gaMeasurementId={gaMeasurementId} /> : null}
           {hotjarId ? <HotJar hotjarId={hotjarId} /> : null}
           {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
         </>
