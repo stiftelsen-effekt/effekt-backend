@@ -137,5 +137,3 @@ substitutions:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  # The default machine has 2 vCPUs; the image build (pnpm install, tsc) is CPU-bound
-  machineType: E2_HIGHCPU_8
