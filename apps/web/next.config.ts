@@ -1,4 +1,7 @@
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { withPlausibleProxy } from "next-plausible";
 import { getPlausibleScriptSrc, PLAUSIBLE_PROXY_PATHS } from "./lib/plausible";
 
@@ -47,7 +50,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["react-feather"],
     inlineCss: true,
-    staticGenerationMinPagesPerWorker: Number.MAX_SAFE_INTEGER, // Do all static generation in a single worker
   },
   turbopack: {},
   compiler: {
@@ -920,6 +922,22 @@ const nextConfig: NextConfig = {
   },
 };
 
-module.exports = (phase: any, defaultConfig: NextConfig) => {
+module.exports = (phase: string) => {
+  if (phase === PHASE_PRODUCTION_BUILD) prepareSanityBuildCache();
   return withPlausibleProxy({ src: getPlausibleScriptSrc(), ...PLAUSIBLE_PROXY_PATHS })(nextConfig);
 };
+
+/**
+ * A fresh directory for this build's Sanity answers (lib/sanity.client.ts), shared by the static
+ * generation workers, which inherit the environment variable. Earlier builds' answers are deleted
+ * first: .next/cache is kept between builds (on Vercel too), and content must never come from one.
+ * The config is evaluated again in the workers; they keep the directory they inherited.
+ */
+function prepareSanityBuildCache() {
+  if (process.env.SANITY_BUILD_CACHE_DIR) return;
+  const root = join(process.cwd(), ".next", "cache", "sanity-fetch");
+  rmSync(root, { recursive: true, force: true });
+  const dir = join(root, `${Date.now()}-${process.pid}`);
+  mkdirSync(dir, { recursive: true });
+  process.env.SANITY_BUILD_CACHE_DIR = dir;
+}

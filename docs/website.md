@@ -34,7 +34,9 @@ pnpm web:dev            # from the repo root; http://localhost:3000
 
 ## Sanity Studio
 
-The Studio lives in `apps/web/studio`, a package of the pnpm workspace (`effekt-studio`, with its own `typecheck`, `test` and `lint`). It is built into `public/studio` by every site build (`prebuild`, `apps/web/build-studio.mjs`), which installs its dependencies first: the website's own install leaves them out. A build reuses the previous Studio build, kept in `.next/cache/studio`, when the files in `studio/`, the workspace lockfile and the Studio's build environment are unchanged.
+The Studio lives in `apps/web/studio`, a package of the pnpm workspace (`effekt-studio`, with its own `typecheck`, `test` and `lint`). It is built into `public/studio` by every site build (`prebuild`, `apps/web/build-studio.mjs`), which installs its dependencies first: the website's own install leaves them out. A build reuses the previous Studio build, kept in `.next/cache/studio`, when the files in `studio/` and `packages/config`, the packages the lockfile resolves for the Studio (its dependency closure, not the whole lockfile) and the Studio's build environment are unchanged.
+
+During `next build`, Sanity answers are shared between pages and between the static generation workers (`apps/web/lib/sanity.client.ts`): one request per query, kept in memory and in a directory under `.next/cache/sanity-fetch` that `next.config.ts` empties and recreates at the start of every build. Nothing is reused across builds, at runtime, or by preview (draft) clients. A production build fetches each of its ~200 distinct queries about once for ~600 pages.
 Only `SANITY_STUDIO_*` variables reach it; `studio/sanity.cli.ts` maps a few of the site's variables to
 those names. Run these in `apps/web` (you need a Sanity user; ask in the tech channel):
 

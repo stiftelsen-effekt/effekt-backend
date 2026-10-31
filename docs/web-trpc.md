@@ -66,7 +66,9 @@ permission or another donor's id is `FORBIDDEN` (403; REST answers 401 for both)
 `pnpm build:types` (root) emits the router's declarations to `apps/api/dist-types/`, as for the admin.
 `packages/api/index.d.ts` re-exports `AppRouter` from there, and apps/web has `@effekt/api` as a
 workspace dev dependency. apps/web runs the type build itself: `pnpm typecheck` and `pnpm build`
-both start with `pnpm types:api`, which compiles with the API package's dependencies. So every
+both start with `pnpm types:api` (`apps/web/build-api-types.mjs`), which compiles with the API package's
+dependencies and keeps the output in `.next/cache/api-types`, reused while the API's sources, Prisma
+schema, TypeScript settings and resolved dependencies are unchanged. So every
 install that builds the web must include the API package: Vercel's install command and the CI
 workflows use `pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend`.
 With `--filter main-site` alone, `next build` fails with `Cannot find module 'typescript/bin/tsc'`
