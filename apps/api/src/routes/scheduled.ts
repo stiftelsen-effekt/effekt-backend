@@ -4,7 +4,7 @@ import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { excludeAgreementsClaimedThisMonth } from "../custom_modules/avtalegiro/charges";
 import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
-import { getOCRFiles, listInboundFileNames, sendFile } from "../custom_modules/nets";
+import { getOCRFiles, listInboundFileNames, sendFile } from "../custom_modules/giroSftp";
 import { selectOCRFilesToImport, type OCRFile } from "../custom_modules/ocrFiles";
 import { decideRetry, RetryDecision, RetryPath } from "../custom_modules/avtalegiro/receipts";
 import { AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL } from "../custom_modules/DAO_modules/avtalegirocharges";
@@ -75,8 +75,8 @@ async function importOCRFile(ocrFile: OCRFile) {
 
 /**
  * Triggered every day by a google cloud scheduler webhook at 20:00
- * Imports every OCR file on the Nets server that has not been imported yet, oldest first, so a
- * day the job did not run is caught up. Stops at the first file that fails.
+ * Imports every OCR file on the Mastercard Payment Services server that has not been imported yet,
+ * oldest first, so a day the job did not run is caught up. Stops at the first file that fails.
  */
 router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
   try {
@@ -157,7 +157,7 @@ async function claimAvtaleGiroAgreements(today: DateTime, claimDate: DateTime, n
   );
 
   /**
-   * Send file to nets
+   * Send the claims file to Mastercard Payment Services
    */
   const filename =
     "DIRREM" + today.toFormat("ddLLyy") + "." + claimDate.toFormat("ddLLyy") + "." + shipmentID;

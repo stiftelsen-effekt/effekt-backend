@@ -933,7 +933,7 @@ async function getExpectedDonationsForDate(date: Date): Promise<ExpectedAvtaleGi
   return res[0];
 }
 
-/** An AvtaleGiro claim as sent to Nets */
+/** An AvtaleGiro claim as sent to Mastercard Payment Services */
 export type AvtaleGiroClaim = {
   KID: string;
   /** øre */
@@ -941,9 +941,9 @@ export type AvtaleGiroClaim = {
 };
 
 /**
- * The claims sent to Nets for a due date, read from the claim file (DIRREM) the scheduled
- * AvtaleGiro job stores in Import_logs ("AvtaleGiro", or "AvtaleGiro - Retry" when it was sent
- * again; the latest file wins). Available since June 2021.
+ * The claims sent to Mastercard Payment Services for a due date, read from the claim file (DIRREM)
+ * the scheduled AvtaleGiro job stores in Import_logs ("AvtaleGiro", or "AvtaleGiro - Retry" when it
+ * was sent again; the latest file wins). Available since June 2021.
  * @param day YYYY-MM-DD
  * @returns null if no claim file for the date was logged
  */

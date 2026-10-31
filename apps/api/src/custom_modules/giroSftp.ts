@@ -1,3 +1,7 @@
+/**
+ * Files exchanged with Mastercard Payment Services (formerly Nets) over SFTP: OCR Giro files are
+ * read from /Outbound, AvtaleGiro claim files are put in /Inbound, where their receipts appear.
+ */
 import { getConnection } from "./sftp";
 import type { OCRFile, OCRFileInfo } from "./ocrFiles";
 

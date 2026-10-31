@@ -3,7 +3,7 @@ import sinon from "sinon";
 import { expect } from "chai";
 import { DateTime } from "luxon";
 import { DAO } from "../custom_modules/DAO";
-import * as nets from "../custom_modules/nets";
+import * as giroSftp from "../custom_modules/giroSftp";
 import {
   processAvtaleGiroDeletions,
   requestDeletionOfUpcomingCharges,
@@ -97,7 +97,7 @@ describe("AvtaleGiro deletions", () => {
       sentShipmentsStub = sinon
         .stub(DAO.avtalegirocharges, "getSentDeletionShipmentIDs")
         .resolves([]);
-      receiptStub = sinon.stub(nets, "checkIfAcceptedReciept").resolves(false);
+      receiptStub = sinon.stub(giroSftp, "checkIfAcceptedReciept").resolves(false);
       confirmStub = sinon.stub(DAO.avtalegirocharges, "confirmDeletionShipment").resolves();
       requeueStub = sinon.stub(DAO.avtalegirocharges, "requeueDeletionShipment").resolves();
       requestsStub = sinon.stub(DAO.avtalegirocharges, "getDeletionRequests").resolves([]);
@@ -107,7 +107,7 @@ describe("AvtaleGiro deletions", () => {
       fileStub = sinon
         .stub(avtalegiro, "generateAvtaleGiroDeletionFile")
         .resolves(Buffer.from("deletions", "utf-8"));
-      sendFileStub = sinon.stub(nets, "sendFile").resolves();
+      sendFileStub = sinon.stub(giroSftp, "sendFile").resolves();
     });
 
     it("sends the requested deletions in one file", async () => {

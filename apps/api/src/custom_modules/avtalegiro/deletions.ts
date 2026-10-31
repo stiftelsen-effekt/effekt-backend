@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 import { DAO } from "../DAO";
 import * as avtalegiro from "../avtalegiro";
-import { checkIfAcceptedReciept, sendFile } from "../nets";
+import { checkIfAcceptedReciept, sendFile } from "../giroSftp";
 import {
   AvtaleGiroPendingCharge,
   canSendDeletion,

@@ -4,7 +4,7 @@ const { DateTime } = require("luxon");
 
 module.exports = {
   startRecordTransmission: function (shipmentID) {
-    let customerId = config.nets_customer_id;
+    let customerId = config.giro_customer_id;
 
     var line = `NY000010${customerId.padStart(8, "0")}${shipmentID
       .toString()

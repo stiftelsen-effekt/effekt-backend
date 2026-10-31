@@ -83,7 +83,8 @@ model Avtalegiro_agreements {
   last_updated         DateTime? @default(now()) @db.DateTime(0)
   created              DateTime? @default(now()) @db.DateTime(0)
   cancelled            DateTime? @db.Date
-  /// When the "agreement registered" email was sent (the donor's return from Nets); it is sent once
+  /// When the "agreement registered" email was sent (the donor's return from Mastercard Payment
+  /// Services); it is sent once
   registered_mail_sent DateTime? @db.DateTime(0)
 
   // If we delete a distribution there should be no agreements with that distribution. Therefore we restrict on deletion of a distribution.
@@ -111,7 +112,7 @@ model Avtalegiro_shipment {
   Avtalegiro_agreement_charge_deletions Avtalegiro_agreement_charges[] @relation("ChargeDeletionShipment")
 }
 
-/// One row per claim we send to Mastercard Payment Services (Nets) for an AvtaleGiro agreement
+/// One row per claim we send to Mastercard Payment Services for an AvtaleGiro agreement
 model Avtalegiro_agreement_charges {
   ID                  Int       @id @default(autoincrement())
   agreementID         Int

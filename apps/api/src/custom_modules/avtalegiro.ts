@@ -150,7 +150,7 @@ export async function notifyAgreements(agreements: AvtaleGiroAgreement[], claimD
 /**
  * Takes in agreements recieved on the OCR file
  * They may either need to be created, updated or deleted
- * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements parced from the file from nets
+ * @param {Array<import('./parsers/avtalegiro').AvtalegiroAgreement>} agreements Agreements parsed from the OCR file
  * @returns {UpdateAgreementsResult}
  */
 export async function updateAgreements(agreements) {
@@ -195,7 +195,7 @@ export async function updateAgreements(agreements) {
 
         if (latestDonation == null) {
           console.error(
-            `AvtaleGiro found in file from nets, but no coresponding agreement exists in DB, and no donatinos have been made with the KID previously (${agreement.KID})`,
+            `AvtaleGiro found in file from Mastercard Payment Services, but no coresponding agreement exists in DB, and no donatinos have been made with the KID previously (${agreement.KID})`,
           );
           result.failed.push(agreement);
           continue;
@@ -356,7 +356,7 @@ export type WidgetDraftResult = { ok: true } | { ok: false; status: 400 | 403; m
 
 /**
  * Drafts an AvtaleGiro agreement for a KID the widget just registered, before the donor signs it
- * at Nets (REST POST /avtalegiro/draft and tRPC widget.draftAvtaleGiro).
+ * at Mastercard Payment Services (REST POST /avtalegiro/draft and tRPC widget.draftAvtaleGiro).
  *
  * Only for a KID registered for AvtaleGiro by the same client in the last couple of hours (the
  * registrationToken from registerDonation) that has no agreement yet. Sending the draft again
@@ -394,9 +394,9 @@ export async function draftAvtaleGiroAgreement(
     existing = await DAO.avtalegiroagreements.getDraftState(KID);
   }
 
-  // The same registration sending its draft again (a retry, or the donor going back to change
-  // the due day before signing at Nets): the one draft row is updated, never a second added.
-  // A KID whose agreement is or has been active is never touched.
+  // The same registration sending its draft again (a retry, or the donor going back to change the
+  // due day before signing at Mastercard Payment Services): the one draft row is updated, never a
+  // second added. A KID whose agreement is or has been active is never touched.
   if (existing.draft) {
     await DAO.avtalegiroagreements.updateDraft(KID, amount, dueDay);
     return { ok: true };

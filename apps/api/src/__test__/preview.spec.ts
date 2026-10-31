@@ -150,7 +150,7 @@ describe("Preview environment guard", function () {
         "Vipps",
         "MailerSend",
         "Mailchimp",
-        "Nets SFTP",
+        "Giro SFTP",
         "Swish certificate",
         "Auth0 M2M",
         "Auth0 MCP",

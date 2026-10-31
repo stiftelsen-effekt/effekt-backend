@@ -6,7 +6,7 @@ import sinon from "sinon";
 import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
-import * as nets from "../custom_modules/nets";
+import * as giroSftp from "../custom_modules/giroSftp";
 import { enqueueInvalidTransactions, toReviewItem } from "../custom_modules/reviewQueue";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
@@ -156,7 +156,7 @@ describe("review queue: POST /scheduled/ocr", () => {
     sinon.replace(authMiddleware, "isAdmin", []);
     const ocrFile = require("fs").readFileSync("src/__test__/data/ocr/TBOC2072.DAT");
     sinon
-      .stub(nets, "getOCRFiles")
+      .stub(giroSftp, "getOCRFiles")
       .resolves([{ name: "OCR.D311026", modifyTime: 1, contents: ocrFile }]);
     sinon
       .stub(DAO.logging, "getOcrImportState")
