@@ -227,8 +227,6 @@ export type RegisterDonationResponse = {
   registrationToken?: string | null;
   hasAnsweredReferral: boolean;
   paymentProviderUrl: string;
-  swishOrderID: string;
-  swishPaymentRequestToken: string;
 };
 
 export const draftAgreementAction = actionCreator.async<undefined, DraftAgreementResponse, Error>(

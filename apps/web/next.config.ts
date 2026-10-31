@@ -64,7 +64,7 @@ const nextConfig: NextConfig = {
               // Control who can embed your pages
               "frame-ancestors 'self'",
               // Control which frames you can embed
-              "frame-src * swish:",
+              "frame-src *",
               // Control which scripts can execute
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
                 "https://*.googletagmanager.com " +

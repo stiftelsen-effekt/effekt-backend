@@ -60,8 +60,6 @@ describe("Profile and dashboard empty API data", () => {
 
     cy.interceptTrpc("minside.avtaleGiroAgreements", []).as("getAvtalegiro");
 
-    cy.interceptTrpc("minside.autoGiroAgreements", []).as("getAutogiro");
-
     cy.interceptTrpc("minside.distributions", []).as("getDistribution");
 
     cy.interceptTrpc("minside.taxUnits", []).as("getTaxUnits");
@@ -73,7 +71,7 @@ describe("Profile and dashboard empty API data", () => {
       },
     });
 
-    cy.wait(["@getDonor", "@getVipps", "@getAvtalegiro", "@getAutogiro", "@getTaxUnits"], {
+    cy.wait(["@getDonor", "@getVipps", "@getAvtalegiro", "@getTaxUnits"], {
       timeout: 30000,
     });
     cy.get("[data-cy=agreement-list-empty-placeholder]").should("have.length", 2);

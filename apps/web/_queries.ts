@@ -50,7 +50,6 @@ export const minsideKeys = {
     ["minside.distributions", donorId, kids.join(",")] as const,
   vippsAgreements: (donorId: number) => ["minside.vippsAgreements", donorId] as const,
   avtaleGiroAgreements: (donorId: number) => ["minside.avtaleGiroAgreements", donorId] as const,
-  autoGiroAgreements: (donorId: number) => ["minside.autoGiroAgreements", donorId] as const,
   taxReports: (donorId: number) => ["minside.taxReports", donorId] as const,
 };
 
@@ -228,35 +227,6 @@ export const useAvtalegiroAgreements = (
     ([, donorId]) =>
       trpcFetch(() =>
         trpc.minside.avtaleGiroAgreements.query({
-          donorId,
-        }),
-      ),
-  );
-
-  const loading = isPending(data, error);
-
-  return {
-    loading,
-    isValidating,
-    data,
-    error,
-  };
-};
-
-/**
- * The donor's AutoGiro agreements. Through tRPC (minside.autoGiroAgreements); not available on the
- * Danish site.
- */
-export const useAutogiroAgreements = (
-  user: User | undefined,
-  fetchToken: getAccessTokenSilently,
-) => {
-  const trpc = useTrpcClient(fetchToken);
-  const { data, error, isValidating } = useSWR(
-    user ? minsideKeys.autoGiroAgreements(getUserId(user)) : null,
-    ([, donorId]) =>
-      trpcFetch(() =>
-        trpc.minside.autoGiroAgreements.query({
           donorId,
         }),
       ),

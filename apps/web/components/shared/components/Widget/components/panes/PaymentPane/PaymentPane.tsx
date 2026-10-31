@@ -3,17 +3,13 @@ import { useSelector } from "react-redux";
 import { State } from "../../../store/state";
 import { PaymentMethod } from "../../../types/Enums";
 import {
-  AutoGiroPaymentMethod,
   AvtaleGiroPaymentMethod,
   BankPaymentMethod,
-  SwishPaymentMethod,
   VippsPaymentMethod,
   WidgetPane3ReferralsProps,
   WidgetProps,
 } from "../../../types/WidgetProps";
-import { SwishPane } from "./Swish/SwishPane";
 import { VippsPane } from "./Vipps/VippsPane";
-import { AutogiroPane } from "./AutoGiro/AutogiroPane";
 import { AvtaleGiroPane } from "./AvtaleGiro/AvtaleGiroPane";
 import { BankPane } from "./Bank/BankPane";
 import { QuickPayPane } from "./QuickPay/QuickPay";
@@ -54,26 +50,6 @@ export const PaymentPane: React.FC<{
         );
       }
       return <AvtaleGiroPane config={avtaleGiroConfiguration} referrals={referrals} />;
-    }
-    case PaymentMethod.SWISH: {
-      const swishConfiguration = paymentMethods.find(
-        (method): method is SwishPaymentMethod => method._id === "swish",
-      );
-      if (!swishConfiguration) {
-        throw new Error("Missing configuration for Swish, but selected payment method is swish");
-      }
-      return <SwishPane config={swishConfiguration} referrals={referrals} />;
-    }
-    case PaymentMethod.AUTOGIRO: {
-      const autoGiroConfiguration = paymentMethods.find(
-        (method): method is AutoGiroPaymentMethod => method._id === "autogiro",
-      );
-      if (!autoGiroConfiguration) {
-        throw new Error(
-          "Missing configuration for Autogiro, but selected payment method is autogiro",
-        );
-      }
-      return <AutogiroPane config={autoGiroConfiguration} referrals={referrals} />;
     }
     case PaymentMethod.QUICKPACK_MOBILEPAY: {
       const quickpayConfiguration = paymentMethods.find(

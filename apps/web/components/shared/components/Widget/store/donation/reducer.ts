@@ -120,8 +120,6 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
       kid: action.payload.result.KID,
       registrationToken: action.payload.result.registrationToken ?? undefined,
       paymentProviderURL: action.payload.result.paymentProviderUrl,
-      swishOrderID: action.payload.result.swishOrderID,
-      swishPaymentRequestToken: action.payload.result.swishPaymentRequestToken,
       donor: {
         ...state.donor,
         donorID: action.payload.result.donorID,

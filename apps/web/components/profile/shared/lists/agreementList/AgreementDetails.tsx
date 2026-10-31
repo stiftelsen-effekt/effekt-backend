@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import { Distribution, TaxUnit } from "../../../../../models";
 import { toast } from "react-toastify";
 import {
-  cancelAutoGiroAgreement,
   cancelAvtaleGiroAgreement,
   cancelVippsAgreement,
-  updateAutoGiroAgreement,
   updateAvtaleagreementAmount,
   updateAvtaleagreementPaymentDay,
   updateAvtalegiroAgreementDistribution,
@@ -14,7 +12,6 @@ import {
   updateVippsAgreementPrice,
 } from "./_queries";
 import { useAuth0 } from "@auth0/auth0-react";
-import { getAccessToken } from "../../../../../hooks/useApi";
 import { useTrpcClient } from "../../../../../lib/trpc/useTrpcClient";
 import { useSWRConfig } from "swr";
 import { AlertCircle, Check, Info } from "react-feather";
@@ -43,7 +40,6 @@ import {
   setStandardCauseAreaAmount,
 } from "../../distributionAmounts";
 import { runAgreementUpdates } from "./runAgreementUpdates";
-import { useMainLocale } from "../../../../../context/MainLocaleContext";
 
 export type AgreementDetailsConfiguration = {
   save_button_text: string;
@@ -104,10 +100,7 @@ export const AgreementDetails: React.FC<{
   const [lastSavedDistribution, setLastSavedDistribution] = useState<Distribution>(() =>
     hydrateDistributionAmounts(inputDistribution, inputSum),
   );
-  const mainLocale = useMainLocale();
   const [day, setDay] = useState(inputDate);
-  // Changing the payment date of AutoGiro agreements is not supported on the Swedish platform
-  const dateDisabled = type === "AutoGiro" && mainLocale === "sv";
   const [sum, setSum] = useState(inputSum);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -194,7 +187,6 @@ export const AgreementDetails: React.FC<{
   };
 
   const save = async () => {
-    const token = await getAccessToken(getAccessTokenSilently);
     // Cause areas added at 0 for editing are not a change
     const distributionChanged = !isSameDistribution(distribution, lastSavedDistribution);
     const agreementSum =
@@ -280,24 +272,6 @@ export const AgreementDetails: React.FC<{
         failureToast(configuration.toasts_configuration.failure_text);
       }
       setLoadingChanges(false);
-    } else if (type == "AutoGiro") {
-      let result = await updateAutoGiroAgreement(
-        endpoint,
-        distributionChanged || sumChanged ? distributionPayload : null,
-        dayChanged && !dateDisabled ? day : null,
-        sumChanged ? agreementSum : null,
-        token,
-      );
-
-      if (result !== null) {
-        successToast(configuration.toasts_configuration.success_text);
-        revalidate(minsideKeys.autoGiroAgreements(donorId));
-        setLoadingChanges(false);
-        setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
-      } else {
-        failureToast(configuration.toasts_configuration.failure_text);
-        setLoadingChanges(false);
-      }
     } else {
       failureToast("Uknown agreement type");
       setLoadingChanges(false);
@@ -308,7 +282,6 @@ export const AgreementDetails: React.FC<{
     if (!user) throw new Error("User is not logged in");
 
     setLightboxOpen(false);
-    const token = await getAccessToken(getAccessTokenSilently);
     if (type === "Vipps") {
       const cancelled = await cancelVippsAgreement(trpc, getUserId(user), agreementId);
       if (cancelled) {
@@ -324,15 +297,6 @@ export const AgreementDetails: React.FC<{
         successToast(configuration.toasts_configuration.success_text);
         agreementCancelled(type, agreementId, agreementKid);
         mutate(minsideKeys.avtaleGiroAgreements(getUserId(user)));
-      } else {
-        failureToast(configuration.toasts_configuration.failure_text);
-      }
-    } else if (type === "AutoGiro") {
-      const cancelled = await cancelAutoGiroAgreement(endpoint, token);
-      if (cancelled) {
-        successToast(configuration.toasts_configuration.success_text);
-        agreementCancelled(type, agreementId, agreementKid);
-        mutate(minsideKeys.autoGiroAgreements(getUserId(user)));
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
       }
@@ -382,7 +346,6 @@ export const AgreementDetails: React.FC<{
             onSumChange={changeSum}
             taxUnits={taxUnits}
             dateSelectorConfig={configuration.date_selector_configuration}
-            dateDisabled={dateDisabled}
           ></AgreementSingleCauseAreaDetails>
         )}
 
@@ -397,7 +360,6 @@ export const AgreementDetails: React.FC<{
             taxUnits={taxUnits}
             configuration={configuration.distribution_configuration}
             dateSelectorConfig={configuration.date_selector_configuration}
-            dateDisabled={dateDisabled}
           ></AgreementMultipleCauseAreaDetails>
         )}
 

@@ -2,12 +2,11 @@ import Head from "next/head";
 import "react-toastify/dist/ReactToastify.css";
 import { AgreementList } from "../../components/profile/shared/lists/agreementList/AgreementList";
 import { DKAgreementList } from "../../components/profile/shared/lists/agreementList/DKAgreementList";
-import { AutoGiroAgreement, AvtaleGiroAgreement, DKAgreement, VippsAgreement } from "../../models";
+import { AvtaleGiroAgreement, DKAgreement, VippsAgreement } from "../../models";
 import { useAuth0 } from "@auth0/auth0-react";
 import {
   pageBannersContentQuery,
   useAgreementsDistributions,
-  useAutogiroAgreements,
   useAvtalegiroAgreements,
   useDKAgreements,
   useTaxUnits,
@@ -314,31 +313,21 @@ const NordicAgreementsPageContent: React.FC<{
     error: vippsError,
   } = useVippsAgreements(user, getAccessTokenSilently);
 
-  const {
-    loading: autoGiroLoading,
-    data: autoGiro,
-    isValidating: autoGiroRefreshing,
-    error: autoGiroError,
-  } = useAutogiroAgreements(user, getAccessTokenSilently);
-
   const kids = useMemo(() => {
-    if (!vipps || !avtaleGiro || !autoGiro) return [];
+    if (!vipps || !avtaleGiro) return [];
     const kidsSet = new Set<string>();
     [
       ...vipps.map((a: VippsAgreement) => a.KID),
       ...avtaleGiro.map((a: AvtaleGiroAgreement) => a.KID),
-      ...autoGiro.map((a: AutoGiroAgreement) => a.KID),
     ].forEach((kid) => kidsSet.add(kid));
     return Array.from(kidsSet);
-  }, [vipps, avtaleGiro, autoGiro]);
+  }, [vipps, avtaleGiro]);
 
   const shouldFetchDistributions =
     !vippsLoading &&
     !avtaleGiroLoading &&
-    !autoGiroLoading &&
     vipps !== undefined &&
     avtaleGiro !== undefined &&
-    autoGiro !== undefined &&
     kids.length > 0;
 
   const {
@@ -356,18 +345,16 @@ const NordicAgreementsPageContent: React.FC<{
   } = useTaxUnits(user, getAccessTokenSilently);
   const vippsLoaded = Array.isArray(vipps);
   const avtaleGiroLoaded = Array.isArray(avtaleGiro);
-  const autoGiroLoaded = Array.isArray(autoGiro);
   const taxUnitsLoaded = Array.isArray(taxUnits);
   // Errors are not retried (see the profile layout's SWRConfig), so a failed query would otherwise
   // leave the spinner up for good
-  const loadFailed = !!(vippsError || avtaleGiroError || autoGiroError || taxUnitsError);
+  const loadFailed = !!(vippsError || avtaleGiroError || taxUnitsError);
 
   const loading =
     vippsLoading ||
     avtaleGiroLoading ||
     (shouldFetchDistributions && distributionsLoading) ||
-    taxUnitsLoading ||
-    autoGiroLoading;
+    taxUnitsLoading;
 
   if (!cookieBannerConfig) return null;
 
@@ -414,7 +401,7 @@ const NordicAgreementsPageContent: React.FC<{
       </>
     );
 
-  if (loading || !vippsLoaded || !avtaleGiroLoaded || !taxUnitsLoaded || !autoGiroLoaded)
+  if (loading || !vippsLoaded || !avtaleGiroLoaded || !taxUnitsLoaded)
     return (
       <>
         <Head>
@@ -448,10 +435,6 @@ const NordicAgreementsPageContent: React.FC<{
     (agreement: AvtaleGiroAgreement) => agreement.active === 1,
   );
 
-  const activeAutogiroAgreements: AutoGiroAgreement[] = autoGiro.filter(
-    (agreement: AutoGiroAgreement) => agreement.active === true,
-  );
-
   const activeVippsAgreements: VippsAgreement[] = vipps.filter(
     (agreement: VippsAgreement) => agreement.status === "ACTIVE",
   );
@@ -475,14 +458,7 @@ const NordicAgreementsPageContent: React.FC<{
       agreement.created !== null &&
       DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
   );
-  const autoGiroPending = autoGiro.filter(
-    (agreement: AutoGiroAgreement) =>
-      !agreement.active &&
-      agreement.cancelled === null &&
-      agreement.created !== null &&
-      DateTime.fromISO(agreement.created).diff(DateTime.now(), "days").days > -7,
-  );
-  const pendingCount = vippsPending.length + avtalegiroPending.length + autoGiroPending.length;
+  const pendingCount = vippsPending.length + avtalegiroPending.length;
 
   return (
     <>
@@ -531,7 +507,6 @@ const NordicAgreementsPageContent: React.FC<{
             <AgreementList
               vipps={activeVippsAgreements}
               avtalegiro={activeAvtalegiroAgreements}
-              autogiro={activeAutogiroAgreements}
               distributions={distributionsMap}
               taxUnits={taxUnits}
               expandable={true}
@@ -544,9 +519,6 @@ const NordicAgreementsPageContent: React.FC<{
               vipps={vipps.filter((agreement: VippsAgreement) => agreement.status !== "ACTIVE")}
               avtalegiro={avtaleGiro.filter(
                 (agreement: AvtaleGiroAgreement) => agreement.cancelled !== null,
-              )}
-              autogiro={autoGiro.filter(
-                (agreement: AutoGiroAgreement) => agreement.cancelled !== null,
               )}
               distributions={distributionsMap}
               taxUnits={taxUnits}

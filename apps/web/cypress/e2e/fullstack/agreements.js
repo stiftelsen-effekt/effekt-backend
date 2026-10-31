@@ -35,10 +35,9 @@ describe("Agreements page (full stack)", () => {
 
     cy.intercept("GET", trpcUrl("minside.vippsAgreements")).as("getVipps");
     cy.intercept("GET", trpcUrl("minside.avtaleGiroAgreements")).as("getAvtalegiro");
-    cy.intercept("GET", trpcUrl("minside.autoGiroAgreements")).as("getAutogiro");
 
     cy.visit("/min-side/avtaler/");
-    cy.wait(["@getVipps", "@getAvtalegiro", "@getAutogiro"], { timeout: 30000 });
+    cy.wait(["@getVipps", "@getAvtalegiro"], { timeout: 30000 });
   });
 
   it("gets the agreement lists from the API through tRPC", () => {
@@ -63,25 +62,14 @@ describe("Agreements page (full stack)", () => {
         [KIDS.avtalegiroToCancel, 1, 300, 5, null],
       ]);
     });
-    cy.get("@getAutogiro").then((interception) => {
-      const autoGiro = trpcData(interception, "minside.autoGiroAgreements");
-      expect(autoGiro).to.have.length(1);
-      expect(autoGiro[0]).to.deep.include({
-        KID: KIDS.autogiro,
-        active: true,
-        amount: 200,
-        payment_date: 25,
-        cancelled: null,
-      });
-    });
   });
 
   it("lists the donor's active and inactive agreements", () => {
     cy.get("[data-cy=generic-list-header]").first().should("contain.text", "Aktive");
     cy.get("[data-cy=generic-list-header]").last().should("contain.text", "Inaktive");
 
-    // Vipps x2, AvtaleGiro x2, AutoGiro
-    activeTable().find("tbody").should("have.length", 5);
+    // Vipps x2, AvtaleGiro x2
+    activeTable().find("tbody").should("have.length", 4);
     inactiveTable().find("tbody").should("have.length", 1);
 
     agreementRow(activeTable, KIDS.vippsCustom)
@@ -96,10 +84,6 @@ describe("Agreements page (full stack)", () => {
       .should("contain.text", "AvtaleGiro")
       .and("contain.text", "Den 15. hver måned")
       .and("contain.text", "500 kr");
-    agreementRow(activeTable, KIDS.autogiro)
-      .should("contain.text", "AutoGiro")
-      .and("contain.text", "Den 25. hver måned")
-      .and("contain.text", "200 kr");
 
     agreementRow(inactiveTable, KIDS.vippsStopped)
       .should("contain.text", "Vipps")

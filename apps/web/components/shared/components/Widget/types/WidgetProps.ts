@@ -3,14 +3,7 @@ import { DatePickerInputConfiguration } from "../../DatePicker/DatePickerInput";
 import { NavLink } from "../../Navbar/Navbar";
 
 export type PaymentMethodId =
-  | "bank"
-  | "vipps"
-  | "swish"
-  | "autogiro"
-  | "avtalegiro"
-  | "quickpay_card"
-  | "quickpay_mobilepay"
-  | "dkbank";
+  "bank" | "vipps" | "avtalegiro" | "quickpay_card" | "quickpay_mobilepay" | "dkbank";
 
 export type TransactionCost = {
   percentage_fee?: number | null;
@@ -52,8 +45,6 @@ export type WidgetProps = {
     methods?: Array<
       | BankPaymentMethod
       | VippsPaymentMethod
-      | SwishPaymentMethod
-      | AutoGiroPaymentMethod
       | AvtaleGiroPaymentMethod
       | QuickPayCardPaymentMethod
       | QuickPayMobilePayPaymentMethod
@@ -94,33 +85,6 @@ export type VippsPaymentMethod = {
   transaction_cost?: TransactionCost | null;
 };
 
-export type SwishPaymentMethod = {
-  _id: "swish";
-  selector_text: string;
-  prompt: {
-    title: string;
-    scan_text?: string;
-    redirect_text?: string;
-  };
-  success: {
-    title: string;
-    text?: string;
-  };
-  error: {
-    title: string;
-    text?: string;
-  };
-  declined: {
-    title: string;
-    text?: string;
-  };
-  cancelled: {
-    title: string;
-    text?: string;
-  };
-  transaction_cost?: TransactionCost | null;
-};
-
 export type AvtaleGiroPaymentMethod = {
   _id: "avtalegiro";
   selector_text: string;
@@ -129,19 +93,6 @@ export type AvtaleGiroPaymentMethod = {
   selector_choose_date_text: string;
   date_selector_configuration: DatePickerInputConfiguration;
   button_text: string;
-  transaction_cost?: TransactionCost | null;
-};
-
-export type AutoGiroPaymentMethod = {
-  _id: "autogiro";
-  selector_text: string;
-  title: string;
-  payer_number_label: string;
-  account_number_label: string;
-  account_number: string;
-  manual_recurring_option_config: AutogiroManualRecurringOptionConfig;
-  recurring_manual_option_config: AutogiroRecurringManualOptionConfig;
-  completed_text: any[];
   transaction_cost?: TransactionCost | null;
 };
 
@@ -179,21 +130,6 @@ export type DkBankPaymentMethod = {
     slug: string;
   };
   recurring_button_text: string;
-};
-
-type AutogiroManualRecurringOptionConfig = {
-  title: string;
-  sum_label: string;
-  payer_numberexplanatory_text: string;
-  instruction_text: any[];
-  complete_button_text: string;
-};
-
-type AutogiroRecurringManualOptionConfig = {
-  title: string;
-  explanation_text: any[];
-  date_selector_config: DatePickerInputConfiguration;
-  complete_button_text: string;
 };
 
 export type SmartDistributionContext = {

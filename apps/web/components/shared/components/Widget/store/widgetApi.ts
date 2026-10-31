@@ -161,8 +161,8 @@ export const submitReferralRequest = async ({ registrationToken, ...answer }: Re
 };
 
 /*
- * The calls below only exist on our backend: Vipps, AvtaleGiro, Swish and AutoGiro are Norwegian
- * and Swedish payment methods. On the Danish site the REST link leaves them unmapped, so they fail
+ * The calls below only exist on our backend: Vipps and AvtaleGiro are Norwegian
+ * payment methods. On the Danish site the REST link leaves them unmapped, so they fail
  * with "not available on this site" without a request (before, they got a 404 from the Danish
  * backend).
  */
@@ -194,15 +194,3 @@ export const draftAvtaleGiroRequest = async (input: {
 }) => {
   await widgetTrpc().widget.draftAvtaleGiro.mutate(input);
 };
-
-/** The status of a Swish payment (polled while the donor pays) */
-export const swishOrderStatusRequest = (orderId: string) =>
-  widgetTrpc().widget.swishOrderStatus.query({ orderId });
-
-/** Sets the payment date (0–28) of the AutoGiro agreement drafted for the KID */
-export const setAutoGiroDraftPaymentDateRequest = (
-  KID: string,
-  paymentDate: number,
-  registrationToken: string,
-) =>
-  widgetTrpc().widget.setAutoGiroDraftPaymentDate.mutate({ KID, paymentDate, registrationToken });

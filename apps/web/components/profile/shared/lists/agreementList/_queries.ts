@@ -95,40 +95,6 @@ export const updateAvtaleagreementAmount = (
   sum: number,
 ) => succeeded(trpc.minside.updateAvtaleGiroAmount.mutate({ donorId, KID: kid, amount: sum }));
 
-export const updateAutoGiroAgreement = async (
-  kid: string,
-  distribution: Distribution | null,
-  paymentDate: number | null,
-  amount: number | null,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-  try {
-    const response = await fetch(`${api}/autogiro/${kid}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({
-        distribution: distribution,
-        paymentDate: paymentDate,
-        amount: amount,
-      }),
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return result.content;
-    }
-  } catch (e) {
-    return null;
-  }
-};
-
 export const updateDKAgreement = async (
   donorId: number,
   agreementId: string,
@@ -189,29 +155,6 @@ export const cancelDKAgreement = async (donorId: number, agreementId: string, to
 
 export const cancelAvtaleGiroAgreement = (trpc: TrpcClient, donorId: number, kid: string) =>
   succeeded(trpc.minside.cancelAvtaleGiroAgreement.mutate({ donorId, KID: kid }));
-
-export const cancelAutoGiroAgreement = async (kid: string, token: string) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-  try {
-    const response = await fetch(`${api}/autogiro/${kid}/cancel`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-    });
-
-    const result = await response.json();
-    if (response.status !== 200) {
-      return null;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return null;
-  }
-};
 
 export const addStoppedAgreementFeedback = async (
   agreementId: string,

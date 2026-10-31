@@ -31,8 +31,6 @@ export interface Donation extends DonationInput {
   /** From registerDonation: sent with the calls that act on the registered KID */
   registrationToken?: string;
   paymentProviderURL?: string;
-  swishOrderID?: string;
-  swishPaymentRequestToken?: string;
   // Array of objects with string keys and string values
   errors: DonationError[];
   showErrors: boolean;

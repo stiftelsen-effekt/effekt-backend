@@ -303,7 +303,6 @@ describe("restLink", () => {
     for (const path of [
       "minside.vippsAgreements",
       "minside.avtaleGiroAgreements",
-      "minside.autoGiroAgreements",
       "minside.taxReports",
     ]) {
       expect(Object.keys(restRoutes)).not.toContain(path);
@@ -402,8 +401,6 @@ describe("restLink", () => {
         "site.ltvEstimate",
         "widget.draftVippsAgreement",
         "widget.draftAvtaleGiro",
-        "widget.swishOrderStatus",
-        "widget.setAutoGiroDraftPaymentDate",
       ]) {
         expect(Object.keys(restRoutes)).not.toContain(path);
       }
