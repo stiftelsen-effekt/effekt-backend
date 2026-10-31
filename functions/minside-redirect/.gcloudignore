@@ -1,4 +1,0 @@
-.gcloudignore
-node_modules/
-*.test.js
-deploy.sh

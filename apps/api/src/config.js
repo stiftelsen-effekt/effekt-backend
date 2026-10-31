@@ -65,7 +65,6 @@ module.exports = {
   //API keys
   mailersend_api_key: process.env.MAILERSEND_API_KEY,
   mailchimp_api_key: process.env.MAILCHIMP_API_KEY,
-  mailchimp_audience_id: process.env.MAILCHIMP_AUDIENCE_ID,
   mailchimp_server: process.env.MAILCHIMP_SERVER,
 
   //Mailersend templates
@@ -97,8 +96,6 @@ module.exports = {
 
   //Secret token guarding the raw survey response export endpoint
   survey_export_secret: process.env.SURVEY_EXPORT_SECRET,
-
-  mail_sender_from: process.env.MAIL_SENDER_FROM,
 
   vipps_client_id: process.env.VIPPS_CLIENT_ID,
   vipps_client_secret: process.env.VIPPS_CLIENT_SECRET,
@@ -136,7 +133,6 @@ module.exports = {
 
   nets_sftp_server: process.env.NETS_SFTP_SERVER,
   nets_sftp_user: process.env.NETS_SFTP_USER,
-  nets_private_key_location: process.env.NETS_SFTP_PRIVATE_KEY_LOCATION,
   nets_sftp_key: process.env.NETS_SFTP_PRIVATE_KEY_LOCATION
     ? fs.readFileSync(process.env.NETS_SFTP_PRIVATE_KEY_LOCATION)
     : process.env.NETS_SFTP_PRIVATE_KEY,
@@ -161,10 +157,8 @@ module.exports = {
   autogiro_bankgiro_number: process.env.AUTOGIRO_BANKGIRO_NUMBER,
 
   //Server addresss
-  serverAddress: process.env.SERVER_ADDRESS,
 
   //Ignor authorization requirements for endpoints
-  authorizationRequired: process.env.AUTH_REQUIRED == false ? false : true,
 
   //Debugging
   debugReturnExceptions: process.env.NODE_ENV === "development",
