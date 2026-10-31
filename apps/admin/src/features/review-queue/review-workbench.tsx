@@ -187,7 +187,11 @@ function Resolution({ item, reopen, donationLink }: ReviewWorkbenchProps) {
         </Callout>
       )}
       {item.status === "registered" && item.donationId == null && reopenButton}
-      {error && <Callout tone="danger" title="Couldn't reopen the item" children={error} />}
+      {error && (
+        <Callout tone="danger" title="Couldn't reopen the item">
+          {error}
+        </Callout>
+      )}
     </div>
   );
 }

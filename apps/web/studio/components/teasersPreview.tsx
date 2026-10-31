@@ -17,7 +17,7 @@ export const TeasersPreview = (props: PreviewProps & { teasers?: Teasers["teaser
     <Flex direction={"row"} align={"center"}>
       <Grid gridTemplateRows={props.teasers.length} gap={1} flex={1}>
         {props.teasers.map((p, i) => (
-          <Flex padding={2} align="center">
+          <Flex key={p._key} padding={2} align="center">
             <Flex align="center" flex={1} gap={2}>
               {i % 2 === 0 ? Icon : null}
               <Stack gap={2} marginRight={2}>

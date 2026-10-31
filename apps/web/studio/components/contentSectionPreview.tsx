@@ -68,7 +68,11 @@ export const ContentSectionPreview = (
 
                 const schemaType = schemas.filter((s) => s.name == b._type)[0];
                 if (!schemaType) {
-                  return <Text size={1}>Missing schema type {b._type}</Text>;
+                  return (
+                    <Text size={1} key={b._key}>
+                      Missing schema type {b._type}
+                    </Text>
+                  );
                 } else {
                   return (
                     <Preview

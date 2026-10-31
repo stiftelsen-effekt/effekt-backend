@@ -50,6 +50,8 @@ export function Combobox({
         <button
           id={id ?? field.id}
           type="button"
+          // PopoverTrigger sets aria-controls to the popover content's id
+          // oxlint-disable-next-line jsx-a11y/role-has-required-aria-props
           role="combobox"
           aria-expanded={open}
           aria-describedby={field["aria-describedby"]}

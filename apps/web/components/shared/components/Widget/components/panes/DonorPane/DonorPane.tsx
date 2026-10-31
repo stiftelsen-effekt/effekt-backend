@@ -195,6 +195,7 @@ export const DonorPane: React.FC<{
     const paymentMethod = mapPaymentMethod(methodId);
 
     // Get current form data
+    // oxlint-disable-next-line react/incompatible-library -- the component reads watch() during render, so the React Compiler must keep skipping it
     const formData = watch();
 
     // Submit donor info and payment method
