@@ -20,6 +20,7 @@ import {
 import { agreementType } from "./inflationadjustment";
 import { VippsAgreement } from "./DAO_modules/vipps";
 import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
+import { redactForAlert } from "./requestErrors";
 
 export function formatCurrency(currencyString) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
@@ -704,8 +705,13 @@ export async function sendVippsErrorWarning(errorType, errorMessage, inputData) 
   const { text, html } = formatInternalAlert(errorDesc, [
     ["Tidspunkt", formatTimestamp(new Date())],
     ["Feiltype", String(errorType)],
-    ["Feilmelding", typeof errorMessage === "string" ? errorMessage : JSON.stringify(errorMessage)],
-    ["Inndata", JSON.stringify(inputData)],
+    [
+      "Feilmelding",
+      typeof errorMessage === "string"
+        ? errorMessage
+        : JSON.stringify(redactForAlert(errorMessage)),
+    ],
+    ["Inndata", JSON.stringify(redactForAlert(inputData))],
   ]);
 
   return await sendInternalAlert({
@@ -728,7 +734,7 @@ export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessag
     ["Donor", String(senderEmail)],
     ["Melding", String(donorMessage)],
     ["Side", String(senderUrl)],
-    ["Avtale", JSON.stringify(agreement)],
+    ["Avtale", JSON.stringify(redactForAlert(agreement))],
   ]);
 
   return await sendInternalAlert({

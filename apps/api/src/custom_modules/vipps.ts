@@ -915,7 +915,6 @@ module.exports = {
         await sendVippsErrorWarning("CHARGE", ex, {
           ...data,
           agreementId,
-          headers,
         });
       console.error(loggableRequestError(ex));
       return false;
