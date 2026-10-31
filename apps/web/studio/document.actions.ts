@@ -3,7 +3,6 @@ import { DocumentActionComponent, DocumentActionProps, DocumentActionsContext } 
 
 const sensitiveFields: Record<string, string[]> = {
   bank: ["kontonr"],
-  autogiro: ["account_number"],
 };
 
 export const documentActions: (

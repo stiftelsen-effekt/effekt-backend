@@ -97,7 +97,7 @@ export default defineType({
           title: "Withdrawal warning text",
           type: "string",
           description:
-            "For AutoGiro and AvtaleGiro, we have a warning text that is shown when the user cancels the agreement if the withdrawal date is close.",
+            "For AvtaleGiro, a warning text shown when the user cancels the agreement if the withdrawal date is close.",
           validation: (Rule) => Rule.required(),
         }),
       ],

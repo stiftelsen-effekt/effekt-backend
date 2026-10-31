@@ -52,8 +52,6 @@ import taxdeduction from "./dashboard/tax/taxdeduction";
 import taxstatements from "./dashboard/tax/taxstatements";
 import donationstabledetailsconfiguration from "./types/donationstabledetailsconfiguration";
 import bank from "./types/paymentmethods/bank";
-import swish from "./types/paymentmethods/swish";
-import autogiro from "./types/paymentmethods/autogiro";
 import splitviewhtml from "./types/splitviewhtml";
 import category from "./types/category";
 import giftcardteaser from "./types/giftcardteaser";
@@ -105,16 +103,7 @@ import wealthcalculatorimpact from "./types/wealthcalculatorimpact";
 import dkbank from "./types/paymentmethods/dkbank";
 import fundraiserwidget from "./types/fundraiserwidget";
 
-const paymentMethods = [
-  vipps,
-  bank,
-  swish,
-  autogiro,
-  avtalegiro,
-  quickpaycard,
-  quickpaymobilepay,
-  dkbank,
-] as const;
+const paymentMethods = [vipps, bank, avtalegiro, quickpaycard, quickpaymobilepay, dkbank] as const;
 
 export const types = [
   category,
