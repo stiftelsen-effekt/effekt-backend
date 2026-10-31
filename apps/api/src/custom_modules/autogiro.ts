@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import type { PoolConnection } from "mysql2/promise";
 
 import writer from "./autogiro/filewriterutil";
 import config from "../config";
@@ -29,7 +30,7 @@ import { assertDistributionOwnedBy } from "./distributionOwnership";
  * @param shipmentID A shipment ID from the database
  * @param agreements Agreements that we should claim payment from
  * @param mandatesToBeConfirmed New mandates that need confirmation
- * @param dueDate Due date
+ * @param transaction All writes (charges, charge and mandate statuses) go through this transaction
  * @returns {Buffer} The file buffer
  */
 async function generateAutogiroGiroFile(
@@ -40,6 +41,7 @@ async function generateAutogiroGiroFile(
   }[],
   chargesToBeAmended: AutogiroChargeToBeAmended[],
   mandatesToBeConfirmed: AutoGiro_mandates[],
+  transaction: PoolConnection,
 ) {
   const today = DateTime.fromJSDate(new Date());
   let fileContents = "";
@@ -73,14 +75,17 @@ async function generateAutogiroGiroFile(
     }
 
     // Create a charge record for each agreement
-    const chargeId = await DAO.autogiroagreements.addAgreementCharge({
-      agreementID: agreementClaim.agreement.ID,
-      shipmentID: shipmentID,
-      status: "PENDING",
-      claim_date: agreementClaim.claimDate.toJSDate(),
-      amount: agreementClaim.agreement.amount.toString(),
-      donationID: null,
-    });
+    const chargeId = await DAO.autogiroagreements.addAgreementCharge(
+      {
+        agreementID: agreementClaim.agreement.ID,
+        shipmentID: shipmentID,
+        status: "PENDING",
+        claim_date: agreementClaim.claimDate.toJSDate(),
+        amount: agreementClaim.agreement.amount.toString(),
+        donationID: null,
+      },
+      transaction,
+    );
 
     fileContents += writer.getWithdrawalRecord(
       agreementClaim.claimDate,
@@ -115,12 +120,12 @@ async function generateAutogiroGiroFile(
 
     if (chargeToBeAmended.agreementCancelled) {
       // Set charge status to cancelled
-      await DAO.autogiroagreements.cancelAgreementCharge(charge.ID);
+      await DAO.autogiroagreements.cancelAgreementCharge(charge.ID, transaction);
       // For cancelled agreements, we don't need to create a new charge
       continue;
     } else {
       // Set charge status to amended
-      await DAO.autogiroagreements.setAgreementChargeAmended(charge.ID);
+      await DAO.autogiroagreements.setAgreementChargeAmended(charge.ID, transaction);
     }
 
     /**
@@ -141,14 +146,17 @@ async function generateAutogiroGiroFile(
       }
     }
 
-    const newChargeId = await DAO.autogiroagreements.addAgreementCharge({
-      agreementID: chargeToBeAmended.agreementId,
-      shipmentID: shipmentID,
-      status: "PENDING",
-      claim_date: newClaimDate.toJSDate(),
-      amount: chargeToBeAmended.agreementAmount.toString(),
-      donationID: null,
-    });
+    const newChargeId = await DAO.autogiroagreements.addAgreementCharge(
+      {
+        agreementID: chargeToBeAmended.agreementId,
+        shipmentID: shipmentID,
+        status: "PENDING",
+        claim_date: newClaimDate.toJSDate(),
+        amount: chargeToBeAmended.agreementAmount.toString(),
+        donationID: null,
+      },
+      transaction,
+    );
 
     newChargesAfterAmendmentLines.push(
       writer.getWithdrawalRecord(
@@ -190,7 +198,7 @@ async function generateAutogiroGiroFile(
       continue;
     }
 
-    await DAO.autogiroagreements.setMandateStatus(mandate.ID, "PENDING");
+    await DAO.autogiroagreements.setMandateStatus(mandate.ID, "PENDING", transaction);
   }
 
   const fileBuffer = Buffer.from(fileContents, "utf8");
@@ -516,14 +524,14 @@ export async function processAutogiroInputFile(fileContents: string) {
           charge.paymentReference,
         );
 
-        if (dbCharge!.status === "FAILED") {
-          // Ignore charges that are already marked as failed
-          continue;
-        }
-
         if (!dbCharge) {
           console.log(`Could not find charge with reference ${charge.paymentReference}`);
           rejectedCharges++;
+          continue;
+        }
+
+        if (dbCharge.status === "FAILED") {
+          // Ignore charges that are already marked as failed
           continue;
         }
 
@@ -560,26 +568,51 @@ type ProcessAutogiroPaymentResult = {
     date: Date;
   };
 };
-const processAutogiroDeposit = async (
+export const processAutogiroDeposit = async (
   payment,
   reportDate,
 ): Promise<ProcessAutogiroPaymentResult> => {
-  const reference = `autogiro.${reportDate.toFormat(
-    "yyyyMMdd",
-  )}.${payment.paymentReference.trim()}`;
+  const paymentReference: string = payment.paymentReference.trim();
+  // Donations recorded before charges were deduplicated used this key, which includes the
+  // report date, so the same payment in two reports got two keys. It is still checked so that
+  // re-uploading an old report doesn't add its payments again.
+  const legacyReference = `autogiro.${reportDate.toFormat("yyyyMMdd")}.${paymentReference}`;
+  let reference = legacyReference;
   try {
     const KID = await getValidatedKID(payment.payerNumber);
 
     let date = DateTime.fromFormat(payment.paymentDate, "yyyyMMdd").toJSDate();
 
+    // The payment reference is the charge ID for claims sent by us. Early 2024 payments had
+    // references from before that, so the charge is only used if it is this payer's agreement.
+    const charge = await findChargeForPayment(paymentReference, KID);
+
     try {
-      await DAO.donations.add(KID, paymentMethods.autoGiro, payment.amount / 100, date, reference);
-      const chargeId = payment.paymentReference.trim();
-      try {
-        await DAO.autogiroagreements.setAgreementChargeCompleted(chargeId);
-      } catch (ex) {
-        console.error(ex);
-        console.log(`Failed to update charge with ID ${chargeId} to COMPLETED`);
+      if (charge) {
+        if (charge.status === "COMPLETED") {
+          console.log(`Ignoring payment for charge ${charge.ID}, which is already completed`);
+          return { valid: false, reason: "EXISTING_DONATION" };
+        }
+        if (await DAO.donations.externalPaymentIDExists(legacyReference, paymentMethods.autoGiro)) {
+          throw new Error(`EXISTING_DONATION | ${legacyReference}`);
+        }
+        // One key per charge, whichever report it comes in
+        reference = `autogiro.charge.${charge.ID}`;
+        const donationID = await DAO.autogiroagreements.completeAgreementChargeWithDonation(
+          charge.ID,
+          { KID, amount: payment.amount / 100, date, externalPaymentID: reference },
+        );
+        if (donationID === null) {
+          return { valid: false, reason: "EXISTING_DONATION" };
+        }
+      } else {
+        await DAO.donations.add(
+          KID,
+          paymentMethods.autoGiro,
+          payment.amount / 100,
+          date,
+          legacyReference,
+        );
       }
 
       return {
@@ -614,6 +647,14 @@ const processAutogiroDeposit = async (
     };
   }
 };
+
+async function findChargeForPayment(paymentReference: string, KID: string) {
+  if (!/^\d+$/.test(paymentReference)) return undefined;
+  const charge = await DAO.autogiroagreements.getAgreementChargeById(parseInt(paymentReference));
+  if (!charge) return undefined;
+  const agreement = await DAO.autogiroagreements.getAgreementById(charge.agreementID);
+  return agreement?.KID === KID ? charge : undefined;
+}
 
 const getValidatedKID = async (KID: string) => {
   let returnKID = KID;
@@ -688,6 +729,41 @@ export type AutoGiroShipmentResult =
  * Used by POST /scheduled/autogiro and the admin tRPC procedure.
  */
 export async function createAutoGiroShipment(): Promise<AutoGiroShipmentResult> {
+  // One connection holds a named lock for the whole run, so two concurrent runs can't both
+  // see the same agreements as uncharged, and carries the transaction for all writes, so a
+  // failed run leaves no charges, statuses or shipment behind. The lock name includes the
+  // database, as the Norwegian and Swedish databases share a server.
+  const connection = await DAO.startTransaction();
+  let locked = false;
+  try {
+    const [lockRows] = await connection.query<any[]>(
+      "SELECT GET_LOCK(CONCAT(DATABASE(), '.autogiro_shipment'), 0) AS acquired",
+    );
+    if (Number(lockRows[0]?.acquired) !== 1) {
+      throw new Error("An AutoGiro shipment is already being created");
+    }
+    locked = true;
+
+    const result = await createAutoGiroShipmentLocked(connection);
+    await connection.query("COMMIT");
+    await DAO.logging.add("AutoGiro", result);
+    return result;
+  } catch (ex) {
+    await connection.query("ROLLBACK").catch((rollbackEx) => console.error(rollbackEx));
+    throw ex;
+  } finally {
+    if (locked) {
+      await connection
+        .query("SELECT RELEASE_LOCK(CONCAT(DATABASE(), '.autogiro_shipment'))")
+        .catch((releaseEx) => console.error(releaseEx));
+    }
+    connection.release();
+  }
+}
+
+async function createAutoGiroShipmentLocked(
+  transaction: PoolConnection,
+): Promise<AutoGiroShipmentResult> {
   let result: AutoGiroShipmentResult;
   const today = DateTime.fromJSDate(new Date());
 
@@ -764,7 +840,10 @@ export async function createAutoGiroShipment(): Promise<AutoGiroShipmentResult> 
     /**
      * Create file to charge agreements for current day
      */
-    const shipmentID = await DAO.autogiroagreements.addShipment(agreementsToClaim.length);
+    const shipmentID = await DAO.autogiroagreements.addShipment(
+      agreementsToClaim.length,
+      transaction,
+    );
 
     let autoGiroClaimsFile: Buffer;
     try {
@@ -773,10 +852,11 @@ export async function createAutoGiroShipment(): Promise<AutoGiroShipmentResult> 
         agreementsToClaim,
         chargesToAmend,
         mandatesToBeConfirmed,
+        transaction,
       );
     } catch (ex) {
       console.error(ex);
-      await DAO.autogiroagreements.removeShipment(shipmentID);
+      // The caller rolls back the shipment and everything written for it
       throw new Error("Error generating file");
     }
 
@@ -797,7 +877,6 @@ export async function createAutoGiroShipment(): Promise<AutoGiroShipmentResult> 
     };
   }
 
-  await DAO.logging.add("AutoGiro", result);
   return result;
 }
 

@@ -5,8 +5,10 @@ import {
   AutoGiro_shipments,
 } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
+import type { PoolConnection } from "mysql2/promise";
 import { DateTime } from "luxon";
 import sqlString from "sqlstring";
+import paymentMethods from "../../enums/paymentMethods";
 import { instantRangeClauses } from "../osloDays";
 import { Distribution, DistributionInput } from "../../schemas/types";
 
@@ -24,6 +26,10 @@ export type AutoGiroMandateRow = Pick<
   | "created"
 > & { full_name: string };
 
+/** Runs a query on the transaction's connection if one is given, otherwise on the pool */
+const queryOn = (transaction: PoolConnection | undefined) => (sql: string, params?: unknown[]) =>
+  transaction ? transaction.query<any>(sql, params) : DAO.query(sql, params);
+
 export const autogiroagreements = {
   getAllShipments: async function () {
     const [shipments] = await DAO.query<AutoGiro_shipments[]>(
@@ -33,8 +39,11 @@ export const autogiroagreements = {
     );
     return shipments;
   },
-  addShipment: async function (numberOfCharges: number): Promise<number> {
-    const [result] = await DAO.query(
+  addShipment: async function (
+    numberOfCharges: number,
+    transaction?: PoolConnection,
+  ): Promise<number> {
+    const [result] = await queryOn(transaction)(
       `
         INSERT INTO AutoGiro_shipments (num_charges)
         VALUES (?)
@@ -42,14 +51,6 @@ export const autogiroagreements = {
       [numberOfCharges],
     );
     return result.insertId;
-  },
-  removeShipment: async function (ID: number) {
-    await DAO.query(
-      `
-        DELETE FROM AutoGiro_shipments WHERE ID = ?
-      `,
-      [ID],
-    );
   },
   getAgreements: async function (
     sort: { desc: boolean; id: string },
@@ -351,6 +352,21 @@ export const autogiroagreements = {
     );
     return res.affectedRows > 0;
   },
+  /** Sets the amount and/or payment date in one statement; null leaves a value unchanged */
+  setAgreementAmountAndPaymentDateByKID: async function (
+    KID: string,
+    values: { amount: number | null; paymentDate: number | null },
+  ) {
+    const [res] = await DAO.query(
+      `
+        UPDATE AutoGiro_agreements
+        SET amount = COALESCE(?, amount), payment_date = COALESCE(?, payment_date)
+        WHERE KID = ?
+      `,
+      [values.amount, values.paymentDate, KID],
+    );
+    return res.affectedRows > 0;
+  },
   setAgreementPaymentDateByKID: async function (KID: string, paymentDate: number) {
     await DAO.query(
       `
@@ -429,16 +445,17 @@ export const autogiroagreements = {
           ON CH.agreementID = AG.ID
       
       WHERE \`active\` = 1 
-      AND NOT (MONTH(current_time()) = MONTH(AG.created) AND DAY(current_time()) > AG.payment_date)
+      AND NOT (AG.created >= DATE_FORMAT(NOW(), '%Y-%m-01') AND DAY(NOW()) > AG.payment_date)
       AND CH.ID IS NULL
       ORDER BY AG.payment_date ASC`);
 
     return agreements.map(mapAgreementType);
   },
   addAgreementCharge: async function (
-    charge: Omit<AutoGiro_agreement_charges, "ID" | "created" | "last_updated">,
+    charge: Omit<AutoGiro_agreement_charges, "ID" | "created" | "last_updated" | "claim_month_key">,
+    transaction?: PoolConnection,
   ): Promise<number> {
-    const [result] = await DAO.query(
+    const [result] = await queryOn(transaction)(
       `
         INSERT INTO AutoGiro_agreement_charges (agreementID, shipmentID, donationID, amount, claim_date, status)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -454,8 +471,8 @@ export const autogiroagreements = {
     );
     return result.insertId;
   },
-  cancelAgreementCharge: async function (ID: number) {
-    await DAO.query(
+  cancelAgreementCharge: async function (ID: number, transaction?: PoolConnection) {
+    await queryOn(transaction)(
       `
         UPDATE AutoGiro_agreement_charges SET status = "CANCELLED" WHERE ID = ?
       `,
@@ -478,8 +495,46 @@ export const autogiroagreements = {
       [ID],
     );
   },
-  setAgreementChargeAmended: async function (ID: number) {
-    await DAO.query(
+  /**
+   * Records the donation for a charge and marks the charge COMPLETED, in one transaction.
+   * Returns the donation ID, or null if the charge was already COMPLETED (nothing is added).
+   */
+  completeAgreementChargeWithDonation: async function (
+    chargeID: number,
+    donation: { KID: string; amount: number; date: Date; externalPaymentID: string },
+  ): Promise<number | null> {
+    const transaction = await DAO.startTransaction();
+    try {
+      const [rows] = await transaction.query<any[]>(
+        `SELECT ID, status FROM AutoGiro_agreement_charges WHERE ID = ? FOR UPDATE`,
+        [chargeID],
+      );
+      if (!rows[0] || rows[0].status === "COMPLETED") {
+        await DAO.rollbackTransaction(transaction);
+        return null;
+      }
+      const donationID = await DAO.donations.add(
+        donation.KID,
+        paymentMethods.autoGiro,
+        donation.amount,
+        donation.date,
+        donation.externalPaymentID,
+        null,
+        transaction,
+      );
+      await transaction.query(
+        `UPDATE AutoGiro_agreement_charges SET status = "COMPLETED", donationID = ? WHERE ID = ?`,
+        [donationID, chargeID],
+      );
+      await DAO.commitTransaction(transaction);
+      return donationID;
+    } catch (ex) {
+      await DAO.rollbackTransaction(transaction);
+      throw ex;
+    }
+  },
+  setAgreementChargeAmended: async function (ID: number, transaction?: PoolConnection) {
+    await queryOn(transaction)(
       `
         UPDATE AutoGiro_agreement_charges SET status = "AMENDED" WHERE ID = ?
       `,
@@ -634,8 +689,9 @@ export const autogiroagreements = {
   setMandateStatus: async function (
     ID: number,
     status: "NEW" | "ACTIVE" | "CANCELLED" | "PENDING" | "REJECTED",
+    transaction?: PoolConnection,
   ) {
-    await DAO.query(
+    await queryOn(transaction)(
       `
         UPDATE AutoGiro_mandates SET status = ? WHERE ID = ?
       `,

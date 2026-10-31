@@ -1237,7 +1237,15 @@ async function add(
    */
 
   if (metaOwnerID == null) {
-    metaOwnerID = await DAO.meta.getDefaultOwnerID();
+    if (transaction) {
+      // On the transaction's connection: a pool query while holding it can wait forever when
+      // many transactions hold all the pool's connections
+      const [owners] = await query("SELECT ID FROM Data_owner WHERE `default` = 1", []);
+      if (owners.length == 0) throw new Error("No default owner found");
+      metaOwnerID = owners[0].ID as number;
+    } else {
+      metaOwnerID = await DAO.meta.getDefaultOwnerID();
+    }
   }
 
   /*  External transaction ID can be passed to prevent duplicates.
