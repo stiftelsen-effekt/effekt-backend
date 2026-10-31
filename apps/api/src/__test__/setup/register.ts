@@ -4,6 +4,6 @@
  * did.
  */
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-require("dotenv").config({ path: process.env.DOTENV_CONFIG_PATH ?? ".env.test" });
+require("dotenv").config({ path: process.env.DOTENV_CONFIG_PATH ?? ".env.test", quiet: true });
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require("ts-node").register({ transpileOnly: true });
