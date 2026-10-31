@@ -141,21 +141,21 @@ The donation widget (`components/shared/components/Widget`) calls the public `wi
 (`apps/api/src/trpc/routers/widget.ts`, schemas in `apps/api/src/trpc/shared/widget.ts`, exported
 as `@effekt/api/widget`). No login, no token.
 
-| Procedure                    | Formerly                       | Saga                                                                |
-| ---------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| `widget.causeAreas`          | `GET /causeareas/all/`         | `layout/saga.ts` `fetchCauseAreas`; also Min Side's `useCauseAreas` |
-| `widget.referralTypes`       | `GET /referrals/types`         | `referrals/saga.ts` `fetchReferrals`                                |
-| `widget.registerDonation`    | `POST /donations/register`     | `donation/saga.ts` `registerDonation`                               |
-| `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending`                            |
-| `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`                                |
+| Procedure                    | Formerly                       | Caller (`Widget/store/flows.ts`)                   |
+| ---------------------------- | ------------------------------ | -------------------------------------------------- |
+| `widget.causeAreas`          | `GET /causeareas/all/`         | `fetchCauseAreas`; also Min Side's `useCauseAreas` |
+| `widget.referralTypes`       | `GET /referrals/types`         | `fetchReferralTypes`                               |
+| `widget.registerDonation`    | `POST /donations/register`     | `registerDonation`                                 |
+| `widget.registerBankPending` | `POST /donations/bank/pending` | `registerBankPending`                              |
+| `widget.submitReferral`      | `POST /referrals`              | `submitReferral`                                   |
 
 Payment steps after registration (Norway only; the Danish backend has none of these
 routes, so the REST link leaves them unmapped and they fail without a request on the Danish site):
 
-| Procedure                    | Formerly                      | Caller                                                     |
-| ---------------------------- | ----------------------------- | ---------------------------------------------------------- |
-| `widget.draftVippsAgreement` | `POST /vipps/agreement/draft` | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
-| `widget.draftAvtaleGiro`     | `POST /avtalegiro/draft`      | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
+| Procedure                    | Formerly                      | Caller                                                   |
+| ---------------------------- | ----------------------------- | -------------------------------------------------------- |
+| `widget.draftVippsAgreement` | `POST /vipps/agreement/draft` | `store/flows.ts`, `FundraiserWidget/useRegisterDonation` |
+| `widget.draftAvtaleGiro`     | `POST /avtalegiro/draft`      | `store/flows.ts`, `FundraiserWidget/useRegisterDonation` |
 
 - `widget.registerDonation` runs the same code as the REST route (`registerPendingDonation` in
   `apps/api/src/custom_modules/pendingDonationRegistration.ts`) with the same input schema

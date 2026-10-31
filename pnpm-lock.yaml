@@ -629,9 +629,6 @@ importers:
       '@portabletext/react':
         specifier: ^8.0.1
         version: 8.0.1(react@19.3.1)
-      '@reduxjs/toolkit':
-        specifier: ^2.13.0
-        version: 2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1))(react@19.3.1)
       '@sanity/client':
         specifier: ^8.10.1
         version: 8.10.1(vitest@5.0.5)
@@ -722,18 +719,12 @@ importers:
       react-number-format:
         specifier: ^5.4.5
         version: 5.4.5(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      react-redux:
-        specifier: ^9.3.0
-        version: 9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1)
       react-toastify:
         specifier: ^11.1.0
         version: 11.1.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-youtube:
         specifier: ^10.1.0
         version: 10.1.0(react@19.3.1)(supports-color@8.1.1)
-      redux-saga:
-        specifier: ^1.5.1
-        version: 1.5.1
       sanity-image:
         specifier: ^1.3.0
         version: 1.3.0(react@19.3.1)
@@ -801,9 +792,6 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
-      typescript-fsa:
-        specifier: ^3.0.0
-        version: 3.0.0
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(jsdom@30.1.3(@noble/hashes@2.4.0))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.1)(terser@5.50.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -3901,24 +3889,6 @@ packages:
 
   '@radix-ui/rect@1.1.3':
     resolution: {integrity: sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==}
-
-  '@redux-saga/core@1.5.1':
-    resolution: {integrity: sha512-Yh/eO0YBawlK5qAVXh9vSS0BDMWyFe6qIcVcKa8JtPOo3IFwRly33ZYBrsCwxu7jdSQT9QUJHChAU8fil5dRZQ==}
-
-  '@redux-saga/deferred@1.3.1':
-    resolution: {integrity: sha512-0YZ4DUivWojXBqLB/TmuRRpDDz7tyq1I0AuDV7qi01XlLhM5m51W7+xYtIckH5U2cMlv9eAuicsfRAi1XHpXIg==}
-
-  '@redux-saga/delay-p@1.3.1':
-    resolution: {integrity: sha512-597I7L5MXbD/1i3EmcaOOjL/5suxJD7p5tnbV1PiWnE28c2cYiIHqmSMK2s7us2/UrhOL2KTNBiD0qBg6KnImg==}
-
-  '@redux-saga/is@1.2.1':
-    resolution: {integrity: sha512-x3aWtX3GmQfEvn8dh0ovPbsXgK9JjpiR24wKztpGbZP8JZUWWvUgKrvnWZ/T/4iphOBftyVc9VrIwhAnsM+OFA==}
-
-  '@redux-saga/symbols@1.2.1':
-    resolution: {integrity: sha512-3dh+uDvpBXi7EUp/eO+N7eFM4xKaU4yuGBXc50KnZGzIrR/vlvkTFQsX13zsY8PB6sCFYAgROfPSRUj8331QSA==}
-
-  '@redux-saga/types@1.4.1':
-    resolution: {integrity: sha512-GSOGLWvJIjA63ywISJZr4skTjTnyQdu2WZbUeVguYNMyinEa9yTflBlVOFuBZxmyMR1dQodCE3PiKDu0BvyAHg==}
 
   '@reduxjs/toolkit@2.13.0':
     resolution: {integrity: sha512-f6jwVRfwW30+tnllz4YcsHHpPYYOE7abcHkyUCovD+P7DyhdAI5prz2Fh/8TLhakjpN+7aIEion1s5L/tvlYlA==}
@@ -10186,9 +10156,6 @@ packages:
     resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
     engines: {node: '>=4'}
 
-  redux-saga@1.5.1:
-    resolution: {integrity: sha512-ZwnV/p+ABHoaDzyBrZshmIG/axRQG6AQJre8p9t1bPI/i6UzE5C9jGG9wgSKi8ojLMVyFLwmiDwFtuaul9c3wQ==}
-
   redux-thunk@3.1.0:
     resolution: {integrity: sha512-NW2r5T6ksUKXCabzhL9z+h206HQw/NJkcLm1GPImRQ8IzfXwRGqjVhKJGauHirT0DAuyy6hjdnMZaRoAcy0Klw==}
     peerDependencies:
@@ -11010,9 +10977,6 @@ packages:
 
   typeid-js@0.3.0:
     resolution: {integrity: sha512-A1EmvIWG6xwYRfHuYUjPltHqteZ1EiDG+HOmbIYXeHUVztmnGrPIfU9KIK1QC30x59ko0r4JsMlwzsALCyiB3Q==}
-
-  typescript-fsa@3.0.0:
-    resolution: {integrity: sha512-xiXAib35i0QHl/+wMobzPibjAH5TJLDj+qGq5jwVLG9qR4FUswZURBw2qihBm0m06tHoyb3FzpnJs1GRhRwVag==}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -14783,30 +14747,6 @@ snapshots:
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
 
   '@radix-ui/rect@1.1.3': {}
-
-  '@redux-saga/core@1.5.1':
-    dependencies:
-      '@babel/runtime': 7.29.10
-      '@redux-saga/deferred': 1.3.1
-      '@redux-saga/delay-p': 1.3.1
-      '@redux-saga/is': 1.2.1
-      '@redux-saga/symbols': 1.2.1
-      '@redux-saga/types': 1.4.1
-
-  '@redux-saga/deferred@1.3.1': {}
-
-  '@redux-saga/delay-p@1.3.1':
-    dependencies:
-      '@redux-saga/symbols': 1.2.1
-
-  '@redux-saga/is@1.2.1':
-    dependencies:
-      '@redux-saga/symbols': 1.2.1
-      '@redux-saga/types': 1.4.1
-
-  '@redux-saga/symbols@1.2.1': {}
-
-  '@redux-saga/types@1.4.1': {}
 
   '@reduxjs/toolkit@2.13.0(react-redux@9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1))(react@19.3.1)':
     dependencies:
@@ -22214,11 +22154,6 @@ snapshots:
     dependencies:
       redis-errors: 1.2.0
 
-  redux-saga@1.5.1:
-    dependencies:
-      '@babel/runtime': 7.29.10
-      '@redux-saga/core': 1.5.1
-
   redux-thunk@3.1.0(redux@5.0.1):
     dependencies:
       redux: 5.0.1
@@ -23462,8 +23397,6 @@ snapshots:
   typeid-js@0.3.0:
     dependencies:
       uuidv7: 0.4.4
-
-  typescript-fsa@3.0.0: {}
 
   typescript@5.9.3: {}
 

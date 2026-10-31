@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../../store/store";
 import { State } from "../../../../store/state";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import { DkBankPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
@@ -17,8 +17,8 @@ export const DKBankPane: React.FC<{
   referrals: WidgetPane3ReferralsProps;
 }> = ({ config, referrals }) => {
   const plausible = usePlausible();
-  const donation = useSelector((state: State) => state.donation);
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
+  const donation = useWidgetSelector((state: State) => state.donation);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
 
   // The rewritten widget tracks per-cause-area/organization amounts rather than a single sum,
   // so derive the total from the donation breakdown for analytics.

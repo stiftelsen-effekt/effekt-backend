@@ -1,12 +1,12 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { NumericFormat } from "react-number-format";
 import { State } from "../../../store/state";
 import {
   setGlobalOperationsEnabled,
   setGlobalOperationsPercentage,
   setOperationsPercentageModeByCauseArea,
-} from "../../../store/donation/actions";
+} from "../../../store/actions";
 import { CustomCheckBox } from "../DonorPane/CustomCheckBox";
 import { OperationsConfig } from "../../../types/WidgetProps";
 import { splitOperationsLabelTemplate } from "../../../utils/operationsLabel";
@@ -18,19 +18,15 @@ interface GlobalCutToggleProps {
 }
 
 export const GlobalCutToggle: React.FC<GlobalCutToggleProps> = ({ operationsConfig }) => {
-  const dispatch = useDispatch<any>();
+  const dispatch = useWidgetDispatch();
   const {
     globalOperationsEnabled = false,
     globalOperationsPercentage = 5,
     operationsConfig: stateConfig,
-  } = useSelector((state: State) => state.donation);
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas) ?? [];
+  } = useWidgetSelector((state: State) => state.donation);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) ?? [];
 
-  // Use config from props if available, otherwise from state
-  // Not used: the label template below reads only the prop. CauseAreaForm reads it from
-  // `config`, so this probably should too.
-  // oxlint-disable-next-line no-unused-vars -- kept to flag the likely mismatch
-  const config = operationsConfig || stateConfig;
+  // Only Sanity's operations_config (the prop) has the label template, as in CauseAreaForm
   const { prefix: operationsLabelPrefix, suffix: operationsLabelSuffix } =
     splitOperationsLabelTemplate(operationsConfig?.operations_label_template);
 

@@ -1,7 +1,6 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { setCauseAreaSelection, setGlobalOperationsEnabled } from "../../store/donation/actions";
-import { nextPane } from "../../store/layout/actions";
+import { useWidgetDispatch, useWidgetSelector } from "../../store/store";
+import { setCauseAreaSelection, setGlobalOperationsEnabled, nextPane } from "../../store/actions";
 import { State } from "../../store/state";
 import { Spinner } from "../../../Spinner/Spinner";
 import { CauseAreaDisplayConfig } from "../../types/WidgetProps";
@@ -24,10 +23,10 @@ export const SelectionPane: React.FC<SelectionPaneProps> = ({
   causeAreaDisplayConfig,
   accentColor,
 }) => {
-  const dispatch = useDispatch<any>();
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas);
+  const dispatch = useWidgetDispatch();
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas);
   const prefilledCauseAreaIds = usePrefilledCauseAreaIds();
-  const { operationsPercentageModeByCauseArea = {} } = useSelector(
+  const { operationsPercentageModeByCauseArea = {} } = useWidgetSelector(
     (state: State) => state.donation,
   );
 

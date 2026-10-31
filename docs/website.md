@@ -28,6 +28,13 @@ pnpm web:dev            # from the repo root; http://localhost:3000
   for users who log in, keeping the public payload small. `pages/_app.page.tsx` picks the layout.
 - **Content**: data is fetched with [next-sanity](https://github.com/sanity-io/next-sanity) and
   [GROQ](https://www.sanity.io/docs/groq) queries in each page's static props.
+- **Donation widget** (`components/shared/components/Widget`): styles are SCSS modules like the rest
+  of the site. Its state is a reducer (`store/reducer.ts`) in a small store that components read
+  with `useWidgetSelector` (`store/store.tsx`, React's `useSyncExternalStore`); the widget pane's
+  store lives in `_app.page.tsx` for the whole visit, each inline widget block has its own. The
+  requests and what follows them (register, draft an agreement, load the cause areas) are async
+  functions in `store/flows.ts`; registering and drafting ignore a second call while one is in
+  flight. The API calls themselves are in `store/widgetApi.ts` (see [web-trpc.md](web-trpc.md)).
 - **Min Side data**: the API is called with the user's Auth0 access token. Calls are moving from REST
   (`components/profile/_queries.ts`, `hooks/useApi.ts`) to tRPC; see [web-trpc.md](web-trpc.md). The
   donor id the API uses is the token claim `https://gieffektivt.no/user-id`, not the Auth0 user id.

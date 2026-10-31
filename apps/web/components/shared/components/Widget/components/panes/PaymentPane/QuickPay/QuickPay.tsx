@@ -1,5 +1,5 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../../store/store";
 import { State } from "../../../../store/state";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import {
@@ -14,7 +14,7 @@ export const QuickPayPane: React.FC<{
   config: QuickPayCardPaymentMethod | QuickPayMobilePayPaymentMethod;
   referrals: WidgetPane3ReferralsProps;
 }> = ({ config, referrals }) => {
-  const donation = useSelector((state: State) => state.donation);
+  const donation = useWidgetSelector((state: State) => state.donation);
   const { paymentProviderURL, recurring } = donation;
 
   return (

@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { setVippsAgreement } from "../../../../../store/donation/actions";
+import { useWidgetDispatch, useWidgetSelector } from "../../../../../store/store";
+import { setVippsAgreement } from "../../../../../store/actions";
 import { State } from "../../../../../store/state";
 import { ToolTip } from "../../../../shared/ToolTip/ToolTip";
 import { CustomCheckBox } from "../../../DonorPane/CustomCheckBox";
 import { formatDateText, getNextChargeDate, isIrregularChargeDay, showCheckBox } from "./dates";
 import { DatePicker } from "../../../../shared/DatePicker/DatePicker";
 import { DatePickerInputConfiguration } from "../../../../../../DatePicker/DatePickerInput";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../../../store/donation/types";
 import forms from "../../../Forms.module.scss";
 import payment from "../../PaymentPane.module.scss";
 
@@ -16,8 +14,8 @@ const tooltipText =
   "Vi kan av tekniske grunner ikke melde trekk 1-3 dager i forveien, så første trekkdato utsettes med én måned. Du kan velge en senere dato eller krysse av for også å bli trukket i dag.";
 
 export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }> = ({ config }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
-  const vippsAgreement = useSelector((state: State) => state.donation.vippsAgreement);
+  const dispatch = useWidgetDispatch();
+  const vippsAgreement = useWidgetSelector((state: State) => state.donation.vippsAgreement);
   const [selectedChargeDay, setSelectedChargeDay] = useState<number>(
     vippsAgreement.monthlyChargeDay,
   );

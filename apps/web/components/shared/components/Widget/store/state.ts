@@ -1,19 +1,16 @@
 import { CauseArea } from "../types/CauseArea";
 import { PaymentMethod, RecurringDonation, ShareType } from "../types/Enums";
-import { Organization } from "../types/Organization";
 import { ReferralType } from "../types/Temp";
 
 export interface State {
   donation: Donation;
   layout: Layout;
   referrals: Referrals;
-  error: Error;
 }
 
 export interface Layout {
   paneNumber: number;
-  answeredReferral?: boolean;
-  height: number;
+  /** A registration or agreement draft is in flight: the buttons show a spinner and ignore clicks */
   loading: boolean;
   causeAreas?: CauseArea[];
 }
@@ -31,9 +28,6 @@ export interface Donation extends DonationInput {
   /** From registerDonation: sent with the calls that act on the registered KID */
   registrationToken?: string;
   paymentProviderURL?: string;
-  // Array of objects with string keys and string values
-  errors: DonationError[];
-  showErrors: boolean;
   /** UI selection: 'single' = one cause area, 'multiple' = all cause areas */
   selectionType?: "single" | "multiple";
   /** When selectionType is 'single', the selected cause area ID */
@@ -80,30 +74,9 @@ export interface Donation extends DonationInput {
   donorFormDraft?: DonorFormDraft;
 }
 
-export type DonationError = {
-  type: DonationErrorTypeNames;
-  causeAreaId?: number;
-  variables?: { [key: string]: string };
-};
-export type DonationErrorTypeNames =
-  | "causeAreaSumError"
-  | "causeAreaOrganizationsSumError"
-  | "causeAreaShareNegativeError"
-  | "causeAreaOrganizationsShareNegativeError"
-  | "donationSumError";
-
 export interface VippsAgreement {
   initialCharge: boolean;
   monthlyChargeDay: number;
-}
-
-export interface RegisterDonationObject {
-  donor: Donor;
-  method: PaymentMethod;
-  recurring: RecurringDonation;
-  amount: number;
-  dueDay?: number;
-  referralCode?: string;
 }
 
 export interface DonorInput {
@@ -120,14 +93,10 @@ export interface Donor extends DonorInput {
 }
 
 export interface Referrals {
-  referrals?: [ReferralType];
+  referrals?: ReferralType[];
   selectedReferrals: number[];
   otherText: string;
   websiteSession: string;
-}
-
-export interface DonorFormValues extends DonorInput {
-  privacyPolicy: boolean;
 }
 
 export interface DonorFormDraft {
@@ -141,26 +110,3 @@ export interface DonorFormDraft {
   privacyPolicy: boolean;
   referralCode: string;
 }
-
-export interface Share {
-  organizationID: number;
-  share: number;
-}
-
-export interface Error {
-  isVisible: boolean;
-  message: string;
-}
-
-export enum PaneNumber {
-  MethodPane = 0,
-  DonorPane = 1,
-  DonationPane = 2,
-  ReferralPane = 3,
-  ResultPane = 4,
-}
-
-export type CauseAreaOrgs = {
-  name: string;
-  organizations: Organization[];
-};

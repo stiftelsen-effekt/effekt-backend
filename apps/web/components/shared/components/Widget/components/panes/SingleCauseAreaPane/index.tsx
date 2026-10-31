@@ -1,9 +1,8 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { NumericFormat } from "react-number-format";
 import { usePlausible } from "next-plausible";
 import { PortableText } from "@portabletext/react";
-import { Dispatch } from "@reduxjs/toolkit";
 import AnimateHeight from "react-animate-height";
 
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
@@ -15,16 +14,13 @@ import { State } from "../../../store/state";
 import { RecurringDonation, ShareType } from "../../../types/Enums";
 import {
   setRecurring,
-  setSum,
   setCauseAreaAmount,
   setOrgAmount,
   setCauseAreaDistributionType,
   setShowAllOrganizations,
   setHasManuallyEditedPrefilledOrgAmount,
-} from "../../../store/donation/actions";
-import { nextPane } from "../../../store/layout/actions";
-import { DonationActionTypes } from "../../../store/donation/types";
-import { LayoutActionTypes } from "../../../store/layout/types";
+  nextPane,
+} from "../../../store/actions";
 import { thousandize } from "../../../../../../../util/formatting";
 import { useAmountCalculation } from "../AmountPane/useAmountCalculation";
 import { AmountContext, SmartDistributionContext } from "../../../types/WidgetProps";
@@ -62,11 +58,11 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
   amountContext,
   smartDistributionContext,
 }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes | LayoutActionTypes>>();
+  const dispatch = useWidgetDispatch();
   const plausible = usePlausible();
   const isMobile = useIsMobile();
 
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas);
   const {
     recurring,
     causeAreaAmounts = {},
@@ -75,7 +71,7 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
     prefilledShares = null,
     showAllOrganizations = false,
     hasManuallyEditedPrefilledOrgAmount = false,
-  } = useSelector((state: State) => state.donation);
+  } = useWidgetSelector((state: State) => state.donation);
 
   const activeCauseAreas = causeAreas?.filter((ca) => ca.isActive) ?? [];
   const causeArea = activeCauseAreas[0];
@@ -83,7 +79,7 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
   const { totalAmount } = useAmountCalculation("single", causeArea?.id ?? null, causeAreas ?? []);
 
   const currentAmount = causeArea ? causeAreaAmounts[causeArea.id] || 0 : 0;
-  // setAmount stores the entered amount verbatim in Redux, so the input reads it from there.
+  // setAmount stores the entered amount verbatim in the store, so the input reads it from there.
   const inputValue = currentAmount;
   const [showErrors, setShowErrors] = React.useState(false);
 
@@ -92,7 +88,7 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
   // edited any of them yet, each keeps tracking its percentage share of the cause area amount -
   // so typing a sum afterwards still splits it the same way. The tracked amounts are only
   // derived for display; they're committed to orgAmounts (for the actual payload) once the
-  // donor moves on, to avoid a dispatch/re-render race while typing. This state lives in Redux
+  // donor moves on, to avoid a dispatch/re-render race while typing. This state lives in the widget store
   // (not local component state) because panes unmount/remount when navigating.
   const hasPrefilledOrgs = !!prefilledShares && Object.keys(prefilledShares).length > 0;
   const isTrackingPrefilledShares = hasPrefilledOrgs && !hasManuallyEditedPrefilledOrgAmount;
@@ -390,7 +386,6 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
                   dispatch(setOrgAmount(Number(orgId), trackedOrgAmounts[Number(orgId)] ?? 0));
                 });
               }
-              dispatch(setSum(effectiveTotalAmount));
               dispatch(nextPane());
             }}
             data-cy="next-button"

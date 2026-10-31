@@ -1,5 +1,5 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../store/store";
 import { State } from "../../../store/state";
 import { ShareType } from "../../../types/Enums";
 import { calculateDonationBreakdown } from "../../../utils/donationCalculations";
@@ -14,8 +14,8 @@ export interface DonationSummaryText {
 }
 
 export const DonationSummary: React.FC<{ text: DonationSummaryText }> = ({ text }) => {
-  const donation = useSelector((state: State) => state.donation);
-  const layoutCauseAreas = useSelector((state: State) => state.layout.causeAreas);
+  const donation = useWidgetSelector((state: State) => state.donation);
+  const layoutCauseAreas = useWidgetSelector((state: State) => state.layout.causeAreas);
   const causeAreas = React.useMemo(() => layoutCauseAreas || [], [layoutCauseAreas]);
 
   const {

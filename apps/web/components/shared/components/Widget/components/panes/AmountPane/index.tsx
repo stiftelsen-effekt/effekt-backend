@@ -1,9 +1,8 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
 import { State } from "../../../store/state";
-import { setSum, setRecurring } from "../../../store/donation/actions";
-import { nextPane } from "../../../store/layout/actions";
+import { setRecurring, nextPane } from "../../../store/actions";
 import { RecurringDonation } from "../../../types/Enums";
 import {
   AmountContext,
@@ -46,19 +45,16 @@ export const AmountPane: React.FC<AmountPaneProps> = ({
   causeAreaDisplayConfig,
   uiLabels,
 }) => {
-  const dispatch = useDispatch<any>();
-  const { selectionType, selectedCauseAreaId, recurring, smartDistributionTotal } = useSelector(
-    (state: State) => state.donation,
-  );
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
+  const dispatch = useWidgetDispatch();
+  const { selectionType, selectedCauseAreaId, recurring, smartDistributionTotal } =
+    useWidgetSelector((state: State) => state.donation);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
   const prefilledCauseAreaIds = usePrefilledCauseAreaIds();
 
   const { totalAmount, causeAreaAmounts, orgAmounts, causeAreaDistributionType } =
     useAmountCalculation(selectionType || "single", selectedCauseAreaId || null, causeAreas);
 
   const handleNext = () => {
-    const finalAmount = selectedCauseAreaId === -1 ? smartDistributionTotal || 0 : totalAmount;
-    dispatch(setSum(finalAmount));
     dispatch(nextPane());
   };
 

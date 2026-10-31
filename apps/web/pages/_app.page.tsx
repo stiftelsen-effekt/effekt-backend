@@ -9,9 +9,11 @@ import { RouterContext, RouterContextValue, fetchRouterContext } from "../contex
 import { getProfileLayoutStaticProps } from "../components/profile/layout/layoutStaticProps";
 import { Layout } from "../components/main/layout/layout";
 import { FullPageSpinner } from "../components/shared/layout/FullPageSpinner/FullPageSpinner";
-import { Provider } from "react-redux";
 import { ConsentState } from "../proxy.page";
-import { createWidgetStore } from "../components/shared/components/Widget/components/WidgetWithStore";
+import {
+  createWidgetStore,
+  WidgetStoreProvider,
+} from "../components/shared/components/Widget/store/store";
 import { useRouter } from "next/router";
 import { getReferralCodeFromQuery, storeReferralCode } from "../util/referralCode";
 import { useTrackingEnabled } from "../hooks/useTrackingEnabled";
@@ -29,6 +31,7 @@ const VisualEditing = dynamic(
   () => import("@sanity/visual-editing/next-pages-router").then((mod) => mod.VisualEditing),
   { ssr: false },
 );
+// The widget pane's state, kept for the whole visit
 const globalWidgetStore = createWidgetStore();
 
 export enum LayoutType {
@@ -103,7 +106,7 @@ function MyApp({
     return (
       <PreviewProvider token={pageProps.token}>
         <PlausibleProvider enabled={tracking}>
-          <Provider store={globalWidgetStore}>
+          <WidgetStoreProvider store={globalWidgetStore}>
             <RouterContext.Provider value={routerContextValue}>
               {appStaticProps.layout === LayoutType.Default ? (
                 <Layout {...appStaticProps.layoutProps}>
@@ -115,7 +118,7 @@ function MyApp({
                 </ProfileLayout>
               )}
             </RouterContext.Provider>
-          </Provider>
+          </WidgetStoreProvider>
         </PlausibleProvider>
         <Suspense>
           <VisualEditing zIndex={Number.MAX_SAFE_INTEGER} />
@@ -126,7 +129,7 @@ function MyApp({
 
   return (
     <PlausibleProvider>
-      <Provider store={globalWidgetStore}>
+      <WidgetStoreProvider store={globalWidgetStore}>
         <RouterContext.Provider value={routerContextValue}>
           {appStaticProps.layout === LayoutType.Default ? (
             <Layout {...appStaticProps.layoutProps}>
@@ -138,7 +141,7 @@ function MyApp({
             </ProfileLayout>
           )}
         </RouterContext.Provider>
-      </Provider>
+      </WidgetStoreProvider>
     </PlausibleProvider>
   );
 }
