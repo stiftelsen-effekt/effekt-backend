@@ -505,8 +505,6 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
                 widgetConfiguration={block.donationwidget}
                 overrides={block.overrides}
                 content={block.content}
-                contentPosition={block.content_position}
-                contentMobilePosition={block.content_mobile_position}
               />
             );
           case "dkmembershipwidget":

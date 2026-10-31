@@ -4870,40 +4870,6 @@
         },
         "optional": true
       },
-      "content_position": {
-        "type": "objectAttribute",
-        "value": {
-          "type": "union",
-          "of": [
-            {
-              "type": "string",
-              "value": "left"
-            },
-            {
-              "type": "string",
-              "value": "right"
-            }
-          ]
-        },
-        "optional": true
-      },
-      "content_mobile_position": {
-        "type": "objectAttribute",
-        "value": {
-          "type": "union",
-          "of": [
-            {
-              "type": "string",
-              "value": "top"
-            },
-            {
-              "type": "string",
-              "value": "bottom"
-            }
-          ]
-        },
-        "optional": true
-      },
       "donationwidget": {
         "type": "objectAttribute",
         "value": {
@@ -12153,13 +12119,6 @@
             "type": "string",
             "value": "resultsteaser"
           }
-        },
-        "title": {
-          "type": "objectAttribute",
-          "value": {
-            "type": "string"
-          },
-          "optional": true
         },
         "sum_subtitle": {
           "type": "objectAttribute",
@@ -20585,40 +20544,6 @@
                     },
                     "optional": true
                   },
-                  "content_position": {
-                    "type": "objectAttribute",
-                    "value": {
-                      "type": "union",
-                      "of": [
-                        {
-                          "type": "string",
-                          "value": "left"
-                        },
-                        {
-                          "type": "string",
-                          "value": "right"
-                        }
-                      ]
-                    },
-                    "optional": true
-                  },
-                  "content_mobile_position": {
-                    "type": "objectAttribute",
-                    "value": {
-                      "type": "union",
-                      "of": [
-                        {
-                          "type": "string",
-                          "value": "top"
-                        },
-                        {
-                          "type": "string",
-                          "value": "bottom"
-                        }
-                      ]
-                    },
-                    "optional": true
-                  },
                   "donationwidget": {
                     "type": "objectAttribute",
                     "value": {
@@ -26380,40 +26305,6 @@
                             },
                             "optional": true
                           },
-                          "content_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "left"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "right"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
-                          "content_mobile_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "top"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "bottom"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
                           "donationwidget": {
                             "type": "objectAttribute",
                             "value": {
@@ -30212,40 +30103,6 @@
                                   }
                                 }
                               }
-                            },
-                            "optional": true
-                          },
-                          "content_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "left"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "right"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
-                          "content_mobile_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "top"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "bottom"
-                                }
-                              ]
                             },
                             "optional": true
                           },
@@ -34218,40 +34075,6 @@
                             },
                             "optional": true
                           },
-                          "content_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "left"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "right"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
-                          "content_mobile_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "top"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "bottom"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
                           "donationwidget": {
                             "type": "objectAttribute",
                             "value": {
@@ -37262,40 +37085,6 @@
                                   }
                                 }
                               }
-                            },
-                            "optional": true
-                          },
-                          "content_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "left"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "right"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
-                          "content_mobile_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "top"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "bottom"
-                                }
-                              ]
                             },
                             "optional": true
                           },
@@ -40813,40 +40602,6 @@
                                   }
                                 }
                               }
-                            },
-                            "optional": true
-                          },
-                          "content_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "left"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "right"
-                                }
-                              ]
-                            },
-                            "optional": true
-                          },
-                          "content_mobile_position": {
-                            "type": "objectAttribute",
-                            "value": {
-                              "type": "union",
-                              "of": [
-                                {
-                                  "type": "string",
-                                  "value": "top"
-                                },
-                                {
-                                  "type": "string",
-                                  "value": "bottom"
-                                }
-                              ]
                             },
                             "optional": true
                           },

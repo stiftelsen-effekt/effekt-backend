@@ -852,8 +852,6 @@ export type Donationwidgetblock = {
     _type: "block";
     _key: string;
   }>;
-  content_position?: "left" | "right";
-  content_mobile_position?: "top" | "bottom";
   donationwidget?: DonationwidgetReference;
   overrides?: Overrides;
 };
@@ -1997,7 +1995,6 @@ export type Citation = {
 
 export type Resultsteaser = {
   _type: "resultsteaser";
-  title?: string;
   sum_subtitle?: string;
   donors_subtitle?: string;
   see_more_button?: {
@@ -3358,8 +3355,6 @@ export type Contentsection = {
           _type: "block";
           _key: string;
         }>;
-        content_position?: "left" | "right";
-        content_mobile_position?: "top" | "bottom";
         donationwidget?: DonationwidgetReference;
         overrides?: Overrides;
         _type: "donationwidgetblock";
@@ -4293,8 +4288,6 @@ export type Fundraiser_page = {
             _type: "block";
             _key: string;
           }>;
-          content_position?: "left" | "right";
-          content_mobile_position?: "top" | "bottom";
           donationwidget?: DonationwidgetReference;
           overrides?: Overrides;
           _type: "donationwidgetblock";
@@ -4893,8 +4886,6 @@ export type Vippsagreement = {
             _type: "block";
             _key: string;
           }>;
-          content_position?: "left" | "right";
-          content_mobile_position?: "top" | "bottom";
           donationwidget?: DonationwidgetReference;
           overrides?: Overrides;
           _type: "donationwidgetblock";
@@ -5534,8 +5525,6 @@ export type Article_page = {
             _type: "block";
             _key: string;
           }>;
-          content_position?: "left" | "right";
-          content_mobile_position?: "top" | "bottom";
           donationwidget?: DonationwidgetReference;
           overrides?: Overrides;
           _type: "donationwidgetblock";
@@ -6012,8 +6001,6 @@ export type Criteria = {
             _type: "block";
             _key: string;
           }>;
-          content_position?: "left" | "right";
-          content_mobile_position?: "top" | "bottom";
           donationwidget?: DonationwidgetReference;
           overrides?: Overrides;
           _type: "donationwidgetblock";
@@ -6573,8 +6560,6 @@ export type Generic_page = {
             _type: "block";
             _key: string;
           }>;
-          content_position?: "left" | "right";
-          content_mobile_position?: "top" | "bottom";
           donationwidget?: DonationwidgetReference;
           overrides?: Overrides;
           _type: "donationwidgetblock";
@@ -7743,8 +7728,6 @@ export type FetchArticleResult = {
               _type: "block";
               _key: string;
             }>;
-            content_position?: "left" | "right";
-            content_mobile_position?: "bottom" | "top";
             donationwidget: {
               _id: string;
               _type: "donationwidget";
@@ -9278,7 +9261,6 @@ export type FetchArticleResult = {
         | {
             _key: string;
             _type: "resultsteaser";
-            title?: string;
             sum_subtitle?: string;
             donors_subtitle?: string;
             see_more_button: {
@@ -11249,8 +11231,6 @@ export type FetchFundraiserResult = {
               _type: "block";
               _key: string;
             }>;
-            content_position?: "left" | "right";
-            content_mobile_position?: "bottom" | "top";
             donationwidget: {
               _id: string;
               _type: "donationwidget";
@@ -12784,7 +12764,6 @@ export type FetchFundraiserResult = {
         | {
             _key: string;
             _type: "resultsteaser";
-            title?: string;
             sum_subtitle?: string;
             donors_subtitle?: string;
             see_more_button: {
@@ -14471,8 +14450,6 @@ export type FetchGenericPageResult = {
               _type: "block";
               _key: string;
             }>;
-            content_position?: "left" | "right";
-            content_mobile_position?: "bottom" | "top";
             donationwidget: {
               _id: string;
               _type: "donationwidget";
@@ -16006,7 +15983,6 @@ export type FetchGenericPageResult = {
         | {
             _key: string;
             _type: "resultsteaser";
-            title?: string;
             sum_subtitle?: string;
             donors_subtitle?: string;
             see_more_button: {
@@ -17795,8 +17771,6 @@ export type FetchVippsResult = {
                     _type: "block";
                     _key: string;
                   }>;
-                  content_position?: "left" | "right";
-                  content_mobile_position?: "bottom" | "top";
                   donationwidget?: DonationwidgetReference;
                   overrides?: Overrides;
                   _type: "donationwidgetblock";
@@ -18409,8 +18383,6 @@ export type FetchAgreementsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -19138,8 +19110,6 @@ export type FetchAgreementsPageResult = {
                 _type: "block";
                 _key: string;
               }>;
-              content_position?: "left" | "right";
-              content_mobile_position?: "bottom" | "top";
               donationwidget?: DonationwidgetReference;
               overrides?: Overrides;
               _type: "donationwidgetblock";
@@ -19651,8 +19621,6 @@ export type FetchAgreementsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -20287,8 +20255,6 @@ export type FetchAgreementsPageResult = {
           _type: "block";
           _key: string;
         }>;
-        content_position?: "left" | "right";
-        content_mobile_position?: "bottom" | "top";
         donationwidget?: DonationwidgetReference;
         overrides?: Overrides;
         active_list_configuration: null;
@@ -20572,8 +20538,6 @@ export type FetchAgreementsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -21147,8 +21111,6 @@ export type FetchAgreementsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -22704,8 +22666,6 @@ export type FetchAgreementsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -23261,8 +23221,6 @@ export type FetchDonationsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -24017,8 +23975,6 @@ export type FetchDonationsPageResult = {
                 _type: "block";
                 _key: string;
               }>;
-              content_position?: "left" | "right";
-              content_mobile_position?: "bottom" | "top";
               donationwidget?: DonationwidgetReference;
               overrides?: Overrides;
               _type: "donationwidgetblock";
@@ -24539,8 +24495,6 @@ export type FetchDonationsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -25389,8 +25343,6 @@ export type FetchDonationsPageResult = {
           _type: "block";
           _key: string;
         }>;
-        content_position?: "left" | "right";
-        content_mobile_position?: "bottom" | "top";
         donationwidget?: DonationwidgetReference;
         overrides?: Overrides;
         aggregate_estimated_impact: null;
@@ -25677,8 +25629,6 @@ export type FetchDonationsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -26261,8 +26211,6 @@ export type FetchDonationsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -27908,8 +27856,6 @@ export type FetchDonationsPageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -28464,8 +28410,6 @@ export type FetchProfilePageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -29184,8 +29128,6 @@ export type FetchProfilePageResult = {
                 _type: "block";
                 _key: string;
               }>;
-              content_position?: "left" | "right";
-              content_mobile_position?: "bottom" | "top";
               donationwidget?: DonationwidgetReference;
               overrides?: Overrides;
               _type: "donationwidgetblock";
@@ -29694,8 +29636,6 @@ export type FetchProfilePageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -30320,8 +30260,6 @@ export type FetchProfilePageResult = {
           _type: "block";
           _key: string;
         }>;
-        content_position?: "left" | "right";
-        content_mobile_position?: "bottom" | "top";
         donationwidget?: DonationwidgetReference;
         overrides?: Overrides;
         slug: null;
@@ -30604,8 +30542,6 @@ export type FetchProfilePageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -31176,8 +31112,6 @@ export type FetchProfilePageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
@@ -32703,8 +32637,6 @@ export type FetchProfilePageResult = {
                   _type: "block";
                   _key: string;
                 }>;
-                content_position?: "left" | "right";
-                content_mobile_position?: "bottom" | "top";
                 donationwidget?: DonationwidgetReference;
                 overrides?: Overrides;
                 _type: "donationwidgetblock";
