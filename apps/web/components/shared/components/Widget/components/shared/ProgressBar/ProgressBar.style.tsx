@@ -1,6 +1,4 @@
 import styled from "styled-components";
-import { orange20 } from "../../../config/colors";
-import exp from "constants";
 import Link from "next/link";
 
 export const HeaderContainer = styled.div`

@@ -1,4 +1,4 @@
-export const discountRateSensitivities = [
+const discountRateSensitivities = [
   { discountRate: 0, interventionType: "Malarianett", value: 0.128719 },
   { discountRate: 0, interventionType: "Kontantoverføringer", value: 0.003729 },
   { discountRate: 0, interventionType: "Ormekurer", value: 0.342701 },

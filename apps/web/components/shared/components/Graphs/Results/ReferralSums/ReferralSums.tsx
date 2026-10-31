@@ -3,8 +3,6 @@ import { useRef } from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 import * as Plot from "@observablehq/plot";
-import AnimateHeight from "react-animate-height";
-import { BlockTablesContent } from "../../../../../main/blocks/BlockTable/BlockTablesContent";
 import styles from "./ReferralSums.module.scss";
 import resultsStyle from "../Shared.module.scss";
 import { useDebouncedCallback } from "use-debounce";

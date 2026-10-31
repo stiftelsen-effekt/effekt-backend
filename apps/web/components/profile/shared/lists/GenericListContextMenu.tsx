@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import { ReactNode } from "react";
 import style from "./Lists.module.scss";
 
 export type GenericListContextMenuOptions = { label: string; icon?: ReactNode }[];

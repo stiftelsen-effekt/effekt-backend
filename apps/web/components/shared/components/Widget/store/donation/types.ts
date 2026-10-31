@@ -1,6 +1,5 @@
 import { DistributionCauseAreaOrganization } from "../../types/DistributionCauseAreaOrganization";
 import { PaymentMethod, RecurringDonation, ShareType } from "../../types/Enums";
-import { OrganizationShare } from "../../types/Temp";
 import { DonorFormDraft, VippsAgreement } from "../state";
 
 export const SELECT_PAYMENT_METHOD = "SELECT_PAYMENT_METHOD";

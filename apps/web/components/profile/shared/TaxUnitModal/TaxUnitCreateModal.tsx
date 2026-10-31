@@ -8,7 +8,7 @@ import { createTaxUnit } from "../../_queries";
 import { toast } from "react-toastify";
 
 import styles from "./TaxUnitModal.module.scss";
-import { AlertCircle, Check } from "react-feather";
+import { Check } from "react-feather";
 import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { useTaxUnits } from "../../../../_queries";
@@ -17,8 +17,6 @@ import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { useFailureToast } from "../../../shared/failureToast";
 import { TaxUnitTypes } from "./taxUnitTypes";
 import { DKTaxUnitCreateModal } from "./DKTaxUnitCreateModal";
-
-export { TaxUnitTypes };
 
 const TaxUnitCreateModalStandard: React.FC<{
   open: boolean;

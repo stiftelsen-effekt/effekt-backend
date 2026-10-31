@@ -6,7 +6,7 @@ import {
   RelatedArticle,
   RelatedArticles,
 } from "../components/main/layout/RelatedArticles/RelatedArticles";
-import { Navbar, NavLink, PreviewNavbar } from "../components/shared/components/Navbar/Navbar";
+import { Navbar, PreviewNavbar } from "../components/shared/components/Navbar/Navbar";
 import { MainHeader } from "../components/shared/layout/Header/Header";
 import { SEO } from "../components/shared/seo/Seo";
 import { useRouterContext } from "../context/RouterContext";

@@ -33,7 +33,7 @@ const isOperationsEntry = (entry: ImpactDistributionEntry) =>
  * Renders the expandable content for an operations item. Returns null when there is
  * no configured text or links, so the caller can omit the expand arrow entirely.
  */
-export const renderOperationsContent = (configuration: DonationImpactItemsConfiguration) => {
+const renderOperationsContent = (configuration: DonationImpactItemsConfiguration) => {
   const text = configuration.operations_text;
   const links = configuration.operations_links;
   const hasText = Boolean(text && text.length > 0);

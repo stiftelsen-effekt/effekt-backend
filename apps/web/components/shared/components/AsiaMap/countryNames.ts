@@ -1,5 +1,5 @@
 // Country name translations for Asian countries
-export const countryNames: Record<string, Record<string, string>> = {
+const countryNames: Record<string, Record<string, string>> = {
   af: { no: "Afghanistan", dk: "Afghanistan", sv: "Afghanistan" },
   am: { no: "Armenia", dk: "Armenien", sv: "Armenien" },
   az: { no: "Aserbajdsjan", dk: "Aserbajdsjan", sv: "Azerbajdzjan" },
@@ -57,7 +57,7 @@ export const countryNames: Record<string, Record<string, string>> = {
 /**
  * Converts full locale string (e.g., "no-NB", "sv-SE", "da-DK") to main locale code ("no", "sv", "dk")
  */
-export const getMainLocale = (locale: string | undefined | null): "no" | "dk" | "sv" => {
+const getMainLocale = (locale: string | undefined | null): "no" | "dk" | "sv" => {
   if (!locale) return "no";
 
   if (locale.startsWith("no")) return "no";

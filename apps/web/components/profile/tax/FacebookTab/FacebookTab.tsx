@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Donor } from "../../../../models";
 import { Links } from "../../../main/blocks/Links/Links";
 import { FacebookTaxWidget } from "../FacebookTaxWidget/FacebookTaxWidget";

@@ -1,6 +1,6 @@
 import React from "react";
 import elements from "./PointList.module.scss";
-import { PointListPoint, PointListPointProps } from "./PointListPoint";
+import { PointListPoint } from "./PointListPoint";
 
 type PointListProps = {
   points: {

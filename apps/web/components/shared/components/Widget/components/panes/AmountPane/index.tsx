@@ -1,15 +1,9 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Pane, PaneContainer, PaneTitle } from "../Panes.style";
+import { Pane, PaneContainer } from "../Panes.style";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
 import { State } from "../../../store/state";
-import {
-  setSum,
-  setRecurring,
-  setCauseAreaAmount,
-  setOperationsPercentageByCauseArea,
-  setOrgAmount,
-} from "../../../store/donation/actions";
+import { setSum, setRecurring } from "../../../store/donation/actions";
 import { nextPane } from "../../../store/layout/actions";
 import { RecurringDonation } from "../../../types/Enums";
 import {
@@ -32,7 +26,6 @@ import { GlobalCutToggle } from "./GlobalCutToggle";
 import { useAmountCalculation } from "./useAmountCalculation";
 import { thousandize } from "../../../../../../../util/formatting";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
-import { LinkType } from "../../../../../../main/blocks/Links/Links";
 import { usePrefilledCauseAreaIds } from "../../hooks";
 
 interface AmountPaneProps {

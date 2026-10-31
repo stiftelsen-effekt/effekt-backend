@@ -1,4 +1,4 @@
-import { LinkType, LinksProps } from "../../../../main/blocks/Links/Links";
+import { LinkType } from "../../../../main/blocks/Links/Links";
 import { DatePickerInputConfiguration } from "../../DatePicker/DatePickerInput";
 import { NavLink } from "../../Navbar/Navbar";
 

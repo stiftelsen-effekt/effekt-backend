@@ -105,15 +105,3 @@ export const PlausibleRevenueTracker: React.FC<{
 
   return null;
 };
-
-/**
- * Helper function to decode the plausible parameter back into tracking data
- */
-export const decodePlausibleData = (encoded: string): TrackingData | null => {
-  try {
-    return JSON.parse(Buffer.from(encoded, "base64").toString("utf-8"));
-  } catch (error) {
-    console.error("Failed to decode plausible tracking data:", error);
-    return null;
-  }
-};

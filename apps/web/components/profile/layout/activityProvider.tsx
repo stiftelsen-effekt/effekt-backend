@@ -1,7 +1,7 @@
 import React, { createContext, useState } from "react";
 import { ActivityIndicator } from "./ActivityIndicator/ActivityIndicator";
 
-export const ActivityContext = createContext<{
+const ActivityContext = createContext<{
   activity: boolean;
   setActivity: React.Dispatch<React.SetStateAction<boolean>>;
 }>({ activity: false, setActivity: () => {} });

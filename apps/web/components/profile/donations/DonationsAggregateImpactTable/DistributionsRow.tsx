@@ -5,11 +5,6 @@ import { thousandize, thousandizeString } from "../../../../util/formatting";
 import style from "./DonationsAggregateImpactTable.module.scss";
 import { AggregatedImpact, DK_OPERATIONS_KEY, GIVEWELL_ALL_GRANTS_FUND_KEY } from "./_util";
 
-const multiFetcher = (...urls: string[]) => {
-  const f = (u: string) => fetch(u).then((r) => r.json());
-  return Promise.all(urls.map(f));
-};
-
 export const DistributionsRow: React.FC<{
   outputkey: string;
   aggregatedimpact: AggregatedImpact;

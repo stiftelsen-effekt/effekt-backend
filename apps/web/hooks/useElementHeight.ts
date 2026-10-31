@@ -1,4 +1,4 @@
-import { useState, useEffect, RefObject, useRef } from "react";
+import { useState, useEffect, RefObject } from "react";
 
 /**
  * Hook to observe and return an element's height

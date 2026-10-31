@@ -1,6 +1,5 @@
 import { useAuth0, User } from "@auth0/auth0-react";
 import { useState } from "react";
-import { TaxUnit } from "../../../../models";
 import { useTaxUnits } from "../../../../_queries";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";

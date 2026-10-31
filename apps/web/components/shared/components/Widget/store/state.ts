@@ -1,8 +1,7 @@
 import { CauseArea } from "../types/CauseArea";
-import { DistributionCauseArea } from "../types/DistributionCauseArea";
 import { PaymentMethod, RecurringDonation, ShareType } from "../types/Enums";
 import { Organization } from "../types/Organization";
-import { OrganizationShare, ReferralType } from "../types/Temp";
+import { ReferralType } from "../types/Temp";
 
 export interface State {
   donation: Donation;

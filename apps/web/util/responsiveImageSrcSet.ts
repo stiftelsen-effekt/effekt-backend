@@ -5,9 +5,7 @@ import { buildSrc } from "sanity-image";
  * the source width itself is always included, so the largest candidate is never upscaled and a
  * high-DPR screen can always get the full-resolution image.
  */
-export const SRCSET_WIDTHS = [
-  128, 192, 256, 384, 512, 640, 768, 1024, 1280, 1600, 1920, 2560, 3200, 3840,
-];
+const SRCSET_WIDTHS = [128, 192, 256, 384, 512, 640, 768, 1024, 1280, 1600, 1920, 2560, 3200, 3840];
 
 export type ImageParams = Parameters<typeof buildSrc>[0];
 

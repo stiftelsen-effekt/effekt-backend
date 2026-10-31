@@ -46,7 +46,7 @@ export const CauseAreaButton = styled.button`
   }
 `;
 
-export const CauseAreaIcon = styled.div`
+const CauseAreaIcon = styled.div`
   width: 40px;
   height: 40px;
   position: relative;
@@ -81,23 +81,23 @@ export const getCauseAreaIconById = (id: number) => {
   }
 };
 
-export const GlobalHealthIcon = styled(CauseAreaIcon)`
+const GlobalHealthIcon = styled(CauseAreaIcon)`
   background-image: url("/images/cause-areas/global-health.png");
 `;
 
-export const FutureGenerationsIcon = styled(CauseAreaIcon)`
+const FutureGenerationsIcon = styled(CauseAreaIcon)`
   background-image: url("/images/cause-areas/future-generations.png");
 `;
 
-export const AnimalWelfareIcon = styled(CauseAreaIcon)`
+const AnimalWelfareIcon = styled(CauseAreaIcon)`
   background-image: url("/images/cause-areas/animal-welfare.png");
 `;
 
-export const OtherIcon = styled(CauseAreaIcon)`
+const OtherIcon = styled(CauseAreaIcon)`
   background-image: url("/images/cause-areas/other.png");
 `;
 
-export const OperationsIcon = styled(CauseAreaIcon)`
+const OperationsIcon = styled(CauseAreaIcon)`
   background-image: url("/images/cause-areas/operations.png");
 `;
 

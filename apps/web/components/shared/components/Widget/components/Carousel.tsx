@@ -129,5 +129,3 @@ export const Carousel: React.FC<ICarouselProps> = ({ children, minHeight, inline
     </div>
   );
 };
-
-export default Carousel;

@@ -1,27 +1,9 @@
 import styled from "styled-components";
 
-export const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-`;
-
 export const InputFieldWrapper = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 20px;
-`;
-
-export const TextField = styled.input`
-  padding: 20px;
-  display: block;
-  margin: 5px;
-  font-size: 15px;
-  border: 1px solid black;
-  border-radius: 5px;
-  box-sizing: border-box;
 `;
 
 export const CheckBoxWrapper = styled.div`
@@ -47,22 +29,4 @@ export const HiddenCheckBox = styled.input`
   &:active + span > div > span {
     outline: none;
   }
-`;
-
-export const RadioWrapper = styled.div``;
-
-export const RadioButton = styled.input`
-  margin-left: 10px;
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-export const InputLabel = styled.p`
-  position: absolute;
-  align-self: start;
-  font-size: 15px;
-  margin-left: 5px;
-  display: inline-block;
-  pointer-events: none;
 `;

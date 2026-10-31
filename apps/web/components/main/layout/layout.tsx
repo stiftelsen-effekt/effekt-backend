@@ -1,13 +1,12 @@
 import { MainLocaleContext, type MainLocale } from "../../../context/MainLocaleContext";
 import { groq } from "next-sanity";
-import { Dispatch, SetStateAction, createContext, useState, useMemo, useEffect } from "react";
+import { Dispatch, SetStateAction, createContext, useState, useMemo } from "react";
 import { getClient } from "../../../lib/sanity.client";
 import { withStaticProps } from "../../../util/withStaticProps";
 import { Widget } from "../../shared/components/Widget/components/Widget";
 import Footer from "../../shared/layout/Footer/Footer";
 import styles from "../../shared/layout/Layout/Layout.module.scss";
 import { GiveButton } from "./GiveButton/GiveButton";
-import { PreviewBlock } from "./PreviewBlock/PreviewBlock";
 import { PrefilledDistribution, WidgetPane, WidgetPaneProps } from "./WidgetPane/WidgetPane";
 import { token } from "../../../token";
 import { LiveQuery } from "../../shared/LiveQuery";

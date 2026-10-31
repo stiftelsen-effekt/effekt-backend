@@ -9,15 +9,13 @@ import { toast } from "react-toastify";
 import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 
 import styles from "./TaxUnitModal.module.scss";
-import { AlertCircle, Check } from "react-feather";
+import { Check } from "react-feather";
 import { useTaxUnits } from "../../../../_queries";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { useFailureToast } from "../../../shared/failureToast";
 import { TaxUnitTypes } from "./taxUnitTypes";
 import { DKTaxUnitEditModal } from "./DKTaxUnitEditModal";
-
-export { TaxUnitTypes };
 
 const TaxUnitEditModalStandard: React.FC<{
   open: boolean;

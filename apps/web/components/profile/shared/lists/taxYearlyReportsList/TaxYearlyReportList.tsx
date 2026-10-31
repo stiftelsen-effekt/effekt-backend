@@ -1,4 +1,3 @@
-import { FileText } from "react-feather";
 import {
   Distribution,
   Donation,

@@ -1,12 +1,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Pane, PaneContainer, PaneTitle } from "./Panes.style";
-import {
-  setCauseAreaSelection,
-  setOperationsPercentageByCauseArea,
-  setOrgAmount,
-  setGlobalOperationsEnabled,
-} from "../../store/donation/actions";
+import { setCauseAreaSelection, setGlobalOperationsEnabled } from "../../store/donation/actions";
 import { nextPane } from "../../store/layout/actions";
 import { State } from "../../store/state";
 import {

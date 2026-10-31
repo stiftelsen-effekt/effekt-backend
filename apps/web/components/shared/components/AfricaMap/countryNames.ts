@@ -1,5 +1,5 @@
 // Country name translations for African countries
-export const countryNames: Record<string, Record<string, string>> = {
+const countryNames: Record<string, Record<string, string>> = {
   ao: { no: "Angola", dk: "Angola", sv: "Angola" },
   bf: { no: "Burkina Faso", dk: "Burkina Faso", sv: "Burkina Faso" },
   bi: { no: "Burundi", dk: "Burundi", sv: "Burundi" },
@@ -83,7 +83,7 @@ export const countryNames: Record<string, Record<string, string>> = {
 /**
  * Converts full locale string (e.g., "no-NB", "sv-SE", "da-DK") to main locale code ("no", "sv", "dk")
  */
-export const getMainLocale = (locale: string | undefined | null): "no" | "dk" | "sv" => {
+const getMainLocale = (locale: string | undefined | null): "no" | "dk" | "sv" => {
   if (!locale) return "no";
 
   if (locale.startsWith("no")) return "no";

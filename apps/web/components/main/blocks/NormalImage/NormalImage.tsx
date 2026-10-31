@@ -1,4 +1,3 @@
-import { useRouter } from "next/router";
 import React from "react";
 import styles from "./NormalImage.module.scss";
 import type { SanityImageObject } from "@sanity/image-url";

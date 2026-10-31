@@ -1,7 +1,7 @@
 import { WidgetWithStore } from "../../../shared/components/Widget/components/WidgetWithStore";
 import { RecurringDonation } from "../../../shared/components/Widget/types/Enums";
 import { WidgetProps } from "../../../shared/components/Widget/types/WidgetProps";
-import { PrefilledDistribution, WidgetPaneProps } from "../../layout/WidgetPane/WidgetPane";
+import { PrefilledDistribution } from "../../layout/WidgetPane/WidgetPane";
 import { Paragraph } from "../Paragraph/Paragraph";
 import styles from "./DonationWidgetBlock.module.scss";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";

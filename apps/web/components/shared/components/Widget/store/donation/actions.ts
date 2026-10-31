@@ -2,26 +2,18 @@ import actionCreatorFactory from "typescript-fsa";
 import {
   DonationActionTypes,
   SELECT_PAYMENT_METHOD,
-  SELECT_TAX_DEDUCTION,
   SUBMIT_DONOR_INFO,
   SET_SUM,
   SET_RECURRING,
-  SET_SHARES,
-  SET_DONOR_ID,
-  SET_KID,
   SET_PAYMENT_PROVIDER_URL,
-  SELECT_CUSTOM_SHARE,
-  SET_SHARE_TYPE,
   SET_DUE_DAY,
   SET_VIPPS_AGREEMENT,
-  SET_CAUSE_AREA_PERCENTAGE_SHARE,
   SET_ORG_AMOUNT,
   SET_CAUSE_AREA_AMOUNT,
   SET_CAUSE_AREA_DISTRIBUTION_TYPE,
   SET_CAUSE_AREA_SELECTION,
   SET_SMART_DISTRIBUTION_TOTAL,
   SET_GLOBAL_OPERATIONS_ENABLED,
-  SET_GLOBAL_OPERATIONS_PERCENTAGE_MODE,
   SET_OPERATIONS_PERCENTAGE_MODE_BY_CAUSE_AREA,
   SET_GLOBAL_OPERATIONS_PERCENTAGE,
   SET_OPERATIONS_PERCENTAGE_BY_CAUSE_AREA,
@@ -35,9 +27,8 @@ import {
   SET_DONOR_FORM_DRAFT,
 } from "./types";
 import { PaymentMethod, RecurringDonation, ShareType } from "../../types/Enums";
-import { DraftAgreementResponse, OrganizationShare } from "../../types/Temp";
+import { DraftAgreementResponse } from "../../types/Temp";
 import { DonorFormDraft, VippsAgreement } from "../state";
-import { DistributionCauseAreaOrganization } from "../../types/DistributionCauseAreaOrganization";
 
 const actionCreator = actionCreatorFactory();
 
@@ -46,15 +37,6 @@ export function selectPaymentMethod(method: PaymentMethod): DonationActionTypes 
     type: SELECT_PAYMENT_METHOD,
     payload: {
       method,
-    },
-  };
-}
-
-export function selectTaxDeduction(taxDeduction: boolean): DonationActionTypes {
-  return {
-    type: SELECT_TAX_DEDUCTION,
-    payload: {
-      taxDeduction,
     },
   };
 }
@@ -69,19 +51,6 @@ export function submitDonorInfo(data: {
   return {
     type: SUBMIT_DONOR_INFO,
     payload: data,
-  };
-}
-
-export function setShares(
-  causeAreaId: number,
-  shares: DistributionCauseAreaOrganization[],
-): DonationActionTypes {
-  return {
-    type: SET_SHARES,
-    payload: {
-      causeAreaId,
-      shares,
-    },
   };
 }
 
@@ -112,52 +81,11 @@ export function setRecurring(recurring: RecurringDonation): DonationActionTypes 
   };
 }
 
-export function setDonorID(donorID: number): DonationActionTypes {
-  return {
-    type: SET_DONOR_ID,
-    payload: {
-      donorID,
-    },
-  };
-}
-
-export function setKID(kid: string): DonationActionTypes {
-  return {
-    type: SET_KID,
-    payload: {
-      kid,
-    },
-  };
-}
-
 export function setPaymentProviderURL(url: string): DonationActionTypes {
   return {
     type: SET_PAYMENT_PROVIDER_URL,
     payload: {
       url,
-    },
-  };
-}
-
-export function selectCustomShare(causeAreaId: number, customShare: boolean): DonationActionTypes {
-  return {
-    type: SELECT_CUSTOM_SHARE,
-    payload: {
-      causeAreaId,
-      customShare,
-    },
-  };
-}
-
-export function setCauseAreaPercentageShare(
-  causeAreaId: number,
-  percentageShare: string,
-): DonationActionTypes {
-  return {
-    type: SET_CAUSE_AREA_PERCENTAGE_SHARE,
-    payload: {
-      causeAreaId,
-      percentageShare,
     },
   };
 }
@@ -232,16 +160,6 @@ export function setGlobalOperationsEnabled(enabled: boolean): DonationActionType
   return {
     type: SET_GLOBAL_OPERATIONS_ENABLED,
     payload: { enabled },
-  };
-}
-
-/**
- * Set whether global operations cut is in percentage mode or custom amount mode.
- */
-export function setGlobalOperationsPercentageMode(isPercentageMode: boolean): DonationActionTypes {
-  return {
-    type: SET_GLOBAL_OPERATIONS_PERCENTAGE_MODE,
-    payload: { isPercentageMode },
   };
 }
 

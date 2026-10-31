@@ -21,7 +21,7 @@ type QueryResult = {
   };
 };
 
-export const profileQuery = `
+const profileQuery = `
   {
     "data": {
       "site_title": *[_type == "site_settings"][0].title,

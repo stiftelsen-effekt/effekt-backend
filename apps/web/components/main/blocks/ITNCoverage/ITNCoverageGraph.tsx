@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as Plot from "@observablehq/plot";
 import styles from "./ITNCoverageGraph.module.scss";
 import { useDebouncedCallback } from "use-debounce";

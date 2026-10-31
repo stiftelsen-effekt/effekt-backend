@@ -12,13 +12,11 @@ const months = [
   "november",
   "desember",
 ];
-
-export const dayMs = 86400000;
 const thisYear = new Date().getFullYear();
 const thisMonth = new Date().getMonth();
 
 // Checks if the due date of a charge is at least three days ahead of today
-export function isThreeDaysAfterToday(dueDate: Date, todayDate: Date = new Date()): boolean {
+function isThreeDaysAfterToday(dueDate: Date, todayDate: Date = new Date()): boolean {
   const dd = dueDate.getDate();
   const mm = dueDate.getMonth();
   const yyyy = dueDate.getFullYear();
@@ -29,14 +27,6 @@ export function isThreeDaysAfterToday(dueDate: Date, todayDate: Date = new Date(
 
   if (daysAhead <= 3) return false;
   return true;
-}
-
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("no-NB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
 }
 
 export function formatDateText(date: Date): string {

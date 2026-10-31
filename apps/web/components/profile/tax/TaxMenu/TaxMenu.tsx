@@ -1,7 +1,6 @@
 import React from "react";
 import style from "./TaxMenu.module.scss";
 import { useRouterContext } from "../../../../context/RouterContext";
-import Link from "next/link";
 import { TaxPageFeature } from "../../../../pages/dashboard/TaxPage";
 import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
 import { CustomLink } from "../../../shared/components/CustomLink/CustomLink";

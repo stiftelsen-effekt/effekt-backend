@@ -11,7 +11,7 @@ const shake = keyframes`
   100% { transform: translateX(0) rotate(0deg); }
 `;
 
-export const ErrorWrapper = styled.div`
+const ErrorWrapper = styled.div`
   padding-top: 12px;
   padding-bottom: 8px;
   padding-left: 12px;
@@ -23,7 +23,7 @@ export const ErrorWrapper = styled.div`
   gap: 12px;
 `;
 
-export const ErrorMessage = styled.div`
+const ErrorMessage = styled.div`
   position: relative;
 `;
 

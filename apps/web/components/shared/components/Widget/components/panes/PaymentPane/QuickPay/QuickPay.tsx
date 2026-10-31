@@ -8,7 +8,6 @@ import {
   QuickPayMobilePayPaymentMethod,
   WidgetPane3ReferralsProps,
 } from "../../../../types/WidgetProps";
-import { usePlausible } from "next-plausible";
 import { EffektButton } from "../../../../../EffektButton/EffektButton";
 
 export const QuickPayPane: React.FC<{

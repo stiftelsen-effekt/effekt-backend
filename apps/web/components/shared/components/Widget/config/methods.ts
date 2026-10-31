@@ -14,44 +14,44 @@ interface PaymentMethodConfiguration {
   openExternalPaymentOnRegisterSuccess?: boolean;
 }
 
-export const bankConfiguration: PaymentMethodConfiguration = {
+const bankConfiguration: PaymentMethodConfiguration = {
   id: "bank",
   recurringOptions: [RecurringDonation.NON_RECURRING],
 };
 
-export const vippsConfiguration: PaymentMethodConfiguration = {
+const vippsConfiguration: PaymentMethodConfiguration = {
   id: "vipps",
   recurringOptions: [RecurringDonation.RECURRING, RecurringDonation.NON_RECURRING],
 };
 
-export const swishConfiguration: PaymentMethodConfiguration = {
+const swishConfiguration: PaymentMethodConfiguration = {
   id: "swish",
   recurringOptions: [RecurringDonation.NON_RECURRING],
 };
 
-export const autogiroConfiguration: PaymentMethodConfiguration = {
+const autogiroConfiguration: PaymentMethodConfiguration = {
   id: "autogiro",
   recurringOptions: [RecurringDonation.RECURRING],
 };
 
-export const avtalegiroConfiguration: PaymentMethodConfiguration = {
+const avtalegiroConfiguration: PaymentMethodConfiguration = {
   id: "avtalegiro",
   recurringOptions: [RecurringDonation.RECURRING],
 };
 
-export const quickpayCardConfiguration: PaymentMethodConfiguration = {
+const quickpayCardConfiguration: PaymentMethodConfiguration = {
   id: "quickpay_card",
   recurringOptions: [RecurringDonation.RECURRING, RecurringDonation.NON_RECURRING],
   openExternalPaymentOnRegisterSuccess: true,
 };
 
-export const quickpayMobilePayConfiguration: PaymentMethodConfiguration = {
+const quickpayMobilePayConfiguration: PaymentMethodConfiguration = {
   id: "quickpay_mobilepay",
   recurringOptions: [RecurringDonation.RECURRING, RecurringDonation.NON_RECURRING],
   openExternalPaymentOnRegisterSuccess: true,
 };
 
-export const dkbankConfiguration: PaymentMethodConfiguration = {
+const dkbankConfiguration: PaymentMethodConfiguration = {
   id: "dkbank",
   recurringOptions: [RecurringDonation.RECURRING],
   openExternalPaymentOnRegisterSuccess: true,

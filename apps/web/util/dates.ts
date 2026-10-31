@@ -4,7 +4,7 @@
  * @param {number} year - The year to check days of month
  * @returns {number} The number of days in given month in given year
  */
-export function daysInMonth(month: number, year: number) {
+function daysInMonth(month: number, year: number) {
   return new Date(year, month, 0).getDate();
 }
 

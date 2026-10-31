@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo } from "react";
+import React, { useMemo } from "react";
 import links from "./Links/Links.module.scss";
 import {
   SectionContainerProps,
