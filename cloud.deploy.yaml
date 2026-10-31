@@ -8,36 +8,21 @@ steps:
     env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_IGNORE=$_GUARD_IGNORE"]
     args: ["scripts/deploy/guard.sh"]
 
-  # The API image (apps/api/Dockerfile), built from the repository root. BuildKit, for
-  # apps/api/Dockerfile.dockerignore. Every later step uses the image by this build's own tag,
-  # effektapi:$BUILD_ID, never by :latest: a parallel older build may push :latest after this
-  # one, and deploying by a shared tag would then ship its image (docs/deploy.md).
+  # The API image (apps/api/Dockerfile), built from the repository root with BuildKit (buildx)
+  # and a layer cache kept in the registry (scripts/deploy/build-api-image.sh), and pushed as
+  # this build's own tag. Publishing that tag changes nothing in production. Every later step
+  # uses the image by this tag, effektapi:$BUILD_ID, never by :latest: a parallel older build may
+  # move :latest after this one, and deploying by a shared tag would then ship its image
+  # (docs/deploy.md).
   - name: "gcr.io/cloud-builders/docker"
-    env: ["DOCKER_BUILDKIT=1"]
+    id: "build"
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
-      - "docker"
-      - "build"
-      - "-f"
-      - "apps/api/Dockerfile"
-      - "-t"
+      - "bash"
+      - "scripts/deploy/build-api-image.sh"
       - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
-      - "-t"
-      - "gcr.io/$PROJECT_ID/effektapi:latest"
-      - "."
-
-  # Publishing the build's own tag changes nothing in production
-  - name: "gcr.io/cloud-builders/docker"
-    id: "push-build-tag"
-    entrypoint: "bash"
-    args:
-      [
-        "scripts/deploy/unless-skipped.sh",
-        "docker",
-        "push",
-        "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID",
-      ]
+      - "gcr.io/$PROJECT_ID/effektapi:buildcache"
 
   # Check again before touching production: a newer merge may have landed during the image build
   - name: "gcr.io/cloud-builders/git"
@@ -46,17 +31,25 @@ steps:
     env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_IGNORE=$_GUARD_IGNORE"]
     args: ["scripts/deploy/guard.sh"]
 
-  # :latest is a convenience tag for people (docker pull); nothing deploys from it
-  - name: "gcr.io/cloud-builders/docker"
+  # :latest is a convenience tag for people (docker pull); nothing deploys from it. Moving it
+  # is a registry call, no upload.
+  - name: "gcr.io/cloud-builders/gcloud"
     id: "push-latest"
     waitFor: ["guard-before-release"]
     entrypoint: "bash"
     args:
-      ["scripts/deploy/unless-skipped.sh", "docker", "push", "gcr.io/$PROJECT_ID/effektapi:latest"]
+      - "scripts/deploy/unless-skipped.sh"
+      - "gcloud"
+      - "container"
+      - "images"
+      - "add-tag"
+      - "--quiet"
+      - "gcr.io/$PROJECT_ID/effektapi:$BUILD_ID"
+      - "gcr.io/$PROJECT_ID/effektapi:latest"
 
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-norway"
-    waitFor: ["push-latest"]
+    waitFor: ["guard-before-release"]
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
@@ -93,7 +86,7 @@ steps:
   # Sweden migrates and deploys alongside Norway: separate databases, separate services
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
-    waitFor: ["push-latest"]
+    waitFor: ["guard-before-release"]
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"

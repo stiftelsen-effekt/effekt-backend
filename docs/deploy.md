@@ -52,19 +52,27 @@ tip, or revert on `main`.
 
 ## Deploy the image this build made
 
-`cloud.deploy.yaml` tags the image `effektapi:$BUILD_ID` and pushes that tag before the second
+`cloud.deploy.yaml` builds the image and pushes it as `effektapi:$BUILD_ID` before the second
 guard. The migration jobs (`gcloud run jobs update … --image … --execute-now --wait`, which also
 leaves the job pointing at that image) and both Cloud Run services use that tag, never
 `:latest`: an older build running in parallel can push `:latest` after this one, and deploying
-by the shared tag would then ship the older image. `:latest` is still pushed after
-`guard-before-release`, as a convenience for pulling the current image by hand; nothing deploys
-from it.
+by the shared tag would then ship the older image. `:latest` is still moved to the image after
+`guard-before-release` (`gcloud container images add-tag`), as a convenience for pulling the
+current image by hand; nothing deploys from it. After that guard both countries migrate and
+deploy at the same time, each migrating before it deploys: they are separate databases and
+services.
+
+The build ([`scripts/deploy/build-api-image.sh`](../scripts/deploy/build-api-image.sh)) uses
+BuildKit with a layer cache in the registry (`effektapi:buildcache`), since every Cloud Build
+machine starts empty. With an unchanged lockfile and `apps/api/package.json`, neither
+`pnpm install` in `apps/api/Dockerfile` runs again and only the compiled API is pushed. The
+release image is `node:…-slim` plus OpenSSL (Prisma's schema engine, used by the migrate jobs).
 
 To check the step logic without Cloud Build, run each step's `entrypoint` and `args` locally with
 `docker` and `gcloud` replaced by scripts that log their arguments, `DEPLOY_GUARD_REPO` pointed
 at a local bare repository and `DEPLOY_SKIP_FILE` at a temporary path: with the commit at the tip
 every step runs and every `--image` is `effektapi:$BUILD_ID`; with a new commit pushed to the
-local repository during `docker build`, only the build and the `$BUILD_ID` push run.
+local repository during the build, only the build (which pushes `$BUILD_ID`) runs.
 
 What it does not cover: two builds that both pass the second check (a merge landing during the
 last minutes of the older build's deploy) can still overlap. The newer build then deploys last.
