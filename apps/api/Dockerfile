@@ -49,8 +49,10 @@ RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter stiftelsen-e
     && pnpm --dir apps/api rebuild prisma @prisma/engines \
     && rm -rf "$(pnpm store path)" /root/.cache/pnpm
 
-COPY --from=build /usr/src/app/apps/api/prisma ./apps/api/prisma
-COPY --from=build /usr/src/app/apps/api/dist ./apps/api/dist
+# --link: the layers don't depend on the ones below, so BuildKit adds them on top of the cached
+# dependency layers without first downloading and unpacking those
+COPY --link --from=build /usr/src/app/apps/api/prisma /usr/src/app/apps/api/prisma
+COPY --link --from=build /usr/src/app/apps/api/dist /usr/src/app/apps/api/dist
 
 # The working directory is the API package: `npm start` below and the migrate jobs'
 # `./node_modules/.bin/prisma migrate deploy` (Cloud Run job command) both run from here.
