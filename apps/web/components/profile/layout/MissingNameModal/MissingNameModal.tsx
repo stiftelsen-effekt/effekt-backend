@@ -7,6 +7,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { useTrpcClient } from "../../../../lib/trpc/useTrpcClient";
 import { AlertCircle, Check } from "react-feather";
 import { toast } from "react-toastify";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
+import { isProcedureAvailable } from "../../../../lib/trpc/client";
 
 import styles from "./MissingNameModal.module.scss";
 
@@ -26,7 +28,9 @@ export const MissingNameModal: React.FC<{ config: MissingNameModalConfig }> = ({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const open = Boolean(donor && !donor.name) && !dismissed;
+  // The Danish backend has no route for saving the name
+  const editable = isProcedureAvailable(useMainLocale(), "minside.updateProfile");
+  const open = editable && Boolean(donor && !donor.name) && !dismissed;
 
   const saveName = async () => {
     setLoading(true);

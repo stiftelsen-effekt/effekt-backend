@@ -123,7 +123,9 @@ The `restRoutes` table in `restLink.ts` maps procedures to REST routes:
 - If a response doesn't match the output schema, the call fails ("unexpected response from the
   REST API"). It does not pass unchecked data on.
 - An unmapped procedure fails with `<path> is not available on this site` (`NOT_IMPLEMENTED`)
-  and makes no request. Hide or disable the feature on Danish Min Side.
+  and makes no request. Hide or disable the feature on Danish Min Side; `isProcedureAvailable`
+  (`lib/trpc/client.ts`) says whether the site's backend has a procedure. The profile is
+  read-only there, as the Danish backend has no route for saving it.
 - The Danish backend finds the donor by the token's email claim and ignores `:id`. It answers
   `id: 0`, which is why the profile schema allows 0.
 - Its Postgres driver sends numeric columns as numbers and `COUNT(*)` as strings, where our
