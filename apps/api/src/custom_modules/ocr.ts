@@ -36,11 +36,13 @@ module.exports = {
       const transaction = transactions[i];
       const result = await this.addDonation(transaction, metaOwnerID);
       results.push(result);
+
+      // Send the receipt right away: if the import stops part way, a rerun finds the donation
+      // already registered and would not send it
+      if (typeof result !== "object" && result > 0) await this.sendReciepts([result]);
     }
 
     const addedIDs = results.filter((result) => typeof result !== "object" && result > 0);
-
-    await this.sendReciepts(addedIDs);
 
     const valid = addedIDs.length;
     const ignored = results.filter((result) => result === -1).length;

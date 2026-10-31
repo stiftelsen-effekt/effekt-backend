@@ -1,7 +1,8 @@
-import type { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 import { dbClockColumn } from "../osloDays";
+import { ocrFileKey, type OCRImportState } from "../ocrFiles";
 
 export type ImportLogSummary = {
   ID: number;
@@ -200,6 +201,32 @@ async function getAutoGiroShipmentFile(id: number) {
 }
 //endregion
 
+/**
+ * What the OCR import has already imported: the files recorded (filename and fileModifyTime) in
+ * its import logs over the last 400 days. See selectOCRFilesToImport.
+ */
+async function getOcrImportState(): Promise<OCRImportState> {
+  const [rows] = await DAO.query<RowDataPacket[]>(
+    `SELECT
+        JSON_UNQUOTE(JSON_EXTRACT(result, '$.filename')) AS filename,
+        JSON_EXTRACT(result, '$.fileModifyTime') AS modifyTime
+      FROM Import_logs
+      WHERE label = 'OCR'
+        AND timestamp > NOW() - INTERVAL 400 DAY
+        AND JSON_EXTRACT(result, '$.filename') IS NOT NULL`,
+  );
+
+  const imported = new Set<string>();
+  let trackedSince: number | null = null;
+  for (const row of rows) {
+    const modifyTime = Number(row.modifyTime);
+    if (!row.filename || !Number.isFinite(modifyTime)) continue;
+    imported.add(ocrFileKey({ name: row.filename, modifyTime }));
+    if (trackedSince === null || modifyTime < trackedSince) trackedSince = modifyTime;
+  }
+  return { imported, trackedSince };
+}
+
 //region Add
 /**
  * Adds a log entry.
@@ -236,4 +263,5 @@ export const logging = {
   get,
   getEntries,
   getAutoGiroShipmentFile,
+  getOcrImportState,
 };

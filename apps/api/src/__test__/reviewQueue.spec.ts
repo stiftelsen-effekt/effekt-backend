@@ -155,7 +155,12 @@ describe("review queue: POST /scheduled/ocr", () => {
   beforeEach(() => {
     sinon.replace(authMiddleware, "isAdmin", []);
     const ocrFile = require("fs").readFileSync("src/__test__/data/ocr/TBOC2072.DAT");
-    sinon.stub(nets, "getLatestOCRFile").resolves(ocrFile);
+    sinon
+      .stub(nets, "getOCRFiles")
+      .resolves([{ name: "OCR.D311026", modifyTime: 1, contents: ocrFile }]);
+    sinon
+      .stub(DAO.logging, "getOcrImportState")
+      .resolves({ imported: new Set(), trackedSince: null });
     sinon.stub(avtalegiro, "updateAgreements").resolves([]);
     addStub = sinon.stub(DAO.donations, "add").rejects(new Error("Invalid KID"));
     queueStub = sinon.stub(DAO.reviewqueue, "add").resolves({ added: 2, existing: 0 });
@@ -172,15 +177,19 @@ describe("review queue: POST /scheduled/ocr", () => {
     delete require.cache[require.resolve("../routes/scheduled")];
   });
 
-  it("queues failed transactions with the import log entry, response unchanged", async () => {
+  it("queues failed transactions with the import log entry", async () => {
     const response = await request(server).post("/scheduled/ocr").expect(200);
 
-    expect(Object.keys(response.body)).to.deep.equal([
+    expect(response.body.files).to.have.length(1);
+    const [imported] = response.body.files;
+    expect(Object.keys(imported)).to.deep.equal([
+      "filename",
+      "fileModifyTime",
       "addedDonations",
       "updatedAgreements",
       "file",
     ]);
-    const invalid = response.body.addedDonations.invalidTransactions;
+    const invalid = imported.addedDonations.invalidTransactions;
     expect(invalid.length).to.equal(addStub.callCount);
     expect(loggingStub.calledOnceWith("OCR")).to.be.true;
     expect(queueStub.calledOnce).to.be.true;
