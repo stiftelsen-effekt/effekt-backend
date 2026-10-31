@@ -523,7 +523,7 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
               />
             );
           case "dkrenewpayment":
-            return <DKRenewPayment />;
+            return <DKRenewPayment key={block._key || block._id} />;
           case "mediacoverageteaser":
             return (
               <MediaCoverageTeaser

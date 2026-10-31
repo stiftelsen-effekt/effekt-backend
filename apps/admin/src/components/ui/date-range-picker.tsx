@@ -246,6 +246,9 @@ export function DateRangePicker({
             type="button"
             disabled={disabled}
             aria-describedby={field["aria-describedby"]}
+            // The trigger is the field's control, so it carries the field's invalid state like
+            // the other inputs do
+            // oxlint-disable-next-line jsx-a11y/role-supports-aria-props
             aria-invalid={field["aria-invalid"]}
             data-slot="date-range-trigger"
             className={cn(

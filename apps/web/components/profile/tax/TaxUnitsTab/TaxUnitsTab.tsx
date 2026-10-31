@@ -72,6 +72,7 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
         ) : (
           <div className={styles.noTaxUnits}>
             <p className={styles.noTaxUnitsText}>{emptyStateDescription}</p>
+            {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid -- should be a button; that needs restyling */}
             <a onClick={() => setCreateModalOpen(true)} className={styles.noTaxUnitsLink}>
               {emptyStateLinkLabel}
             </a>

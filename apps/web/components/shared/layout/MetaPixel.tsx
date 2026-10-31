@@ -25,7 +25,10 @@ fbq('track', 'PageView');
         }}
       />
       <noscript>
+        {/* A tracking pixel for browsers without JavaScript; next/image doesn't apply */}
+        {/* oxlint-disable-next-line nextjs/no-img-element */}
         <img
+          alt=""
           height="1"
           width="1"
           style={{ display: "none" }}

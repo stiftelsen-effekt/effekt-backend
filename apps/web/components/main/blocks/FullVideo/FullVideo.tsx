@@ -29,6 +29,7 @@ export const FullVideo: React.FC<{ video: SanityAsset; alt: string }> = ({ video
         </div>
 
         <VideoProgress videoPlayerRef={videoPlayerRef} playing={playing}></VideoProgress>
+        {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- the CMS has no caption tracks for these videos */}
         <video
           ref={videoPlayerRef}
           onEnded={() => {

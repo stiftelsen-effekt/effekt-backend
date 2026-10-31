@@ -52,14 +52,14 @@
         "react/set-state-in-effect": "warn",
         "react/refs": "warn",
         "react/purity": "warn",
-        "react/incompatible-library": "warn",
-        "react/jsx-key": "warn",
-        "react/no-children-prop": "warn",
-        "jsx-a11y/alt-text": "warn",
-        "jsx-a11y/anchor-is-valid": "warn",
-        "jsx-a11y/media-has-caption": "warn",
-        "jsx-a11y/role-has-required-aria-props": "warn",
-        "jsx-a11y/role-supports-aria-props": "warn",
+        "react/incompatible-library": "error",
+        "react/jsx-key": "error",
+        "react/no-children-prop": "error",
+        "jsx-a11y/alt-text": "error",
+        "jsx-a11y/anchor-is-valid": "error",
+        "jsx-a11y/media-has-caption": "error",
+        "jsx-a11y/role-has-required-aria-props": "error",
+        "jsx-a11y/role-supports-aria-props": "error",
         // Only the accessibility rules eslint-config-next had; the admin also runs axe
         // (pnpm test:a11y)
         "jsx-a11y/click-events-have-key-events": "off",
@@ -76,8 +76,8 @@
       "files": ["apps/web/**"],
       "plugins": ["nextjs"],
       "rules": {
-        "nextjs/no-img-element": "warn",
-        "nextjs/no-duplicate-head": "warn"
+        "nextjs/no-img-element": "error",
+        "nextjs/no-duplicate-head": "error"
       }
     },
     {

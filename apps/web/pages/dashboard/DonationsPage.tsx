@@ -221,6 +221,8 @@ export const DonationsPage = withStaticProps(
   if (loadFailed)
     return (
       <>
+        {/* Each return branch renders one <Head> */}
+        {/* oxlint-disable-next-line nextjs/no-duplicate-head */}
         <Head>
           <title>
             {settings.title} | {page.title}
