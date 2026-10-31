@@ -4,11 +4,9 @@ import {
   ArrowLeftIcon,
   ArrowRightIcon,
   BuildingIcon,
-  ExternalLinkIcon,
   FileSpreadsheetIcon,
   RotateCcwIcon,
   SmartphoneIcon,
-  ThumbsUpIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Callout } from "@/components/domain/callout";
@@ -85,13 +83,6 @@ const sources: {
     icon: FileSpreadsheetIcon,
     meta: ".csv",
   },
-  {
-    value: "facebook",
-    label: "Facebook payouts",
-    description: "Payout report from Facebook fundraisers. Lists campaigns that need shares.",
-    icon: ThumbsUpIcon,
-    meta: ".csv",
-  },
 ];
 
 type FlowState = {
@@ -126,12 +117,11 @@ function ImportPage() {
     ocr: useMutation(trpc.reports.uploads.ocr.mutationOptions()),
     vipps: useMutation(trpc.reports.uploads.vipps.mutationOptions()),
     bankNo: useMutation(trpc.reports.uploads.bankNo.mutationOptions()),
-    facebook: useMutation(trpc.reports.uploads.facebook.mutationOptions()),
   };
   const uploading = Object.values(uploads).some((m) => m.isPending);
 
   // Where "Review" starts: the oldest open item from this source.
-  const reviewSource = state.source !== "facebook" ? state.source : undefined;
+  const reviewSource = state.source;
   const firstOpen = useQuery({
     ...trpc.reports.reviewQueue.list.queryOptions({
       page: 0,
@@ -155,9 +145,7 @@ function ImportPage() {
       if (source === "ocr") result = { source, result: await uploads.ocr.mutateAsync(form) };
       else if (source === "vipps")
         result = { source, result: await uploads.vipps.mutateAsync(form) };
-      else if (source === "bankNo")
-        result = { source, result: await uploads.bankNo.mutateAsync(form) };
-      else result = { source, result: await uploads.facebook.mutateAsync(form) };
+      else result = { source, result: await uploads.bankNo.mutateAsync(form) };
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: trpc.reports.reviewQueue.pathKey() }),
         queryClient.invalidateQueries({ queryKey: trpc.donations.pathKey() }),
@@ -343,44 +331,6 @@ function ResultStep({
   source?: ImportSource;
   openCount: number;
 }) {
-  if (summary.kind === "facebook") {
-    return summary.campaigns.length === 0 ? (
-      <Callout tone="success" title="Every campaign in the report has organization shares" />
-    ) : (
-      <>
-        <Callout
-          tone="warning"
-          title={`${summary.campaigns.length} ${
-            summary.campaigns.length === 1 ? "campaign needs" : "campaigns need"
-          } organization shares`}
-        >
-          The report is stored. Register the shares for these campaigns in the current admin;
-          Facebook donations aren't registered from here yet.
-        </Callout>
-        <ul className="grid divide-y divide-border rounded-md border border-border">
-          {summary.campaigns.map((campaign) => (
-            <li key={campaign.ID} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 p-3">
-              <span className="font-semibold">{campaign.fundraiserTitle}</span>
-              <span className="text-sm text-muted-foreground">{campaign.campaignOwnerName}</span>
-              <span className="num text-sm text-muted-foreground">#{campaign.ID}</span>
-              {campaign.permalink && (
-                <a
-                  href={campaign.permalink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="ml-auto inline-flex items-center gap-1 text-sm text-accent hover:underline"
-                >
-                  Open on Facebook
-                  <ExternalLinkIcon className="size-3.5" />
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      </>
-    );
-  }
-
   const { registered, ignored, review, queue, importLogId } = summary;
   const sourceName = sources.find((s) => s.value === source)?.label;
   return (

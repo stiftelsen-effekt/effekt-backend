@@ -6,7 +6,6 @@ import {
   FileSpreadsheetIcon,
   RotateCcwIcon,
   SmartphoneIcon,
-  ThumbsUpIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { Callout } from "@/components/domain/callout";
@@ -80,13 +79,6 @@ const sources: {
     label: "Bank account export",
     description: "Bank transfers without KID, from the account export.",
     icon: FileSpreadsheetIcon,
-    meta: ".csv",
-  },
-  {
-    value: "facebook",
-    label: "Facebook",
-    description: "Payouts from Facebook fundraisers.",
-    icon: ThumbsUpIcon,
     meta: ".csv",
   },
 ];
