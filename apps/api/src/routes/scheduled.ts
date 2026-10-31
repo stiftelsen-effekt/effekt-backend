@@ -1,11 +1,13 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendPaymentIntentFollowUp } from "../custom_modules/mail";
+import { sendAvtaleGiroRetryAlert, sendPaymentIntentFollowUp } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { excludeAgreementsClaimedThisMonth } from "../custom_modules/avtalegiro/charges";
 import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
-import { checkIfAcceptedReciept, getOCRFiles, sendFile } from "../custom_modules/nets";
+import { getOCRFiles, listInboundFileNames, sendFile } from "../custom_modules/nets";
 import { selectOCRFilesToImport, type OCRFile } from "../custom_modules/ocrFiles";
+import { decideRetry, RetryDecision, RetryPath } from "../custom_modules/avtalegiro/receipts";
+import { AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL } from "../custom_modules/DAO_modules/avtalegirocharges";
 import { DateTime } from "luxon";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
@@ -159,7 +161,22 @@ async function claimAvtaleGiroAgreements(today: DateTime, claimDate: DateTime, n
    */
   const filename =
     "DIRREM" + today.toFormat("ddLLyy") + "." + claimDate.toFormat("ddLLyy") + "." + shipmentID;
-  await sendFile(avtaleGiroClaimsFile, filename);
+  try {
+    await sendFile(avtaleGiroClaimsFile, filename);
+  } catch (ex) {
+    // Recorded so the retry knows the file never reached MPS and can send the claims again
+    try {
+      await DAO.logging.add(AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL, {
+        shipmentID,
+        claimDate: claimDate.toISODate(),
+        filename,
+        error: ex instanceof Error ? ex.message : String(ex),
+      });
+    } catch (logEx) {
+      console.error("Failed to log the failed AvtaleGiro upload", logEx);
+    }
+    throw ex;
+  }
 
   return {
     notifiedAgreements,
@@ -237,30 +254,75 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
       }
     }
 
+    // Shipments a person has checked and wants sent again, e.g. ?resend=651,652
+    const manualResendShipmentIDs = String(req.query.resend ?? "")
+      .split(",")
+      .map((id) => parseInt(id, 10))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    let inboundFileNames: string[] | null = null;
+    const results: Array<{ claimDate: string } & RetryDecision> = [];
+
     for (let claimDate of claimDates) {
       /**
-       * Check if we have recieved an "accepted" reciept from MasterCard (Nets) for any of
-       * today's shipments for the claim date. If not, we should retry and send the claims again
+       * Only send the claims again when we know MPS won't charge the ones we sent: the shipments
+       * were rejected (KV.AVVIST receipt) or never uploaded. Without a receipt MPS may just be
+       * slow, and sending again could charge donors twice, so a person decides.
        */
       const shipmentIDs = await DAO.avtalegirocharges.getShipmentIDsForDueDate(claimDate, today);
 
-      let accepted = false;
-      for (const shipmentID of shipmentIDs) {
-        if (await checkIfAcceptedReciept(shipmentID)) {
-          accepted = true;
-          break;
-        }
+      let decision: RetryDecision;
+      if (shipmentIDs.length === 0) {
+        decision = decideRetry([], [], []);
+      } else {
+        if (inboundFileNames === null) inboundFileNames = await listInboundFileNames();
+        const failedUploads = await DAO.avtalegirocharges.getFailedUploadShipmentIDs(shipmentIDs);
+        decision = decideRetry(
+          shipmentIDs,
+          inboundFileNames,
+          failedUploads,
+          manualResendShipmentIDs,
+        );
       }
-      if (accepted) continue;
+      results.push({ claimDate: claimDate.toISODate() ?? "", ...decision });
 
-      // The claims in the unaccepted shipments are sent again in a new shipment. If there is no
-      // shipment, something went wrong before it was recorded, and nothing was sent.
+      if (decision.path === RetryPath.ACCEPTED) continue;
+
+      const logEntry = {
+        path: decision.path,
+        claimDate: claimDate.toISODate(),
+        shipments: decision.shipments,
+      };
+
+      if (decision.path === RetryPath.ALERT) {
+        await DAO.logging.add("AvtaleGiro - Retry", {
+          ...logEntry,
+          skipped: "No accepted or rejected receipt. Not sent again, the team was alerted.",
+        });
+        continue;
+      }
+
+      // The claims in the rejected or unsent shipments are sent again in a new shipment. If there
+      // is no shipment, something went wrong before it was recorded, and nothing was sent.
       await DAO.avtalegirocharges.supersedeShipments(shipmentIDs);
 
       const result = await claimAvtaleGiroAgreements(today, claimDate, false);
-      await DAO.logging.add("AvtaleGiro - Retry", result);
+      await DAO.logging.add("AvtaleGiro - Retry", { ...logEntry, ...result });
     }
-    res.send("OK");
+
+    const alerts = results.filter((result) => result.path === RetryPath.ALERT);
+    if (alerts.length > 0) {
+      await sendAvtaleGiroRetryAlert(
+        today.toISODate() ?? "",
+        alerts.map(({ claimDate, shipments }) => ({ claimDate, shipments })),
+        inboundFileNames?.length ?? 0,
+      );
+      // Not 200, so the scheduler reports the run as failed as well
+      res.status(409).json({ alerted: true, claimDates: results });
+      return;
+    }
+
+    res.json({ alerted: false, claimDates: results });
   } catch (ex) {
     console.error(ex);
     next({ ex });

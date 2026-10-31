@@ -66,6 +66,20 @@ export async function checkIfAcceptedReciept(shipmentID: number) {
 }
 
 /**
+ * Lists the file names in the SFTP /Inbound folder, where MPS puts receipts for the files we send
+ * (see avtalegiro/receipts.ts for how they are named)
+ */
+export async function listInboundFileNames(): Promise<string[]> {
+  const connection = await getConnection();
+  try {
+    const files = await connection.list("/Inbound");
+    return files.map((file) => file.name);
+  } finally {
+    await closeQuietly(connection);
+  }
+}
+
+/**
  *
  * @param {Buffer} file
  * @param {string} filename

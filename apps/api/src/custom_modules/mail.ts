@@ -658,6 +658,59 @@ async function sendInternalAlert(params: {
 }
 
 /**
+ * Alerts the team that the AvtaleGiro retry could not tell whether MPS has a claims shipment, so
+ * it did not send the claims again. Contains only shipment numbers, dates and receipt file names,
+ * no donor data.
+ */
+export async function sendAvtaleGiroRetryAlert(
+  date: string,
+  claimDates: Array<{
+    claimDate: string;
+    shipments: Array<{
+      shipmentID: number;
+      receiptStatus: string;
+      uploadFailed: boolean;
+      receiptFiles: string[];
+    }>;
+  }>,
+  receiptFilesSeen: number,
+) {
+  const rows: Array<[string, string]> = [
+    ["Tidspunkt", formatTimestamp(new Date())],
+    ["Kjøringsdato", date],
+    ["Filer i /Inbound", String(receiptFilesSeen)],
+  ];
+  for (const { claimDate, shipments } of claimDates) {
+    for (const shipment of shipments) {
+      rows.push([
+        `Trekkdato ${claimDate}, forsendelse ${shipment.shipmentID}`,
+        `kvittering: ${shipment.receiptStatus}` +
+          (shipment.uploadFailed ? ", opplasting feilet" : "") +
+          `; kvitteringsfiler: ${shipment.receiptFiles.length ? shipment.receiptFiles.join(", ") : "ingen"}`,
+      ]);
+    }
+  }
+  rows.push([
+    "Hva nå",
+    "Trekkene er ikke sendt på nytt. Sjekk kvitteringen hos Mastercard Payment Services. " +
+      "Er forsendelsen avvist eller ikke mottatt, send på nytt med " +
+      "POST /scheduled/avtalegiro/retry?date=<kjøringsdato>&resend=<forsendelse> (se docs/functions.md).",
+  ]);
+
+  const { text, html } = formatInternalAlert(
+    "AvtaleGiro: mangler godkjent kvittering for trekkfil",
+    rows,
+  );
+
+  return await sendInternalAlert({
+    alertName: "sendAvtaleGiroRetryAlert",
+    subject: "AvtaleGiro: trekkfil uten godkjent kvittering - må sjekkes",
+    text,
+    html,
+  });
+}
+
+/**
  * These six emails were sent through mailgun until it was deprecated. No
  * MailerSend template was ever created to replace them - confirmed against the
  * MailerSend template list - so they cannot be sent at all.

@@ -41,8 +41,8 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     },
   ];
 
-  const receipt = (shipmentID: number) => ({
-    name: `KV.GODKJENT.F${shipmentID.toString().padStart(7, "0")}.D230509.T133148.K5552827.html`,
+  const receipt = (shipmentID: number, kind = "GODKJENT") => ({
+    name: `KV.${kind}.F${shipmentID.toString().padStart(7, "0")}.D230509.T133148.K5552827.html`,
   });
 
   let server;
@@ -61,10 +61,15 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   let addChargesStub;
   let untrackedStub;
   let deletionsStub;
+  let failedUploadsStub;
+  let alertStub;
 
-  const receiptsOnServer = (shipmentIDs: number[]) => {
+  const receiptsOnServer = (shipmentIDs: number[], rejectedShipmentIDs: number[] = []) => {
     getConnectionStub.resolves({
-      list: sinon.fake.resolves(shipmentIDs.map(receipt)),
+      list: sinon.fake.resolves([
+        ...shipmentIDs.map((id) => receipt(id)),
+        ...rejectedShipmentIDs.map((id) => receipt(id, "AVVIST")),
+      ]),
       end: sinon.fake.resolves(true),
     });
   };
@@ -91,6 +96,8 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     claimedKIDsStub = sinon.stub(DAO.avtalegirocharges, "getClaimedKIDsForMonth");
     addChargesStub = sinon.stub(DAO.avtalegirocharges, "addCharges").resolves();
     untrackedStub = sinon.stub(DAO.avtalegirocharges, "getUntrackedShipmentIDs");
+    failedUploadsStub = sinon.stub(DAO.avtalegirocharges, "getFailedUploadShipmentIDs");
+    alertStub = sinon.stub(mail, "sendAvtaleGiroRetryAlert").resolves(true);
 
     getConnectionStub = sinon.stub<any, "getConnection">(sftp, "getConnection");
 
@@ -107,10 +114,15 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   beforeEach(function () {
     sinon.resetHistory();
+    // Tests set behaviour for specific calls and arguments, which resetHistory keeps
+    agreementsStub.reset();
+    shipmentsForDueDateStub.reset();
     agreementsStub.resolves(mockAgreements);
     claimedKIDsStub.resolves(new Set());
     shipmentsForDueDateStub.resolves([]);
     untrackedStub.resolves([]);
+    failedUploadsStub.resolves([]);
+    sendFileStub.resolves();
     receiptsOnServer([]);
   });
 
@@ -161,12 +173,14 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(sendFileStub.called).to.be.false;
   });
 
-  it("Should supersede the shipment and send the claims again if the reciept is missing", async () => {
+  it("Should supersede the shipment and send the claims again if it was rejected", async () => {
     dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
     shipmentsForDueDateStub.resolves([651]);
-    receiptsOnServer([649, 650]);
+    receiptsOnServer([649, 650], [651]);
 
-    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+    const res = await request(server)
+      .post("/scheduled/avtalegiro/retry?date=2023-05-10")
+      .expect(200);
 
     sinon.assert.calledOnceWithExactly(supersedeStub, [651]);
     // Superseding first lets the claims in the old shipment be claimed again
@@ -177,6 +191,114 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     expect(addChargesStub.calledBefore(sendFileStub)).to.be.true;
     expect(sendFileStub.calledOnce).to.be.true;
     expect(sendFileStub.firstCall.args[1]).to.equal("DIRREM100523.160523.700");
+    expect(alertStub.called).to.be.false;
+    expect(res.body.claimDates[0].path).to.equal("resend");
+    const retryLog = loggingStub.withArgs("AvtaleGiro - Retry").firstCall.args[1];
+    expect(retryLog.path).to.equal("resend");
+    expect(retryLog.shipments[0].receiptStatus).to.equal("rejected");
+    expect(retryLog.file).to.be.a("string");
+  });
+
+  it("Does not send again, and alerts, if there is no receipt yet", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+    receiptsOnServer([649, 650]);
+
+    const res = await request(server)
+      .post("/scheduled/avtalegiro/retry?date=2023-05-10")
+      .expect(409);
+
+    expect(supersedeStub.called).to.be.false;
+    expect(addChargesStub.called).to.be.false;
+    expect(sendFileStub.called).to.be.false;
+    sinon.assert.calledOnce(alertStub);
+    const [date, claimDates, filesSeen] = alertStub.firstCall.args;
+    expect(date).to.equal("2023-05-10");
+    expect(claimDates).to.deep.equal([
+      {
+        claimDate: "2023-05-16",
+        shipments: [
+          { shipmentID: 651, receiptStatus: "none", uploadFailed: false, receiptFiles: [] },
+        ],
+      },
+    ]);
+    expect(filesSeen).to.equal(2);
+    // Shipment numbers and receipt file names only, no donor data
+    expect(JSON.stringify(alertStub.firstCall.args)).not.to.contain(mockAgreements[0].KID);
+    expect(res.body.alerted).to.be.true;
+    const retryLog = loggingStub.withArgs("AvtaleGiro - Retry").firstCall.args[1];
+    expect(retryLog.path).to.equal("alert");
+  });
+
+  it("Does not send again, and alerts, if the receipts are ambiguous", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+    getConnectionStub.resolves({
+      list: sinon.fake.resolves([{ name: "KV.DELVIS.F0000651.D230509.T133148.K5552827.html" }]),
+      end: sinon.fake.resolves(true),
+    });
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(409);
+
+    expect(supersedeStub.called).to.be.false;
+    expect(sendFileStub.called).to.be.false;
+    sinon.assert.calledOnce(alertStub);
+    expect(alertStub.firstCall.args[1][0].shipments[0]).to.deep.include({
+      receiptStatus: "ambiguous",
+      receiptFiles: ["KV.DELVIS.F0000651.D230509.T133148.K5552827.html"],
+    });
+  });
+
+  it("Sends again if the upload of the shipment failed", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+    failedUploadsStub.resolves([651]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+
+    sinon.assert.calledOnceWithExactly(failedUploadsStub, [651]);
+    sinon.assert.calledOnceWithExactly(supersedeStub, [651]);
+    expect(sendFileStub.calledOnce).to.be.true;
+    expect(alertStub.called).to.be.false;
+  });
+
+  it("Does not send again if the upload failed but a receipt arrived anyway", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+    failedUploadsStub.resolves([651]);
+    receiptsOnServer([651]);
+
+    await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
+
+    expect(supersedeStub.called).to.be.false;
+    expect(sendFileStub.called).to.be.false;
+  });
+
+  it("Sends again when a person asks for the shipment to be sent again", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+
+    await request(server)
+      .post("/scheduled/avtalegiro/retry?date=2023-05-10&resend=651")
+      .expect(200);
+
+    sinon.assert.calledOnceWithExactly(supersedeStub, [651]);
+    expect(sendFileStub.calledOnce).to.be.true;
+    expect(loggingStub.withArgs("AvtaleGiro - Retry").firstCall.args[1].path).to.equal(
+      "manual-resend",
+    );
+  });
+
+  it("Does not send an accepted shipment again even when a person asks", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    shipmentsForDueDateStub.resolves([651]);
+    receiptsOnServer([651]);
+
+    await request(server)
+      .post("/scheduled/avtalegiro/retry?date=2023-05-10&resend=651")
+      .expect(200);
+
+    expect(sendFileStub.called).to.be.false;
   });
 
   it("Should claim the date if no shipment was recorded for it", async () => {
@@ -193,6 +315,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
   it("Should not claim agreements already claimed this month in another shipment", async () => {
     dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
     shipmentsForDueDateStub.resolves([651]);
+    receiptsOnServer([], [651]);
     claimedKIDsStub.resolves(new Set([mockAgreements[0].KID]));
 
     await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
@@ -203,7 +326,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     ]);
   });
 
-  it("Retries for all claim dates missing reciept", async () => {
+  it("Retries for all claim dates with rejected shipments", async () => {
     dueDateStub.returns([
       DateTime.fromISO("2023-05-16"),
       DateTime.fromISO("2023-05-17"),
@@ -212,7 +335,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     shipmentsForDueDateStub.onCall(0).resolves([650]);
     shipmentsForDueDateStub.onCall(1).resolves([651]);
     shipmentsForDueDateStub.onCall(2).resolves([652]);
-    receiptsOnServer([650]);
+    receiptsOnServer([650], [651, 652]);
 
     await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-10").expect(200);
 
@@ -267,6 +390,22 @@ describe("POST /scheduled/avtalegiro/retry", function () {
     await request(server).post("/scheduled/avtalegiro/retry?date=2023-05-13").expect(200);
 
     expect(untrackedStub.called).to.be.false;
+  });
+
+  it("Records a failed upload of the claims file, so the retry can send it again", async () => {
+    dueDateStub.returns([DateTime.fromISO("2023-05-16")]);
+    sendFileStub.rejects(new Error("Connection reset"));
+
+    await request(server).post("/scheduled/avtalegiro?date=2023-05-10").expect(500);
+
+    const failedLogs = loggingStub.withArgs("AvtaleGiro - Upload failed");
+    sinon.assert.calledOnce(failedLogs);
+    expect(failedLogs.firstCall.args[1]).to.deep.equal({
+      shipmentID: 700,
+      claimDate: "2023-05-16",
+      filename: "DIRREM100523.160523.700",
+      error: "Connection reset",
+    });
   });
 
   it("Does not notify donors again", async () => {
