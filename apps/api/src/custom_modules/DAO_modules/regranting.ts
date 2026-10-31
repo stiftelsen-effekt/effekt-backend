@@ -1644,12 +1644,6 @@ async function linkAdjustmentDonation(id: number, donationId: number | null) {
   ]);
 }
 
-async function deleteAdjustment(id: number, conn?: Queryable): Promise<boolean> {
-  return (
-    (await exec(conn, `DELETE FROM Regrant_adjustments WHERE ID = ?`, [id])).affectedRows === 1
-  );
-}
-
 //endregion
 
 //region Documents
@@ -2003,7 +1997,6 @@ export const regranting = {
   createAdjustment,
   updateAdjustment,
   linkAdjustmentDonation,
-  deleteAdjustment,
   pairAdjustments,
   deleteAdjustments,
   moveRoundEarmarks,

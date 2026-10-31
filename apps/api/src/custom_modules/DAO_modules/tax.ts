@@ -1,7 +1,6 @@
-import { OkPacket, Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { OkPacket, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { TaxUnit } from "../../schemas/types";
 import { DAO } from "../DAO";
-import { donationHelpers } from "../donationHelpers";
 import { getTaxUnitsWithDeductions } from "../taxdeductions";
 import { Distributions, Tax_unit } from "@prisma/client";
 import { RequestLocale } from "../../middleware/locale";
@@ -178,30 +177,6 @@ async function getReportsWithUserOnProfilePage(): Promise<EmailTaxUnitReport[]> 
   return mapped;
 }
 
-async function getReportsWithoutUserOnProfilePage(): Promise<EmailTaxUnitReport[]> {
-  const [result] = await DAO.execute<RowDataPacket[]>(`
-    SELECT TaxUnitName, \`SUM(sum_confirmed)\` as DonationsSum, DonorUserEmail, DonorUserName FROM v_Tax_deductions
-        WHERE (SELECT COUNT(*) FROM Auth0_users WHERE Email = DonorUserEmail) = 0
-  `);
-
-  const mapped: EmailTaxUnitReport[] = [];
-  for (const row of result) {
-    const existing = mapped.find((m) => m.email === row.DonorUserEmail);
-
-    if (existing) {
-      existing.units.push({ name: row.TaxUnitName, sum: row.DonationsSum });
-    } else {
-      mapped.push({
-        email: row.DonorUserEmail,
-        name: row.DonorUserName,
-        units: [{ name: row.TaxUnitName, sum: Math.round(row.DonationsSum) }],
-      });
-    }
-  }
-
-  return mapped;
-}
-
 async function getDonorsEligableForDeductionInYear(
   year: number,
   minSum: number,
@@ -327,19 +302,6 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
 
   return result.affectedRows;
 }
-
-//endregion
-
-//region Delete
-
-type TransferKIDBinding = {
-  origKID: string;
-  origStandard: 1 | null;
-  origDistKey: string;
-  destKID: string | null;
-  destStandard: 1 | null;
-  destDistKey: string | null;
-};
 
 /**
  * Deletes a tax unit with an optional tax unit id to transfer donations in the current year to
@@ -491,7 +453,6 @@ export const tax = {
   getByDonorIdAndSsn,
   getActiveTaxUnitIdsByDonorId,
   getReportsWithUserOnProfilePage,
-  getReportsWithoutUserOnProfilePage,
   getTaxXMLReportUnits,
   getDonorsEligableForDeductionInYear,
   addTaxUnit,

@@ -1,7 +1,6 @@
 import { DateTime } from "luxon";
 
 import writer from "./autogiro/filewriterutil";
-import workdays from "norwegian-workdays";
 import config from "../config";
 import { AutoGiro_agreements, AutoGiro_mandates } from "@prisma/client";
 import { AutoGiroContent, AutoGiroParser } from "./parsers/autogiro";
@@ -33,7 +32,7 @@ import { assertDistributionOwnedBy } from "./distributionOwnership";
  * @param dueDate Due date
  * @returns {Buffer} The file buffer
  */
-export async function generateAutogiroGiroFile(
+async function generateAutogiroGiroFile(
   shipmentID: number,
   agreementsToClaim: {
     agreement: AutoGiro_agreements;

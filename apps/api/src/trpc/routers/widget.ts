@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { DAO } from "../../custom_modules/DAO";
 import { getAllCauseAreasWithOrganizations } from "../../custom_modules/configService";
-import { sendDonationRegistered } from "../../custom_modules/mail";
 import { registerPendingDonation } from "../../custom_modules/pendingDonationRegistration";
 import { draftAvtaleGiroAgreement } from "../../custom_modules/avtalegiro";
 import { setDraftedAutoGiroPaymentDate } from "../../custom_modules/autogiro";

@@ -1,8 +1,6 @@
 import fetch from "node-fetch";
 import { parse } from "csv-parse/sync";
 
-const parseUtil = require("./util");
-
 /** Columns parseReport and processFacebookReport read */
 const REQUIRED_COLUMNS = [
   "Charge date",

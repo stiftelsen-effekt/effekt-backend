@@ -273,47 +273,6 @@ export function getDueDates(date: DateTime) {
 }
 
 /**
- * Debugging helper for due date calculation
- * @param date
- * @param dueDates
- */
-function printDueDatesTable(date: DateTime, dueDates: DateTime[]) {
-  console.log("");
-  console.log("");
-
-  let tableWidth = dueDates[0].diff(date, "days").days + 1;
-
-  console.log("-".repeat(tableWidth * 8));
-
-  // Bold text
-  console.log(`Due dates for claims on \x1b[1m${date.toFormat("dd.MM.yyyy")}\x1b[0m`);
-  console.log("");
-
-  // Letter for the day, e.g. Mon for Monday
-
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).toFormat("ccc")).join("\t"),
-  );
-  console.log(Array.from({ length: tableWidth }, (_, i) => date.plus({ day: i }).day).join("\t"));
-  // Green square is a banking day, yellow is not
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) =>
-      workdays.isWorkingDay(date.plus({ day: i }).toJSDate()) ? "🟢" : "🟡",
-    ).join("\t"),
-  );
-  // Checkmark if the date is a due date
-  console.log(
-    Array.from({ length: tableWidth }, (_, i) =>
-      dueDates.map((d) => d.toISO()).includes(date.plus({ day: i }).toISO()) ? "✅" : "",
-    ).join("\t"),
-  );
-  console.log("-".repeat(tableWidth * 8));
-
-  console.log("");
-  console.log("");
-}
-
-/**
  * Replaces the distribution of an AvtaleGiro agreement. The current distribution is preserved
  * under a newly generated KID (keeping donation history), and the new distribution takes over
  * the agreement's original KID. Notifies the donor of the change.

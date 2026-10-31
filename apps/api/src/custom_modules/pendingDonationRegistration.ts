@@ -43,7 +43,7 @@ const FRESH_DONOR_MS = 30 * 60 * 1000;
  * D- or H-number (11 digits) or organisasjonsnummer (9 digits), or a Swedish personnummer or
  * organisationsnummer (10 or 12 digits, optionally with - or + before the last four)
  */
-export function isValidWidgetSsn(ssn: string): boolean {
+function isValidWidgetSsn(ssn: string): boolean {
   if (/^\d{9}$/.test(ssn)) return isValidNorwegianOrgNr(ssn);
   if (/^\d{11}$/.test(ssn)) return idnr(ssn).status === "valid";
   if (/^(\d{6}|\d{8})[-+]?\d{4}$/.test(ssn)) return isValidPersonnummer(ssn);

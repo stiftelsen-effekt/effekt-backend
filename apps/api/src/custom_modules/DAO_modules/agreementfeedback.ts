@@ -71,16 +71,6 @@ export const agreementfeedback = {
     );
     return result.affectedRows > 0 ? id : -1;
   },
-  async getStoppedAgreementReasonRecordExists(id: number): Promise<boolean> {
-    const [result] = await DAO.query(
-      `
-      SELECT * FROM Recurring_agreement_stopped
-      WHERE ID = ?
-    `,
-      [id],
-    );
-    return result.length > 0;
-  },
   /**
    * Checks that a stopped-agreement feedback record exists and belongs to an agreement with the given KID
    */

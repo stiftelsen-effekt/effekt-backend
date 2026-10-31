@@ -478,7 +478,7 @@ const twoSignificantFloor = (value: number) => {
  * so with the last bucket including its upper edge every value in [min, max] falls in a bucket.
  * Fewer than `count` buckets when rounding makes neighbouring edges equal.
  */
-export function logBucketEdges(min: number, max: number, count: number): number[] {
+function logBucketEdges(min: number, max: number, count: number): number[] {
   const lo = twoSignificantFloor(min);
   const ratio = max / lo;
   const edges = [lo];
@@ -865,27 +865,6 @@ async function getByDonorId(donorId: number | string, from?: Date): Promise<Arra
 }
 
 /**
- * Gets whether or not a donation has replaced inactive organizations
- * @param {number} donationID
- * @returns {number} zero or one
- */
-async function getHasReplacedOrgs(donationID) {
-  if (donationID) {
-    let [result] = await DAO.query(
-      `
-                select Replaced_old_organizations from Donations as D
-                inner join Combining_table as CT on CT.KID = D.KID_fordeling
-                where Replaced_old_organizations = 1
-                and iD = ?
-            `,
-      [donationID],
-    );
-
-    return result[0]?.Replaced_old_organizations || 0;
-  }
-}
-
-/**
  * Fetches all the donations in the database for a given inclusive range. If passed two equal dates, returns given day.
  * @param {Date} [fromDate=1. Of January 2000] The date in which to start the selection, inclusive interval.
  * @param {Date} [toDate=Today] The date in which to end the selection, inclusive interval.
@@ -1104,25 +1083,6 @@ async function getSummary(donorID) {
   summary.push({ donorID: donorID });
 
   return summary;
-}
-
-/**
- * Fetches the total amount of money donated per year by a specific donor
- * @param {Number} donorID
- * @returns {Array<YearlyDonationSummary>} Array of YearlyDonationSummary objects
- */
-async function getSummaryByYear(donorID) {
-  var [res] = await DAO.query(
-    `
-            SELECT SUM(sum_confirmed) AS yearSum, YEAR(timestamp_confirmed) as year
-            FROM Donations 
-            WHERE Donor_ID = ? 
-            GROUP BY year
-            ORDER BY year DESC`,
-    [donorID],
-  );
-
-  return res;
 }
 
 async function getYearlyAggregateByDonorId(donorId) {
@@ -1495,20 +1455,6 @@ async function updateDonorId(donationId: number, donorId: number) {
   );
 }
 
-async function registerConfirmedByIDs(IDs) {
-  var [donations] = await DAO.execute(
-    `UPDATE Donations 
-            SET date_confirmed = NOW()
-            WHERE 
-            ID IN (` +
-      "?,".repeat(IDs.length).slice(0, -1) +
-      `)`,
-    IDs,
-  );
-
-  return true;
-}
-
 async function updateTransactionCost(transactionCost, donationID) {
   await DAO.execute(
     `
@@ -1639,9 +1585,7 @@ export const donations = {
   getAggregateLastYearByMonth,
   getFromRange,
   getMedianFromRange,
-  getHasReplacedOrgs,
   getSummary,
-  getSummaryByYear,
   getHistory,
   getTransactionCostsReport,
   getYearlyAggregateByDonorId,
@@ -1657,7 +1601,6 @@ export const donations = {
   updateDonorId,
   add,
   addLegacySeDonationDistribution,
-  registerConfirmedByIDs,
   getHistogramBySum,
   getLogHistogramBySum,
   transferDonationsFromDummy,

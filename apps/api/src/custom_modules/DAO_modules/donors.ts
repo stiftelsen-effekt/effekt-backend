@@ -749,17 +749,6 @@ async function updateNewsletter(donorID, newsletter) {
 }
 
 /**
- * Update donor and sets new name value
- * @param {number} donorID
- * @param {string} name
- * @returns {boolean}
- */
-async function updateName(donorID, name) {
-  let res = await DAO.query(`UPDATE Donors SET full_name = ? where ID = ?`, [name, donorID]);
-  return true;
-}
-
-/**
  * Updates donor information
  * @param {number} donorID
  * @param {string} name
@@ -810,7 +799,6 @@ export const donors = {
   search,
   add,
   updateNewsletter,
-  updateName,
   update,
   mergeDonors,
   deleteById,

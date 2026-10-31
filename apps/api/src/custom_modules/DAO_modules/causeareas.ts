@@ -61,24 +61,6 @@ export const causeareas = {
 
     return mapped;
   },
-  deleteById: async function (id: number) {
-    await DAO.query(
-      `
-        DELETE FROM Cause_areas WHERE ID = ?
-      `,
-      [id],
-    );
-  },
-  getActive: async function (): Promise<CauseArea[]> {
-    const [causeAreas] = await DAO.query<Cause_areas[]>(
-      `
-        SELECT * FROM Cause_areas WHERE is_active = 1 ORDER BY ordering ASC
-      `,
-    );
-    const mapped = causeAreas.map(mapCauseArea);
-
-    return mapped;
-  },
   getActiveWithOrganizations: async function (): Promise<
     (CauseArea & { organizations: MappedOrganization[] })[]
   > {
@@ -165,7 +147,7 @@ export const causeareas = {
   },
 };
 
-export const mapCauseArea = (c: Cause_areas): CauseArea => ({
+const mapCauseArea = (c: Cause_areas): CauseArea => ({
   id: c.ID,
   name: c.name,
   widgetDisplayName: c.widget_display_name,

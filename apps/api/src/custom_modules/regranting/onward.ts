@@ -80,7 +80,7 @@ export type AllocationCheck = {
  * allocations to within rounding of the whole line, the remainder is used so they add up to the
  * line exactly.
  */
-export function resolveAmountNok(
+function resolveAmountNok(
   line: OnwardLineRef,
   draft: Pick<AllocationDraft, "currency" | "amountForeign" | "amountNok">,
   others: OtherAllocation[],

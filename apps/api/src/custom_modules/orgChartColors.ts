@@ -25,7 +25,7 @@ export const ORG_CHART_COLORS = [
 
 export type OrgChartColor = (typeof ORG_CHART_COLORS)[number];
 
-export const isOrgChartColor = (value: unknown): value is OrgChartColor =>
+const isOrgChartColor = (value: unknown): value is OrgChartColor =>
   typeof value === "string" && (ORG_CHART_COLORS as readonly string[]).includes(value);
 
 /** A stored value as the API returns it: unknown tokens (never written by the API) read as null. */

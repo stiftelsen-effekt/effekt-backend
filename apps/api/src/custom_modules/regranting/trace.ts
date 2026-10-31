@@ -3,7 +3,7 @@ import { Decimal } from "decimal.js";
 import { DAO } from "../DAO";
 import type { LedgerEntryRow, TracedDonationRow } from "../DAO_modules/regrantingTrace";
 import { osloDayEnd } from "../osloDays";
-import { apportion, runFifo, type FifoEvent, type FifoInflow, type FifoTake } from "./fifo";
+import { apportion, runFifo, type FifoEvent, type FifoTake } from "./fifo";
 import { dateNo, dayBefore, dec, fmt, krNo, sum, todayOslo, ZERO } from "./money";
 import { figuresFor } from "./service";
 import type {

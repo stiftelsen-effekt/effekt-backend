@@ -414,13 +414,6 @@ async function cancelAgreement(KID) {
   return true;
 }
 
-async function remove(KID) {
-  var result = await DAO.query(`DELETE FROM Avtalegiro_agreements WHERE KID = ?`, [KID]);
-
-  if (result[0].affectedRows > 0) return true;
-  else return false;
-}
-
 async function exists(KID) {
   var [res] = await DAO.query("SELECT * FROM Avtalegiro_agreements WHERE KID = ?", [KID]);
 
@@ -1163,20 +1156,6 @@ async function getValidationTable(): Promise<AvtaleGiroValidationRow[]> {
   return rows[0];
 }
 
-/**
- * Gets all shipments for a given date
- * @param today The date to get shipments for
- * @returns A list of shipments IDs
- */
-async function getShipmentIDs(today: DateTime): Promise<number[]> {
-  let [rows] = await DAO.query(
-    `SELECT ID FROM Avtalegiro_shipment WHERE day(\`generated\`) = ? AND month(\`generated\`) = ? AND year(\`generated\`) = ?`,
-    [today.day, today.month, today.year],
-  );
-
-  return rows.map((row) => row.ID);
-}
-
 async function getAgreementsWithKIDStartingWith(prefix: string): Promise<AvtaleGiroAgreement[]> {
   let [rows] = await DAO.query(
     `SELECT ID, KID, amount, payment_date, notice FROM Avtalegiro_agreements WHERE KID LIKE ?`,
@@ -1252,7 +1231,6 @@ export const avtalegiroagreements = {
   updateAmount,
   replaceDistribution,
   getPaymentsByAgreementId,
-  remove,
   exists,
   getActiveAgreements,
   getByID,
@@ -1269,7 +1247,6 @@ export const avtalegiroagreements = {
   getExpectedDonationsForDate,
   getClaimedAgreementsForDate,
   getDonationsByKID,
-  getShipmentIDs,
   getAgreementsWithKIDStartingWith,
 
   addShipment,

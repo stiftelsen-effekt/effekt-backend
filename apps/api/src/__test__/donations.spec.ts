@@ -33,7 +33,6 @@ describe("donations", () => {
       let distributionsGetKIDBySplitStub: sinon.SinonStub;
       let distributionsAddStub: sinon.SinonStub;
       let addPaymentIntentStub: sinon.SinonStub;
-      let referralsGetDonorAnsweredStub: sinon.SinonStub;
       let addReferralCodeStub: sinon.SinonStub;
 
       function withDonor(
@@ -59,10 +58,6 @@ describe("donations", () => {
         distributionsGetKIDBySplitStub.resolves(KID);
       }
 
-      function withReferralAnswered(answered: boolean) {
-        referralsGetDonorAnsweredStub.resolves(answered);
-      }
-
       function withTaxUnit(
         taxUnit: Partial<Awaited<ReturnType<typeof DAO.tax.getByDonorIdAndSsn>>> | null,
       ) {
@@ -82,14 +77,12 @@ describe("donations", () => {
         distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
         distributionsAddStub = sinon.stub(DAO.distributions, "add");
         addPaymentIntentStub = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
-        referralsGetDonorAnsweredStub = sinon.stub(DAO.referrals, "getDonorAnswered");
         taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
         addReferralCodeStub = sinon.stub(DAO.donationReferralCodes, "add");
 
         withDonor(null);
         withCauseAreaStandardDistribution([]);
         withDistributionsKID();
-        withReferralAnswered(false);
       });
 
       it("should add a new donor if donor does not exist", async () => {

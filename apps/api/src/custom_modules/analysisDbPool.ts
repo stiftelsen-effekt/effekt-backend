@@ -21,7 +21,7 @@ let pool: mysql.Pool | undefined;
  * Lazily create the read-only pool. Mirrors the socket-vs-host connection logic
  * in DAO.ts (Cloud Run uses a unix socket to Cloud SQL, detected via K_SERVICE).
  */
-export function getAnalysisPool(): mysql.Pool {
+function getAnalysisPool(): mysql.Pool {
   if (pool) return pool;
 
   const args: mysql.PoolOptions = {

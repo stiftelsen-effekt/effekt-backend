@@ -1,30 +1,6 @@
 import { getConnection } from "./sftp";
 
 /**
- * Fetches a list of all the OCR files
- */
-export async function getOCRFiles() {
-  const connection = await getConnection();
-
-  const files = await connection.list("/Outbound");
-
-  await connection.end();
-  return files;
-}
-
-/**
- * Fetches a file with a given name
- * @returns {Buffer} A buffer of the file contents
- */
-export async function getOCRFile(name) {
-  const connection = await getConnection();
-  const buffer = await connection.get(`/Outbound/${name}`);
-  connection.end();
-
-  return buffer;
-}
-
-/**
  * Fetches the latest OCR file as a buffer
  * @returns {Buffer} A buffer of the file contents
  */

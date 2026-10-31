@@ -8,8 +8,6 @@ import { encodePlausibleData } from "../custom_modules/plausible";
 import { getFundraiserRedirectUrl } from "../custom_modules/fundraiserRedirect";
 import { exportCsv } from "../custom_modules/csvexport";
 
-const config = require("../config");
-
 const router = express.Router();
 
 router.post("/agreements", authMiddleware.isAdmin, async (req, res, next) => {

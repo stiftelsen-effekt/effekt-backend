@@ -3,7 +3,6 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 
 import express from "express";
 import { createDistribution } from "../custom_modules/donationsService";
-import { sumWithPrecision } from "../custom_modules/rounding";
 import { LocaleRequest, localeMiddleware } from "../middleware/locale";
 import { DistributionInput } from "../schemas/types";
 import { exportCsv } from "../custom_modules/csvexport";

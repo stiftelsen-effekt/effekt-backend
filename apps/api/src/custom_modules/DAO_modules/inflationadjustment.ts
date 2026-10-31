@@ -2,7 +2,6 @@ import { DAO, SqlResult } from "../DAO";
 import { DateTime } from "luxon";
 import crypto from "crypto";
 import { Agreement_inflation_adjustments, Prisma } from "@prisma/client";
-import { parse } from "path";
 
 export interface AgreementInflationAdjustment {
   ID: number;
@@ -105,55 +104,6 @@ export const inflationadjustments = {
     } catch (error) {
       throw error;
     }
-  },
-
-  /**
-   * Reject an adjustment
-   */
-  rejectAdjustment: async function (token: string): Promise<boolean> {
-    const [result] = await DAO.query(
-      `UPDATE Agreement_inflation_adjustments 
-       SET status = 'rejected', updated = NOW()
-       WHERE token = ? 
-       AND status = 'pending' 
-       AND expires > UTC_TIMESTAMP()`,
-      [token],
-    );
-
-    return result.affectedRows > 0;
-  },
-
-  /**
-   * Get all pending adjustments for an agreement
-   */
-  getPendingByAgreement: async function (
-    agreementId: string | number,
-    agreementType: string,
-  ): Promise<Agreement_inflation_adjustments[]> {
-    const [adjustments] = await DAO.query<Agreement_inflation_adjustments[]>(
-      `SELECT * FROM Agreement_inflation_adjustments 
-       WHERE agreement_ID = ? 
-       AND agreement_type = ?
-       AND status = 'pending'
-       AND expires > UTC_TIMESTAMP()`,
-      [agreementId.toString(), agreementType],
-    );
-
-    return adjustments.map(mapDbAgreementToJs);
-  },
-
-  /**
-   * Clean up expired adjustments
-   */
-  cleanupExpired: async function (): Promise<number> {
-    const [result] = await DAO.query(
-      `UPDATE Agreement_inflation_adjustments 
-       SET status = 'expired', updated = NOW()
-       WHERE status = 'pending' 
-       AND expires < UTC_TIMESTAMP()`,
-    );
-
-    return result.affectedRows;
   },
 
   /**

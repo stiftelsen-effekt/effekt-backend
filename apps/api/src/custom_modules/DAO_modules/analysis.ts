@@ -1,7 +1,7 @@
 import { DAO } from "../DAO";
 
 /** Milestone for the "through time" total, shown on the analysis overview */
-export const THROUGH_TIME_MILESTONE = 200_000_000;
+const THROUGH_TIME_MILESTONE = 200_000_000;
 
 export type AnalysisOverview = {
   thisYear: {

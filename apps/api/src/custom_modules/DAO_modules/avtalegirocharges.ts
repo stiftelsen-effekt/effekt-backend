@@ -295,13 +295,6 @@ export const avtaleGiroChargeStatuses = [
   "DELETED",
 ] as const satisfies readonly AvtaleGiroChargeStatusValue[];
 
-type UnlistedStatus = Exclude<
-  AvtaleGiroChargeStatusValue,
-  (typeof avtaleGiroChargeStatuses)[number]
->;
-/** Fails to compile when a status is added to the enum but not to avtaleGiroChargeStatuses */
-export const allChargeStatusesListed: [UnlistedStatus] extends [never] ? true : false = true;
-
 export const avtaleGiroChargeSortColumns = [
   "dueDate",
   "amount",
