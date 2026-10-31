@@ -2,6 +2,7 @@ packages:
   - apps/*
   - apps/web/studio
   - packages/*
+  - functions/*
 
 # Versions shared by more than one package, set once here and referenced as "catalog:" (or
 # "catalog:native") in the packages' package.json. Bump them here, then run `pnpm install`.

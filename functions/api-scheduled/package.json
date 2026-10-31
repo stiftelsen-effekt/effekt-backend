@@ -2,10 +2,20 @@
   "name": "api-scheduled",
   "version": "1.0.0",
   "dependencies": {
+    "@google-cloud/functions-framework": "^5.0.5",
     "node-fetch": "^2.6.1"
   },
   "private": true,
   "engines": {
-    "node": "24"
+    "node": "24.x"
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "format": "prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
+  },
+  "devDependencies": {
+    "oxlint": "catalog:",
+    "prettier": "catalog:"
   }
 }
