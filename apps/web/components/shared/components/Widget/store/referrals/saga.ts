@@ -3,7 +3,6 @@ import { call, put, select } from "redux-saga/effects";
 import { Action } from "typescript-fsa";
 import { ReferralData, ReferralType } from "../../types/Temp";
 import { submitReferralRequest, widgetTrpc } from "../widgetApi";
-import { nextPane } from "../layout/actions";
 import { State } from "../state";
 import { fetchReferralsAction, submitReferralAction } from "./actions";
 

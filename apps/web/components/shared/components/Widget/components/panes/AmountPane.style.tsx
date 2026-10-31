@@ -218,11 +218,6 @@ export const ActionBar = styled.div`
   padding-bottom: 30px;
 `;
 
-export const ErrorContainer = styled.div`
-  margin-bottom: 10px;
-  font-size: 18px;
-`;
-
 export const OperationsPercentageInputWrapper = styled.div`
   display: flex;
   align-items: center;

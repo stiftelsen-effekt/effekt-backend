@@ -85,7 +85,7 @@ type ValidOrganization = {
   _key: string;
 };
 
-export const cleanDistribution = (
+const cleanDistribution = (
   input: Opendistributionbutton["distribution_cause_areas"],
 ): PrefilledDistribution => {
   if (!input) {

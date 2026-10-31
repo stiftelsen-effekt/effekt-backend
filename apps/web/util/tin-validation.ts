@@ -26,7 +26,7 @@ const isPlausibleCprDate = (value: string): boolean => {
   return true;
 };
 
-export const cprChecksumTest = (tin: string): boolean => {
+const cprChecksumTest = (tin: string): boolean => {
   if (tin.length !== 11) {
     return false;
   }
@@ -89,7 +89,7 @@ export const formatCprInput = (value: string): string => {
 
 const CVR_MOD11_WEIGHTS = [2, 7, 6, 5, 4, 3, 2] as const;
 
-export const cvrChecksumTest = (input: string): boolean => {
+const cvrChecksumTest = (input: string): boolean => {
   const digits = input.replace(/\D/g, "");
   if (digits.length !== 8) return false;
   if (!/^\d{8}$/.test(digits)) return false;
@@ -107,7 +107,7 @@ export const cvrChecksumTest = (input: string): boolean => {
   return actualCheck === expectedCheck;
 };
 
-export const validateCvr = (cvr: string): TinValidationResult => {
+const validateCvr = (cvr: string): TinValidationResult => {
   const digits = cvr.replace(/\D/g, "");
   if (!/^\d{8}$/.test(digits)) {
     return { isValid: false, isSuspicious: false, message: "CVR must be 8 digits." };
@@ -165,18 +165,5 @@ export const formatTinInput = (value: string, opts: TinOptions = {}): string => 
     return `${first}-${last}`;
   }
 
-  return digits;
-};
-
-export const finalizeTinFormat = (value: string, opts: TinOptions = {}): string => {
-  const { allowCvr = false } = opts;
-  const digits = value.replace(/\D/g, "");
-
-  if (digits.length >= 10) {
-    return `${digits.slice(0, 6)}-${digits.slice(6, 10)}`;
-  }
-  if (allowCvr && digits.length === 8) {
-    return digits;
-  }
   return digits;
 };

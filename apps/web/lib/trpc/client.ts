@@ -19,7 +19,7 @@ export type ApiFlavor = "trpc" | "rest";
 export const apiFlavorFor = (mainLocale: MainLocale): ApiFlavor =>
   mainLocale === "dk" ? "rest" : "trpc";
 
-export const apiUrl = () => process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
+const apiUrl = () => process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
 
 export const createWebTrpcClient = ({
   flavor,

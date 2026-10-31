@@ -1,8 +1,8 @@
-import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import Footer from "../../shared/layout/Footer/Footer";
 import styles from "../../shared/layout/Layout/Layout.module.scss";
 import { Auth0Provider, CacheLocation } from "@auth0/auth0-react";
-import Router, { useRouter } from "next/router";
+import { useRouter } from "next/router";
 import { UserWrapper } from "./userwrapper";
 import { DonorProvider } from "./donorProvider";
 import { ActivityProvider } from "./activityProvider";
@@ -18,7 +18,6 @@ import {
 import { WidgetPane } from "../../main/layout/WidgetPane/WidgetPane";
 import { useRouterContext } from "../../../context/RouterContext";
 import { MainLocaleContext } from "../../../context/MainLocaleContext";
-import { PreviewBlock } from "../../main/layout/PreviewBlock/PreviewBlock";
 import { MissingNameModal } from "./MissingNameModal/MissingNameModal";
 import { withStaticProps } from "../../../util/withStaticProps";
 import { getProfileLayoutStaticProps } from "./layoutStaticProps";

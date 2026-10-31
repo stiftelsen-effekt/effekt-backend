@@ -1,5 +1,4 @@
 import Link from "next/link";
-import React from "react";
 import { LinkType } from "../../../main/blocks/Links/Links";
 import { NavLink } from "../../components/Navbar/Navbar";
 import styles from "./Footer.module.scss";
@@ -26,7 +25,7 @@ type QueryResult = {
   main_locale: string;
 };
 
-export const footerQuery = groq`
+const footerQuery = groq`
   *[_type == "site_settings"][0] {
     _id,
     footer_columns[] {

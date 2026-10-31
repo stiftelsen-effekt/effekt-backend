@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { HelpCircle, Info } from "react-feather";
+import { HelpCircle } from "react-feather";
 import { TaxYearlyReport } from "../../../../../models";
 import { thousandize } from "../../../../../util/formatting";
 import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";

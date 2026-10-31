@@ -145,17 +145,6 @@ const pickAnonymous = () => {
   cy.get("[data-cy=anon-checkbox]").click();
 };
 
-const inputDonorValues = () => {
-  cy.react("TextInput", { props: { name: "name" } }).type("Cypress Test");
-  cy.react("TextInput", { props: { name: "email" } }).type(`cypress@testeffekt.no`);
-  cy.get("[data-cy=checkboxTaxDeduction]").click("left");
-  cy.get("[data-cy=checkboxNewsletter]").click("left");
-  cy.get("[data-cy=checkboxPrivacyPolicy]").click("left");
-
-  cy.react("TextInput", { props: { name: "ssn" } }).type("123456789");
-  cy.wait(500);
-};
-
 Cypress.Commands.add("getState", getState);
 Cypress.Commands.add("nextWidgetPane", nextWidgetPane);
 Cypress.Commands.add("prevWidgetPane", prevWidgetPane);
@@ -163,7 +152,6 @@ Cypress.Commands.add("checkNextIsDisabled", checkNextIsDisabled);
 Cypress.Commands.add("pickRecurringDonation", pickRecurringDonation);
 Cypress.Commands.add("pickSingleDonation", pickSingleDonation);
 Cypress.Commands.add("pickAnonymous", pickAnonymous);
-Cypress.Commands.add("inputDonorValues", inputDonorValues);
 
 /**
  * Stubbed tRPC procedures of the current test: procedure path -> { data } or { error }. Min Side

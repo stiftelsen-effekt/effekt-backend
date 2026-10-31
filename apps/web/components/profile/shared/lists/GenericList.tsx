@@ -1,6 +1,6 @@
 import style from "./Lists.module.scss";
 import GenericListRow, { ListRow } from "./GenericListRow";
-import React, { ReactElement, ReactNode } from "react";
+import { ReactElement, ReactNode } from "react";
 
 export type Props<T> = {
   title: string;

@@ -1,13 +1,8 @@
 import { useAuth0, User } from "@auth0/auth0-react";
 import { useContext, useMemo } from "react";
 import { Info } from "react-feather";
-import { Distribution, Donation, TaxYearlyReport, TaxYearlyReportUnits } from "../../../../models";
-import {
-  useDistributions,
-  useDonations,
-  useTaxUnits,
-  useYearlyTaxReports,
-} from "../../../../_queries";
+import { Distribution, Donation, TaxYearlyReport } from "../../../../models";
+import { useDistributions, useDonations, useYearlyTaxReports } from "../../../../_queries";
 import { InfoBox } from "../../../shared/components/Infobox/Infobox";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
 import { DonorContext } from "../../layout/donorProvider";

@@ -13,11 +13,7 @@ import { withStaticProps } from "../../../../../util/withStaticProps";
 import { Widget, widgetQuery } from "./Widget";
 import { WidgetProps } from "../types/WidgetProps";
 import { token } from "../../../../../token";
-import dynamic from "next/dynamic";
-import {
-  PrefilledDistribution,
-  WidgetPaneProps,
-} from "../../../../main/layout/WidgetPane/WidgetPane";
+import { PrefilledDistribution } from "../../../../main/layout/WidgetPane/WidgetPane";
 import { RecurringDonation } from "../types/Enums";
 
 // Create a store factory function
@@ -38,7 +34,7 @@ export const createWidgetStore = () => {
 };
 
 // Create a wrapper component that provides its own store
-export const WidgetStoreProvider: React.FC<{
+const WidgetStoreProvider: React.FC<{
   children: React.ReactNode;
   isInline?: boolean;
 }> = ({ children, isInline }) => {

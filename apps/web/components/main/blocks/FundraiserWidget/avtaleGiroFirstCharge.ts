@@ -9,7 +9,7 @@ import { addWorkingDays } from "norwegian-workdays";
  * 5 banking days; the sixth allows for agreements that take an extra day to activate, since a
  * missed claim pushes the first charge a whole month.
  */
-export const AVTALEGIRO_FIRST_CHARGE_WORKING_DAYS = 6;
+const AVTALEGIRO_FIRST_CHARGE_WORKING_DAYS = 6;
 
 export interface AvtaleGiroFirstCharge {
   /** Monthly charge day stored on the agreement, 1-28 */

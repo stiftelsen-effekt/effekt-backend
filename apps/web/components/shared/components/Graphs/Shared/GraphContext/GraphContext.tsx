@@ -8,7 +8,6 @@ import { PortableText } from "@portabletext/react";
 import styles from "./GraphContext.module.scss";
 import { EffektButton } from "../../../EffektButton/EffektButton";
 import { Download } from "react-feather";
-import { Cumulativedonationstableheaders } from "../../../../../../studio/sanity.types";
 
 export type GraphContextData = {
   description: string;

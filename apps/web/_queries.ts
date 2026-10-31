@@ -2,18 +2,7 @@ import { User } from "@auth0/auth0-react";
 import useSWR from "swr";
 import { apiResult, getAccessToken, getAccessTokenSilently } from "./hooks/useApi";
 import { getUserId } from "./lib/user";
-import type {
-  AggregatedDonations,
-  AutoGiroAgreement,
-  AvtaleGiroAgreement,
-  Distribution,
-  Donation,
-  TaxUnit,
-  TaxYearlyReport,
-  VippsAgreement,
-} from "./models";
 import { widgetContentQuery } from "./components/shared/components/Widget/components/Widget";
-import { groq } from "next-sanity";
 import { TRPCClientError } from "@trpc/client";
 import { useTrpcClient } from "./lib/trpc/useTrpcClient";
 import { publicTrpcFor } from "./lib/trpc/client";
@@ -447,7 +436,7 @@ export const linksContentQuery = `links[] {
   ${linksSelectorQuery}
 }`;
 
-export const cookieBannerQueryString = `
+const cookieBannerQueryString = `
   ...,
   privacy_policy_link {
     "_key": coalesce(_id,_key,"id_privacy_policy_link"),
@@ -458,13 +447,7 @@ export const cookieBannerQueryString = `
   }
 `;
 
-export const cookieBannerQuery = groq`
-  *[_type == "site_settings"][0].cookie_banner_configuration {
-    ${cookieBannerQueryString}
-  }
-`;
-
-export const generalBannerQueryString = `
+const generalBannerQueryString = `
   ...,
   link {
     "_key": coalesce(_id,_key,"id_general_banner_link"),
@@ -472,12 +455,6 @@ export const generalBannerQueryString = `
     title,
     "slug": page->slug.current,
     "pagetype": coalesce(page->_type, "generic_page"),
-  }
-`;
-
-export const generalBannerQuery = groq`
-  *[_type == "site_settings"][0].general_banner-> {
-    ${generalBannerQueryString}
   }
 `;
 
@@ -490,7 +467,7 @@ export const pageBannersContentQuery = `
   }
 `;
 
-export const questionAndAnswerSelectionQuery = `
+const questionAndAnswerSelectionQuery = `
   ...,
   answers[] {
     ...,

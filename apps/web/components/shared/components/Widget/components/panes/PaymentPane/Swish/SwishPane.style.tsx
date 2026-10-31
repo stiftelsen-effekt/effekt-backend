@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { gray18 } from "../../../../config/colors";
 
 export const StyledPaneContent = styled.div`
   padding-top: 20px;

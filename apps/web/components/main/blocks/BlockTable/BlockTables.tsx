@@ -1,5 +1,5 @@
 import styles from "./BlockTables.module.scss";
-import { CSSProperties, HTMLAttributes, useEffect, useRef, useState } from "react";
+import { CSSProperties } from "react";
 import { BlockTableContents, BlockTablesContent, TableConfiguration } from "./BlockTablesContent";
 
 type BlockTableConfig = {

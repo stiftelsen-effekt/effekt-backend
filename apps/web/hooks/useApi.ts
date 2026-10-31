@@ -15,7 +15,7 @@ export type getAccessTokenSilently = Auth0ContextInterface["getAccessTokenSilent
  * `isAuthenticated`, so UserWrapper sends the user back to login; this error
  * just stops us from calling the API with `Bearer undefined` in the meantime.
  */
-export class MissingAccessTokenError extends Error {
+class MissingAccessTokenError extends Error {
   constructor() {
     super("No access token available. The login session has probably expired.");
     this.name = "MissingAccessTokenError";

@@ -1,8 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import styles from "./Navbar.module.scss";
-import Link from "next/link";
 import { useRouter } from "next/router";
-import { Menu, X } from "react-feather";
 import AnimateHeight from "react-animate-height";
 import type { SanityImageObject } from "@sanity/image-url";
 import { WidgetContext } from "../../../main/layout/layout";

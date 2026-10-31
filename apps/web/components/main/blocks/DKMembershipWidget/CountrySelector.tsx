@@ -1,4 +1,3 @@
-import { ChangeEventHandler } from "react";
 import styles from "./CountrySelector.module.scss";
 
 export const MembershipCountrySelector: React.FC<{

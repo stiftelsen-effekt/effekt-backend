@@ -3,7 +3,7 @@ import React from "react";
 import styles from "./GiftCard.module.scss";
 import type { SanityImageObject } from "@sanity/image-url";
 import { ResponsiveImage } from "../../../shared/responsiveimage";
-import { LinkType, Links, LinksProps } from "../Links/Links";
+import { LinkType, Links } from "../Links/Links";
 import { NavLink } from "../../../shared/components/Navbar/Navbar";
 import { PortableText } from "@portabletext/react";
 

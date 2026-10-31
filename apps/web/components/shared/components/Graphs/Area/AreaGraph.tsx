@@ -1,5 +1,5 @@
 import type * as PlotModule from "@observablehq/plot";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { getRemInPixels } from "../../../../main/blocks/Paragraph/Citation";
 import { useDebouncedCallback } from "use-debounce";
 import styles from "./AreaGraph.module.scss";

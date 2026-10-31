@@ -1,4 +1,3 @@
-import { AnyAction } from "redux";
 import { ReferralData } from "../../types/Temp";
 
 export const SELECT_REFERRAL = "SELECT_REFERRAL";

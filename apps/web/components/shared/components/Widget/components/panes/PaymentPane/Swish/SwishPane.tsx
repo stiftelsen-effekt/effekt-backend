@@ -1,7 +1,6 @@
 import { useDeviceSelectors } from "react-device-detect";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import Image from "next/image";
 import useSWR from "swr";
 import { Spinner } from "../../../../../Spinner/Spinner";
 import { State } from "../../../../store/state";

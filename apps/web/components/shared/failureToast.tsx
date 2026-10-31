@@ -1,4 +1,3 @@
-import React from "react";
 import { AlertCircle } from "react-feather";
 import { toast } from "react-toastify";
 import { useMainLocale } from "../../context/MainLocaleContext";

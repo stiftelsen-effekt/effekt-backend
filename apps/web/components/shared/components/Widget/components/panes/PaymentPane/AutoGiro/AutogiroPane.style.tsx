@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { gray18 } from "../../../../config/colors";
 
 export const StyledPaneContent = styled.div`
   padding-top: 20px;
@@ -8,12 +7,4 @@ export const StyledPaneContent = styled.div`
   flex-direction: column;
   height: 100%;
   gap: 20px;
-`;
-
-export const StyledSpinnerWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: auto;
-  margin-bottom: 60px;
 `;

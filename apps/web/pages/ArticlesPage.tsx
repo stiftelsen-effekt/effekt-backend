@@ -4,7 +4,6 @@ import { PageHeader } from "../components/main/layout/PageHeader/PageHeader";
 import { ArticlePreview } from "../components/main/layout/RelatedArticles/ArticlePreview";
 import { SectionContainer } from "../components/main/layout/SectionContainer/sectionContainer";
 import { Navbar, PreviewNavbar } from "../components/shared/components/Navbar/Navbar";
-import { CookieBanner } from "../components/shared/layout/CookieBanner/CookieBanner";
 import { MainHeader } from "../components/shared/layout/Header/Header";
 import { SEO } from "../components/shared/seo/Seo";
 import { getClient } from "../lib/sanity.client";

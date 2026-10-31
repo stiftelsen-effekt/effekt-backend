@@ -1,4 +1,4 @@
-import { TaxUnit, TaxYearlyReportUnits } from "../../../../../models";
+import { TaxYearlyReportUnits } from "../../../../../models";
 import { thousandize } from "../../../../../util/formatting";
 import style from "./TaxYearlyReportDesktopDetails.module.scss";
 

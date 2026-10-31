@@ -21,7 +21,7 @@ export const DEFAULT_OPERATIONS_CONFIG: Omit<
   excluded_cause_area_ids: [],
 };
 
-export const DEFAULT_CAUSE_AREA_DISPLAY_CONFIG: Required<CauseAreaDisplayConfig> = {
+const DEFAULT_CAUSE_AREA_DISPLAY_CONFIG: Required<CauseAreaDisplayConfig> = {
   cause_area_selection_title: "Which cause do you want to make a difference in?",
   recommendation_button_text: "Our recommendation",
   multiple_cause_areas_button_text: "Choose multiple causes",
@@ -32,7 +32,7 @@ export const DEFAULT_CAUSE_AREA_DISPLAY_CONFIG: Required<CauseAreaDisplayConfig>
   cause_area_rollouts: [],
 };
 
-export const DEFAULT_UI_LABELS: Required<UILabels> = {
+const DEFAULT_UI_LABELS: Required<UILabels> = {
   total_label: "Total",
   operations_summary_label: "Operations",
 };
@@ -41,7 +41,7 @@ export const DEFAULT_UI_LABELS: Required<UILabels> = {
  * Last-resort defaults for optional smart-distribution copy. Every platform should
  * configure these in Sanity - these only keep the UI usable if content is missing.
  */
-export const DEFAULT_SMART_DISTRIBUTION_TEXTS = {
+const DEFAULT_SMART_DISTRIBUTION_TEXTS = {
   show_all_organizations_text: "Show all",
 };
 

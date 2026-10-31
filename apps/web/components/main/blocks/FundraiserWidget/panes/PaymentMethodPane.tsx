@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { EffektCheckbox } from "../../../../shared/components/EffektCheckbox/EffektCheckbox";
-import { LinkComponent } from "../../Links/Links";
 import { NavLink } from "../../../../shared/components/Navbar/Navbar";
 import { Spinner } from "../../../../shared/components/Spinner/Spinner";
 import { PaymentMethodSelector } from "../components/PaymentMethodSelector";

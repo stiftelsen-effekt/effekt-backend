@@ -5,7 +5,6 @@ import { Pane, PaneContainer, PaneTitle } from "../../Panes.style";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import { DkBankPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
 import { usePlausible } from "next-plausible";
-import { EffektButton } from "../../../../../EffektButton/EffektButton";
 import AnimateHeight from "react-animate-height";
 import { PaymentInformation } from "../Bank/PaymentInformation";
 import { InfoText } from "../PaymentPane.style";

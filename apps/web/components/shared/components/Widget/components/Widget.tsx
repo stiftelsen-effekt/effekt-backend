@@ -1,5 +1,5 @@
 import { groq } from "next-sanity";
-import { createContext, useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getClient } from "../../../../../lib/sanity.client";
 import { withStaticProps } from "../../../../../util/withStaticProps";
@@ -21,7 +21,6 @@ import { DonorPane } from "./panes/DonorPane/DonorPane";
 import { PaymentPane } from "./panes/PaymentPane/PaymentPane";
 import { ProgressBar } from "./shared/ProgressBar/ProgressBar";
 import { ApiErrorNotification } from "./shared/ApiErrorNotification/ApiErrorNotification";
-import { TaxInfoBox } from "./shared/Layout/Layout.style";
 import { token } from "../../../../../token";
 import {
   TooltipContent,
@@ -388,34 +387,3 @@ export const Widget = withStaticProps(
     </div>
   );
 });
-
-export const useWidgetScrollObserver = (elementRef: any) => {
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const observers = useRef(new Set());
-
-  const handleScroll = useCallback((event: any) => {
-    const newPosition = event.target.scrollTop;
-    setScrollPosition(newPosition);
-    observers.current.forEach((observer: any) => observer(newPosition));
-  }, []);
-
-  useEffect(() => {
-    const element = elementRef.current;
-    if (element) {
-      element.addEventListener("scroll", handleScroll);
-    }
-
-    return () => {
-      if (element) {
-        element.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, [elementRef, handleScroll]);
-
-  const subscribe = useCallback((observer: any) => {
-    observers.current.add(observer);
-    return () => observers.current.delete(observer);
-  }, []);
-
-  return { scrollPosition, subscribe };
-};

@@ -1,6 +1,6 @@
 // https://github.com/vercel/next.js/blob/canary/packages/third-parties/src/google/gtm.tsx
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import Script from "next/script";
 
 export type GTMParams = {
@@ -60,16 +60,3 @@ export function GoogleTagManager(props: GTMParams) {
     </>
   );
 }
-
-export const sendGTMEvent = (data: Object) => {
-  if (currDataLayerName === undefined) {
-    console.warn(`@next/third-parties: GTM has not been initialized`);
-    return;
-  }
-
-  if (window[currDataLayerName as any]) {
-    (window[currDataLayerName as any] as any).push(data);
-  } else {
-    console.warn(`@next/third-parties: GTM dataLayer ${currDataLayerName} does not exist`);
-  }
-};

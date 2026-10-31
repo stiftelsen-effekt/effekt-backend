@@ -2,8 +2,6 @@ import Link from "next/link";
 import ResponsiveImage from "../../../shared/responsiveimage";
 import styles from "./MediaCoverageTeaser.module.scss";
 import { NavLink } from "../../../shared/components/Navbar/Navbar";
-import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
-import LinkButton from "../../../shared/components/EffektButton/LinkButton";
 import { Links } from "../Links/Links";
 
 export const MediaCoverageTeaser: React.FC<{

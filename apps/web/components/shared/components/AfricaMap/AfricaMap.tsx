@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import React, { MouseEventHandler, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import textures from "textures";
 import styles from "./AfricaMap.module.scss";
 import { getCountryName } from "./countryNames";

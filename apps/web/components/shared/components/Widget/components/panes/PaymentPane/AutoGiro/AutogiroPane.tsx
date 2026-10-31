@@ -10,7 +10,6 @@ import { RoundedBorder } from "../../../shared/Layout/Layout.style";
 import { TextWrapper } from "../Bank/BankPane.style";
 import { PortableText } from "@portabletext/react";
 import { thousandize } from "../../../../../../../../util/formatting";
-import LinkButton from "../../../../../EffektButton/LinkButton";
 import AnimateHeight from "react-animate-height";
 import { setAutoGiroDraftPaymentDateRequest } from "../../../../store/widgetApi";
 import { usePlausible } from "next-plausible";
