@@ -1,6 +1,6 @@
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import PlausibleProvider from "next-plausible";
 import dynamic from "next/dynamic";
 
@@ -15,6 +15,7 @@ import { createWidgetStore } from "../components/shared/components/Widget/compon
 import { useRouter } from "next/router";
 import { getReferralCodeFromQuery, storeReferralCode } from "../util/referralCode";
 import { useTrackingEnabled } from "../hooks/useTrackingEnabled";
+import { createVisibilityHiddenHandler } from "../util/visibilityBeacon";
 
 const PreviewProvider = lazy(() => import("../components/shared/PreviewProvider"));
 // The Min side layout (with Auth0) is only loaded on dashboard pages. It is still server-rendered,
@@ -66,30 +67,23 @@ function MyApp({
     if (referralCode) storeReferralCode(referralCode);
   }, [router.isReady, router.query]);
 
+  // Keep the latest tracking state in a ref, so the visibilitychange listener (registered once)
+  // reads the current value when the event fires rather than the value from the first render
+  const trackingRef = useRef(tracking);
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      const handleVisibilityChange = () => {
-        if (tracking) {
-          if (document.visibilityState === "hidden") {
-            navigator.sendBeacon(
-              "https://plausible.io/api/event",
-              JSON.stringify({
-                name: "visibility_hidden",
-                url: window.location.href,
-                domain: window.location.hostname,
-              }),
-            );
-          }
-        }
-      };
+    trackingRef.current = tracking;
+  }, [tracking]);
 
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-      return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }
-    // The listener reads `tracking` from the first render, which is always false (tracking is off
-    // during hydration), so this beacon is never sent. Adding `tracking` to the deps would start
-    // sending visibility_hidden events again, which is an analytics decision, not a lint fix.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- see above
+  useEffect(() => {
+    if (window.location.hostname === "localhost") return;
+    const handleVisibilityChange = createVisibilityHiddenHandler({
+      isTrackingEnabled: () => trackingRef.current,
+      getVisibilityState: () => document.visibilityState,
+      getLocation: () => window.location,
+      sendBeacon: (url, data) => navigator.sendBeacon(url, data),
+    });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   if (!appStaticProps) {

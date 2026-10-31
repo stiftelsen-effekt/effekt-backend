@@ -17,24 +17,6 @@ export default defineType({
       of: [BlockTypePresets.withoutCitations],
     }),
     defineField({
-      name: "content_position",
-      type: "string",
-      title: "Content position",
-      options: {
-        list: ["left", "right"],
-      },
-      hidden: ({ parent }) => !parent?.content || parent.content.length === 0,
-    }),
-    defineField({
-      name: "content_mobile_position",
-      type: "string",
-      title: "Content mobile position",
-      options: {
-        list: ["top", "bottom"],
-      },
-      hidden: ({ parent }) => !parent?.content || parent.content.length === 0,
-    }),
-    defineField({
       name: "donationwidget",
       type: "reference",
       title: "Donation widget configuration",

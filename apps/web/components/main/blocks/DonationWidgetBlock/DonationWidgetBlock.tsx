@@ -11,8 +11,6 @@ export const DonationWidgetBlock: React.FC<{
   widgetConfiguration: WidgetProps;
   overrides?: any;
   content?: any[];
-  contentPosition: "left" | "right";
-  contentMobilePosition: "top" | "bottom";
 }> = ({ widgetConfiguration, overrides, content }) => {
   let defaultPaymentType = RecurringDonation.NON_RECURRING;
   if (overrides?.default_donation_type) {

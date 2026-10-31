@@ -8,16 +8,14 @@ export default defineType({
   title: "Results teaser",
   preview: {
     select: {
-      title: "title",
-      subtitle: "paragraph",
+      subtitle: "sum_subtitle",
     },
+    prepare: ({ subtitle }) => ({
+      title: "Results teaser",
+      subtitle,
+    }),
   },
   fields: [
-    defineField({
-      name: "title",
-      type: "string",
-      title: "Title",
-    }),
     defineField({
       name: "sum_subtitle",
       type: "string",
