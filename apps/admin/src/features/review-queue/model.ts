@@ -19,19 +19,18 @@ export type ReviewSource = ReviewItem["source"];
 export type ReviewRegisterInput = RouterInputs["reports"]["reviewQueue"]["register"];
 
 /** Report types the import flow offers (Norway). */
-export const importSources = ["ocr", "vipps", "bankNo", "facebook"] as const;
+export const importSources = ["ocr", "vipps", "bankNo"] as const;
 export type ImportSource = (typeof importSources)[number];
 
 export const reviewStatuses = ["open", "registered", "ignored"] as const satisfies ReviewStatus[];
 
-/** Sources that put transactions in the review queue (Facebook reports don't). */
+/** Sources that put transactions in the review queue. */
 export const queueSources = ["ocr", "vipps", "bankNo"] as const satisfies ReviewSource[];
 
 const sourceLabels: Record<string, string> = {
   ocr: "Bank OCR",
   vipps: "Vipps",
   bankNo: "Bank account",
-  facebook: "Facebook",
 };
 
 /** A parser's reason without its machine code ("NO_KID | KID 1 does not exist" → "KID 1 …"). */
@@ -45,28 +44,22 @@ export const sourceLabel = (source: string) => sourceLabels[source] ?? source;
 export type UploadResult =
   | { source: "ocr"; result: RouterOutputs["reports"]["uploads"]["ocr"] }
   | { source: "vipps"; result: RouterOutputs["reports"]["uploads"]["vipps"] }
-  | { source: "bankNo"; result: RouterOutputs["reports"]["uploads"]["bankNo"] }
-  | { source: "facebook"; result: RouterOutputs["reports"]["uploads"]["facebook"] };
-
-export type FacebookCampaign =
-  RouterOutputs["reports"]["uploads"]["facebook"]["fbCampaigns"][number];
+  | { source: "bankNo"; result: RouterOutputs["reports"]["uploads"]["bankNo"] };
 
 /** What an upload did, the same for every payment source. */
-export type UploadSummary =
-  | {
-      kind: "payments";
-      /** Donations registered */
-      registered: number;
-      /** Transactions not registered and not sent to review: duplicates already registered */
-      ignored: number;
-      /** Transactions that need a decision */
-      review: number;
-      /** What happened in the review queue (reports.uploads.* `queue`). Null for a dry run. */
-      queue: UploadQueue | null;
-      /** The upload's import log entry (reports.logs.get); null if none was written. */
-      importLogId: number | null;
-    }
-  | { kind: "facebook"; campaigns: FacebookCampaign[] };
+export type UploadSummary = {
+  kind: "payments";
+  /** Donations registered */
+  registered: number;
+  /** Transactions not registered and not sent to review: duplicates already registered */
+  ignored: number;
+  /** Transactions that need a decision */
+  review: number;
+  /** What happened in the review queue (reports.uploads.* `queue`). Null for a dry run. */
+  queue: UploadQueue | null;
+  /** The upload's import log entry (reports.logs.get); null if none was written. */
+  importLogId: number | null;
+};
 
 export type UploadQueue = NonNullable<RouterOutputs["reports"]["uploads"]["ocr"]["queue"]>;
 
@@ -96,9 +89,6 @@ export function queueOutcome(queue: UploadQueue): QueueOutcome {
 }
 
 export function summariseUpload(upload: UploadResult): UploadSummary {
-  if (upload.source === "facebook") {
-    return { kind: "facebook", campaigns: upload.result.fbCampaigns };
-  }
   const { result } = upload;
   const review = result.invalidTransactions.length;
   return {

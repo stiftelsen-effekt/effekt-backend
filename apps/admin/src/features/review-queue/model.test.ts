@@ -54,14 +54,6 @@ describe("summariseUpload", () => {
       }),
     ).toMatchObject({ queue: null });
   });
-
-  it("lists Facebook campaigns", () => {
-    const campaign = { ID: "1", fundraiserTitle: "x", campaignOwnerName: "y", permalink: "z" };
-    expect(summariseUpload({ source: "facebook", result: { fbCampaigns: [campaign] } })).toEqual({
-      kind: "facebook",
-      campaigns: [campaign],
-    });
-  });
 });
 
 describe("uploadForm", () => {
