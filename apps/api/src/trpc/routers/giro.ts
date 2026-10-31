@@ -10,7 +10,6 @@ import {
   updateAvtaleGiroAmount,
   updateAvtaleGiroPaymentDate,
 } from "../../custom_modules/avtalegiro";
-import { createAutoGiroShipment, replaceAutoGiroDistribution } from "../../custom_modules/autogiro";
 import { validateDistribution } from "../../custom_modules/distribution";
 import { RequestLocale } from "../../middleware/locale";
 import { DistributionInput } from "../../schemas/types";
@@ -18,10 +17,7 @@ import { csvExport } from "../csv";
 import { assertDistributionReferences } from "../distributionChecks";
 import { distributionSplitSchema, DistributionSplitInput, idSchema } from "../schemas/common";
 import {
-  AUTOGIRO_MAX_SEK,
   AVTALEGIRO_MAX_NOK,
-  autoGiroExportInput,
-  autoGiroListInput,
   avtaleGiroAgreementChargesInput,
   avtaleGiroAgreementChargesOutput,
   avtaleGiroChargeListInput,
@@ -31,7 +27,6 @@ import {
   chargeDay,
   defaultAvtaleGiroChargeSort,
   isoDate,
-  mandateListInput,
   toLocalDate,
 } from "../schemas/giro";
 import { adminProcedure, router } from "../trpc";
@@ -65,11 +60,6 @@ const toAgreementDistribution = async (
 
 const assertAvtaleGiroExists = async (KID: string) => {
   if (!(await DAO.avtalegiroagreements.getByKID(KID))) throw new TRPCError({ code: "NOT_FOUND" });
-};
-
-const assertAutoGiroExists = async (KID: string) => {
-  if (!(await DAO.autogiroagreements.getAgreementByKID(KID)))
-    throw new TRPCError({ code: "NOT_FOUND" });
 };
 
 const getAvtaleGiroAgreements = async (
@@ -287,145 +277,6 @@ const avtalegiroRouter = router({
     }),
 });
 
-const autogiroRouter = router({
-  /** POST /autogiro/agreements */
-  list: adminProcedure
-    .input(autoGiroListInput)
-    .query(({ input }) =>
-      DAO.autogiroagreements.getAgreements(
-        input.sort ?? DEFAULT_SORT,
-        input.page,
-        input.limit,
-        input.filter,
-      ),
-    ),
-
-  /** POST /autogiro/agreements with export: true */
-  export: adminProcedure.input(autoGiroExportInput).query(async ({ input }) => {
-    const { rows } = await DAO.autogiroagreements.getAgreements(
-      input.sort ?? DEFAULT_SORT,
-      0,
-      Number.MAX_SAFE_INTEGER,
-      input.filter,
-    );
-    return csvExport("autogiro-agreements", rows);
-  }),
-
-  /** GET /autogiro/agreement/:id */
-  get: adminProcedure.input(id).query(async ({ input }) => {
-    const agreement = await DAO.autogiroagreements.getAgreementById(input.id);
-    if (!agreement) throw new TRPCError({ code: "NOT_FOUND" });
-    const distribution = await DAO.distributions.getSplitByKID(agreement.KID);
-    return { ...agreement, distribution };
-  }),
-
-  /** GET /autogiro/donations/:KID */
-  donations: adminProcedure.input(byKID).query(({ input }) => DAO.donations.getAllByKID(input.KID)),
-
-  /** GET /autogiro/histogram */
-  histogram: adminProcedure.query(() => DAO.autogiroagreements.getAgreementSumHistogram()),
-
-  /** Amount part of PUT /autogiro/:KID/. Amount in whole SEK. */
-  updateAmount: adminProcedure
-    .input(
-      z.strictObject({
-        KID: z.string(),
-        amount: z.number().int().positive().max(AUTOGIRO_MAX_SEK),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      await assertAutoGiroExists(input.KID);
-      return DAO.autogiroagreements.setAgreementAmountByKID(input.KID, input.amount);
-    }),
-
-  /** Payment date part of PUT /autogiro/:KID/ (and POST /autogiro/:KID/paymentdate) */
-  updatePaymentDate: adminProcedure
-    .input(z.strictObject({ KID: z.string(), paymentDate: chargeDay }))
-    .mutation(async ({ input }) => {
-      await assertAutoGiroExists(input.KID);
-      await DAO.autogiroagreements.setAgreementPaymentDateByKID(input.KID, input.paymentDate);
-      return true;
-    }),
-
-  /** Distribution part of PUT /autogiro/:KID/. The split stays with the agreement's donor. */
-  updateDistribution: adminProcedure
-    .input(z.strictObject({ KID: z.string(), distribution: distributionSplitSchema }))
-    .mutation(async ({ input }) => {
-      await assertAutoGiroExists(input.KID);
-      const distribution = await toAgreementDistribution(input.KID, input.distribution);
-      await replaceAutoGiroDistribution(input.KID, distribution);
-      return true;
-    }),
-
-  /** PUT /autogiro/:KID/activate */
-  activate: adminProcedure.input(byKID).mutation(async ({ input }) => {
-    await assertAutoGiroExists(input.KID);
-    await DAO.autogiroagreements.activateAgreementByKID(input.KID);
-    return true;
-  }),
-
-  /** PUT /autogiro/:KID/cancel */
-  cancel: adminProcedure.input(byKID).mutation(async ({ input }) => {
-    await assertAutoGiroExists(input.KID);
-    await DAO.autogiroagreements.cancelAgreementByKID(input.KID);
-    return true;
-  }),
-
-  mandates: router({
-    /** POST /autogiro/mandates */
-    list: adminProcedure
-      .input(mandateListInput)
-      .query(({ input }) =>
-        DAO.autogiroagreements.getMandates(
-          input.sort ?? DEFAULT_SORT,
-          input.page,
-          input.limit,
-          input.filter,
-        ),
-      ),
-
-    /** No REST equivalent (the old admin called a non-existent GET /autogiro/mandate/:id) */
-    get: adminProcedure.input(id).query(async ({ input }) => {
-      const mandate = await DAO.autogiroagreements.getMandateById(input.id);
-      // getMandateById returns {} rather than null when there is no row
-      if (!mandate || mandate.ID === undefined) throw new TRPCError({ code: "NOT_FOUND" });
-      return mandate;
-    }),
-  }),
-
-  shipments: router({
-    /** GET /autogiro/shipments */
-    list: adminProcedure.query(() => DAO.autogiroagreements.getAllShipments()),
-
-    /** GET /autogiro/shipment/:id/report: the stored BFEP.IAGAG claims file (plain text) */
-    report: adminProcedure.input(id).query(async ({ input }) => {
-      const file = await DAO.logging.getAutoGiroShipmentFile(input.id);
-      if (!file || typeof file.fileContents !== "string") {
-        throw new TRPCError({ code: "NOT_FOUND" });
-      }
-      return {
-        filename: String(file.filename),
-        contentType: "text/plain",
-        content: file.fileContents,
-      };
-    }),
-
-    /**
-     * POST /scheduled/autogiro: creates a shipment and generates its claims file. The empty
-     * result uses the same `numMandatesToBeConfirmed` key as a created shipment.
-     */
-    create: adminProcedure.mutation(async () => {
-      const result = await createAutoGiroShipment();
-      if (result.shipmentID === null) {
-        const { mandatesToBeConfirmed, ...rest } = result;
-        return { ...rest, numMandatesToBeConfirmed: mandatesToBeConfirmed };
-      }
-      return result;
-    }),
-  }),
-});
-
 export const giroRouter = router({
   avtalegiro: avtalegiroRouter,
-  autogiro: autogiroRouter,
 });

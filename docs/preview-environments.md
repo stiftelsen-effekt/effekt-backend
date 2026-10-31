@@ -73,7 +73,7 @@ every night ───────────► .github/workflows/preview-janit
    need this: a regranting round must be approved by someone other than its creator, so create
    it as Finance and approve it as Approver.
 4. Everything is fake. Names, emails and account numbers are generated. Nothing is sent: no emails,
-   Vipps or Swish payments, bank (Mastercard Payment Services) files, Mailchimp or Facebook syncs.
+   Vipps payments, bank (Mastercard Payment Services) files, Mailchimp or Facebook syncs.
 5. Every push resets the database. Don't build up state you need across pushes.
 6. The first request after a quiet period takes a few seconds (the preview scales to zero).
 
@@ -164,11 +164,11 @@ password or data.
     `:effekt-previews` (required on Cloud Run), no `DB_HOST` / `DB_URL` naming `effekt-db`, no
     public IP as `DB_HOST`;
   - no production secret or integration is configured: Vipps, MailerSend, Mailchimp, Mastercard
-    Payment Services SFTP, Swish certificates, Auth0 (M2M client, MCP client, log stream / register
+    Payment Services SFTP, Auth0 (M2M client, MCP client, log stream / register
     webhooks, the tenant itself), the analysis MCP database, survey export, Facebook sync, Tidbyt,
     site revalidation, Redis (the full list is `FORBIDDEN_PREVIEW_SETTINGS`);
-  - `NODE_ENV` isn't `production` (previews run `NODE_ENV=preview`: Vipps test API, no Swish
-    certificates, no stack traces in responses);
+  - `NODE_ENV` isn't `production` (previews run `NODE_ENV=preview`: Vipps test API, no stack
+    traces in responses);
   - `K_SERVICE` / `CLOUD_RUN_JOB`, if set, start with `effekt-preview-`.
 - **Auth:** `POST /preview/session {"as": "ops" | "finance" | "approver"}` returns a 12-hour
   HS256 token signed with `PREVIEW_JWT_SECRET` (new random value per deploy, set by the
@@ -278,7 +278,7 @@ The main site (Next.js, deployed on Vercel with its own preview deployments) cou
 backend preview the same way: a main-site preview deployment points its API URL at
 `effekt-preview-pr-<n>` (a PR-to-PR mapping, e.g. by branch name or a label), and its donation
 flow then talks to synthetic data. CORS already allows any origin in previews (`NODE_ENV` isn't
-`production`). Payments stay off: the guard keeps Vipps and Swish unconfigured, so flows that
+`production`). Payments stay off: the guard keeps Vipps unconfigured, so flows that
 need a provider stop at that step. Building it means: a way to pair a main-site PR with a
 backend PR, and passing `PREVIEW_*` facts to the site for its own banner.
 

@@ -7,7 +7,7 @@ import request from "supertest";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import { DAO } from "../custom_modules/DAO";
 import * as giroSftp from "../custom_modules/giroSftp";
-import { enqueueInvalidTransactions, toReviewItem } from "../custom_modules/reviewQueue";
+import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
 
 const avtalegiro = require("../custom_modules/avtalegiro");
 
@@ -66,27 +66,6 @@ describe("review queue: enqueueInvalidTransactions", () => {
       name: "Ola",
       message: "gave",
     });
-  });
-
-  it("converts AutoGiro öre to whole kronor", async () => {
-    await enqueueInvalidTransactions(
-      "autogiro",
-      [
-        {
-          reason: "KID not found",
-          transaction: { KID: "1", amount: 12345, transactionID: "ag.1", paymentID: 12 },
-        },
-      ],
-      7,
-    );
-    expect(addStub.firstCall.args[1][0].amount).to.equal(123.45);
-    expect(addStub.firstCall.args[2]).to.equal(7);
-    expect(
-      toReviewItem("autogiro", {
-        reason: "x",
-        transaction: { amount: 12345, transactionID: "ag.1", paymentID: 12 },
-      }).transaction.amount,
-    ).to.equal(123.45);
   });
 
   it("writes nothing when there are no transactions", async () => {

@@ -12,7 +12,6 @@ tRPC router, one call at a time. Migrated so far, all read-only:
 | `minside.distributions`        | `GET /donors/:id/distributions/?kids=…` | `useDistributions`, `useAgreementsDistributions` |
 | `minside.vippsAgreements`      | `GET /donors/:id/recurring/vipps`       | `useVippsAgreements`                             |
 | `minside.avtaleGiroAgreements` | `GET /donors/:id/recurring/avtalegiro`  | `useAvtalegiroAgreements`                        |
-| `minside.autoGiroAgreements`   | `GET /donors/:id/recurring/autogiro`    | `useAutogiroAgreements`                          |
 | `minside.taxReports`           | `GET /donors/:id/taxreports`            | `useYearlyTaxReports`                            |
 
 Mutations (the web helpers take the client from `useTrpcClient`):
@@ -32,7 +31,7 @@ Mutations (the web helpers take the client from `useTrpcClient`):
 | `minside.updateAvtaleGiroDistribution`     | `POST /avtalegiro/:KID/distribution`                        | none                                  |
 | `minside.cancelAvtaleGiroAgreement`        | `POST /avtalegiro/:KID/status` (`active: 0`)                | none                                  |
 
-Amounts are whole kroner (the procedures convert to øre). Still on REST: AutoGiro changes (Swedish),
+Amounts are whole kroner (the procedures convert to øre). Still on REST:
 the stopped-agreement feedback (`/agreementfeedback`), the Facebook payment registration and the
 Danish agreement routes (`useDKAgreements`, `updateDKAgreement`, `cancelDKAgreement`).
 
@@ -148,15 +147,13 @@ as `@effekt/api/widget`). No login, no token.
 | `widget.registerBankPending` | `POST /donations/bank/pending` | `donation/saga.ts` `registerBankPending`                            |
 | `widget.submitReferral`      | `POST /referrals`              | `referrals/saga.ts` `submitReferral`                                |
 
-Payment steps after registration (Norway and Sweden only; the Danish backend has none of these
+Payment steps after registration (Norway only; the Danish backend has none of these
 routes, so the REST link leaves them unmapped and they fail without a request on the Danish site):
 
-| Procedure                            | Formerly                                 | Caller                                                     |
-| ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------- |
-| `widget.draftVippsAgreement`         | `POST /vipps/agreement/draft`            | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
-| `widget.draftAvtaleGiro`             | `POST /avtalegiro/draft`                 | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
-| `widget.swishOrderStatus` (query)    | `GET /swish/orders/:id/status` (polled)  | `SwishPane`                                                |
-| `widget.setAutoGiroDraftPaymentDate` | `PUT /autogiro/:KID/drafted/paymentdate` | `AutogiroPane`                                             |
+| Procedure                    | Formerly                      | Caller                                                     |
+| ---------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| `widget.draftVippsAgreement` | `POST /vipps/agreement/draft` | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
+| `widget.draftAvtaleGiro`     | `POST /avtalegiro/draft`      | `donation/saga.ts`, `FundraiserWidget/useRegisterDonation` |
 
 - `widget.registerDonation` runs the same code as the REST route (`registerPendingDonation` in
   `apps/api/src/custom_modules/pendingDonationRegistration.ts`) with the same input schema
@@ -177,13 +174,13 @@ routes, so the REST link leaves them unmapped and they fail without a request on
 - The batch guard covers every `widget.*` mutation: `publicMutations` is read from the router.
 - `widget.registerDonation` returns a short-lived signed `registrationToken`
   (`apps/api/src/custom_modules/registrationToken.ts`) instead of the donor's id. Every follow-up
-  call (`registerBankPending`, `submitReferral`, the three drafts) must send it and only acts on
+  call (`registerBankPending`, `submitReferral`, the two drafts) must send it and only acts on
   the KID, method and donor it was issued for. The REST draft routes (`POST /vipps/agreement/draft`,
-  `POST /avtalegiro/draft`, `PUT /autogiro/:KID/drafted/paymentdate`) are gone.
+  `POST /avtalegiro/draft`) are gone.
 - Every `widget.*` mutation also has a stricter per-IP limit (`publicMutationLimiter`,
   `apps/api/src/middleware/publicMutationRateLimit.ts`).
 - Stays REST for good: anything a payment provider, bank or email calls or links to
-  (`/avtalegiro/:kid/redirect`, `/swish/qr/:token`, `/vipps/*` callbacks, `/donations/status`).
+  (`/avtalegiro/:kid/redirect`, `/vipps/*` callbacks, `/donations/status`).
 
 ## Public site reads
 
@@ -296,12 +293,11 @@ Removed after the Min Side and widget migrations:
 Kept, although Min Side and the widget no longer call them:
 
 - `GET /donors/:id`, `/donors/:id/donations`, `/donations/aggregated`, `/taxunits`,
-  `/recurring/{vipps,avtalegiro,autogiro}`, `PUT /donors/:id` and the tax unit writes: the Swedish
+  `/recurring/{vipps,avtalegiro}`, `PUT /donors/:id` and the tax unit writes: the Swedish
   admin calls them.
 - `GET /referrals/types`: the Swedish admin's client still references it.
 - `GET /causeareas/all`: Sanity Studio and the Swedish admin.
 - `GET /organizations/all`: the REST contract the Danish backend implements for `site.organizations`.
-- `PUT /autogiro/:KID/`: Swedish Min Side's AutoGiro changes are still REST.
 
 ## Deployment notes
 

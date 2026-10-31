@@ -66,18 +66,6 @@ const dbAvtaleGiro = {
   notice: 1,
   full_name: "Jack Torrence",
 };
-const dbAutoGiro = {
-  ID: 31,
-  mandateID: 41,
-  KID: "000007000000033",
-  amount: 250,
-  payment_date: 28,
-  notice: true,
-  active: false,
-  last_updated: new Date("2022-03-04T05:06:07.000Z"),
-  created: new Date("2022-03-04T05:06:07.000Z"),
-  cancelled: new Date("2022-04-01T00:00:00.000Z"),
-};
 
 const dbTaxUnit = {
   id: 3,
@@ -159,23 +147,6 @@ describe("tRPC minside agreements and tax reports", () => {
           payment_date: 20,
           created: "2023-02-03T04:05:06.000Z",
           cancelled: null,
-        },
-      ],
-    },
-    {
-      name: "autoGiroAgreements",
-      stub: () =>
-        sinon.stub(DAO.autogiroagreements, "getAgreementsByDonorId").resolves([dbAutoGiro] as any),
-      call: (caller, input) => caller.minside.autoGiroAgreements(input),
-      expected: [
-        {
-          ID: 31,
-          active: false,
-          amount: 250,
-          KID: "000007000000033",
-          payment_date: 28,
-          created: "2022-03-04T05:06:07.000Z",
-          cancelled: "2022-04-01T00:00:00.000Z",
         },
       ],
     },
@@ -334,15 +305,13 @@ describe("tRPC minside agreements and tax reports", () => {
     const batchInput = (...inputs: unknown[]) =>
       encodeURIComponent(JSON.stringify(Object.fromEntries(inputs.map((v, i) => [i, v]))));
 
-    it("answers the agreements page's three lists in one batch", async () => {
+    it("answers the agreements page's lists in one batch", async () => {
       sinon.stub(DAO.vipps, "getAgreementsByDonorId").resolves([dbVipps] as any);
       sinon.stub(DAO.avtalegiroagreements, "getByDonorId").resolves([dbAvtaleGiro] as any);
-      sinon.stub(DAO.autogiroagreements, "getAgreementsByDonorId").resolves([dbAutoGiro] as any);
 
       const res = await request(app)
         .get(
-          `/trpc/minside.vippsAgreements,minside.avtaleGiroAgreements,minside.autoGiroAgreements?batch=1&input=${batchInput(
-            { donorId: 7 },
+          `/trpc/minside.vippsAgreements,minside.avtaleGiroAgreements?batch=1&input=${batchInput(
             { donorId: 7 },
             { donorId: 7 },
           )}`,
@@ -352,7 +321,6 @@ describe("tRPC minside agreements and tax reports", () => {
       expect(res.body.map((r: any) => r.result.data[0].KID)).to.deep.equal([
         dbVipps.KID,
         dbAvtaleGiro.KID,
-        dbAutoGiro.KID,
       ]);
       expect(res.body[0].result.data[0]).to.not.have.property("agreement_url_code");
     });

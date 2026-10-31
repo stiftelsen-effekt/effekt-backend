@@ -21,7 +21,7 @@ const toDaoFilter = (filter: z.infer<typeof agreementsFilter> | undefined): Agre
 };
 
 /**
- * Recurring agreements across Vipps, AvtaleGiro and AutoGiro in one list, with normalised
+ * Recurring agreements across Vipps and AvtaleGiro in one list, with normalised
  * statuses and amounts in whole currency units. See DAO_modules/agreements.ts for the status
  * mapping. The provider routers (vipps.agreements, giro.*) have the provider-specific details.
  */

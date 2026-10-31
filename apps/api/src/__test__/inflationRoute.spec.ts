@@ -6,8 +6,6 @@ import request from "supertest";
 import config from "../config";
 import { DAO } from "../custom_modules/DAO";
 import { inflationRouter } from "../routes/inflation";
-import * as inflation from "../custom_modules/inflationadjustment";
-import * as mail from "../custom_modules/mail";
 
 const vipps = require("../custom_modules/vipps");
 
@@ -141,38 +139,14 @@ describe("inflation agreement update", () => {
       expect(releaseStub.calledOnce).to.be.true;
     });
 
-    it("does not apply AutoGiro adjustments", async () => {
+    it("does not apply adjustments of unsupported agreement types", async () => {
       acceptStub.resolves(true);
       getByTokenStub.resolves(adjustment({ status: "accepted", agreement_type: "autoGiro" }));
-      const setAmountStub = sinon.stub(DAO.autogiroagreements, "setAgreementAmountByKID");
 
       const res = await request(server).post(path).expect(303);
 
       expect(res.headers.location).to.equal("https://example.org/failed");
-      expect(setAmountStub.called).to.be.false;
       expect(releaseStub.calledOnce).to.be.true;
     });
-  });
-});
-
-describe("getAllInflationEligibleAgreements()", () => {
-  afterEach(() => sinon.restore());
-
-  it("does not propose adjustments for AutoGiro agreements", async () => {
-    sinon.stub(DAO.avtalegiroagreements, "getActiveAgreements").resolves([]);
-    sinon.stub(DAO.vipps, "getActiveAgreements").resolves([]);
-    const autoGiroStub = sinon
-      .stub(DAO.autogiroagreements, "getActiveAgreements")
-      .resolves([{ ID: 1, KID: "1", amount: 500, last_updated: new Date("2020-01-01") } as any]);
-    sinon.stub(DAO.inflationadjustments, "getAllExisting").resolves([]);
-    sinon.stub(DAO.inflationadjustments, "getAllNew").resolves([]);
-    const createStub = sinon.stub(DAO.inflationadjustments, "createAdjustment");
-    sinon.stub(mail, "sendAgreementInflationAdjustment");
-
-    const result = await inflation.getAllInflationEligibleAgreements();
-
-    expect(autoGiroStub.called).to.be.false;
-    expect(createStub.called).to.be.false;
-    expect(result.autoGiro).to.deep.equal([]);
   });
 });

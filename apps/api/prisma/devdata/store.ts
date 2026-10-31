@@ -64,9 +64,6 @@ const TABLES: Record<TableName, TableMeta> = {
   Avtalegiro_agreements: { key: "ID", numericKey: true },
   Vipps_agreements: { key: "ID", numericKey: false, fks: { donorID: "Donors" } },
   Vipps_agreement_charges: { key: "chargeID", numericKey: false },
-  AutoGiro_mandates: { key: "ID", numericKey: true },
-  AutoGiro_agreements: { key: "ID", numericKey: true, fks: { mandateID: "AutoGiro_mandates" } },
-  AutoGiro_shipments: { key: "ID", numericKey: true },
   Donations: { key: "ID", numericKey: true, fks: { Donor_ID: "Donors" } },
   Payment_intent: { key: "Id", numericKey: true },
   Vipps_orders: {

@@ -21,7 +21,6 @@ import { RequestLocale } from "../../middleware/locale";
 import type { DistributionInput } from "../../schemas/types";
 import {
   type AgreementDistribution,
-  autoGiroAgreementsOutput,
   avtaleGiroAgreementInput,
   avtaleGiroAgreementsOutput,
   changedTaxUnitOutput,
@@ -194,14 +193,6 @@ export const minsideRouter = router({
       // The query selects ROUND(amount / 100) (a DECIMAL string) and TINYINT active, where the
       // Prisma row type says number and boolean
       return agreements as unknown as z.input<typeof avtaleGiroAgreementsOutput>;
-    }),
-
-  /** The donor's AutoGiro agreements, like GET /donors/:id/recurring/autogiro */
-  autoGiroAgreements: donorProcedure(permissions.read_donations)
-    .output(autoGiroAgreementsOutput)
-    .query(async ({ input }) => {
-      const agreements = await DAO.autogiroagreements.getAgreementsByDonorId(input.donorId);
-      return agreements as unknown as z.input<typeof autoGiroAgreementsOutput>;
     }),
 
   /**

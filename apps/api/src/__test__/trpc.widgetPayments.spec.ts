@@ -4,7 +4,6 @@ import express, { type Request, type Response } from "express";
 import request from "supertest";
 import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
-import * as swish from "../custom_modules/swish";
 import { mountTrpc, publicMutations } from "../trpc/express";
 import { appRouter } from "../trpc/router";
 import { createCallerFactory } from "../trpc/trpc";
@@ -39,8 +38,6 @@ const restApp = () => {
   app.use(express.json());
   app.use("/vipps", require("../routes/vipps"));
   app.use("/avtalegiro", require("../routes/avtalegiro"));
-  app.use("/autogiro", require("../routes/autogiro"));
-  app.use("/swish", require("../routes/swish").default);
   return app;
 };
 
@@ -50,7 +47,6 @@ const tokenFor = (kid: string, method: number, amount = 300) =>
   createRegistrationToken({ kid, method, donorId: 42, amount });
 const vippsToken = tokenFor(KID, methods.VIPPS);
 const avtaleGiroToken = tokenFor(KID, methods.AVTALEGIRO);
-const autoGiroToken = tokenFor(KID, methods.AUTOGIRO);
 const expiredToken = (method: number) =>
   createRegistrationToken(
     { kid: KID, method, donorId: 42, amount: 300 },
@@ -412,122 +408,6 @@ describe("tRPC widget payment procedures", () => {
     });
   });
 
-  describe("swishOrderStatus", () => {
-    it("returns the order's status", async () => {
-      const getSwishOrder = sinon
-        .stub(swish, "getSwishOrder")
-        .resolves({ ID: 42, status: "PAID", instructionUUID: "secret" } as any);
-      expect(await anonymous().swishOrderStatus({ orderId: "42" })).to.deep.equal({
-        status: "PAID",
-      });
-      expect(getSwishOrder.firstCall.args).to.deep.equal([42]);
-    });
-
-    it("answers NOT_FOUND for an unknown order", async () => {
-      sinon.stub(swish, "getSwishOrder").resolves(null);
-      await expectTrpcError(anonymous().swishOrderStatus({ orderId: "42" }), "NOT_FOUND");
-    });
-
-    for (const orderId of ["", "1e3", "12abc", "-1", "12345678901", { $gt: 0 } as any, 42 as any]) {
-      it(`refuses the order id ${JSON.stringify(orderId)} without looking it up`, async () => {
-        const getSwishOrder = sinon.stub(swish, "getSwishOrder").resolves(null);
-        await expectTrpcError(anonymous().swishOrderStatus({ orderId }), "BAD_REQUEST");
-        expect(getSwishOrder.called).to.equal(false);
-      });
-    }
-  });
-
-  describe("setAutoGiroDraftPaymentDate", () => {
-    let getAgreementByKID: sinon.SinonStub;
-    let setPaymentDate: sinon.SinonStub;
-
-    beforeEach(() => {
-      getAgreementByKID = sinon
-        .stub(DAO.autogiroagreements, "getAgreementByKID")
-        .resolves({ KID, active: false } as any);
-      setPaymentDate = sinon
-        .stub(DAO.autogiroagreements, "setAgreementPaymentDateByKID")
-        .resolves(true as any);
-    });
-
-    for (const [what, registrationToken] of wrongTokens(methods.AUTOGIRO)) {
-      it(`refuses ${what} without touching the database`, async () => {
-        await expectTrpcError(
-          anonymous().setAutoGiroDraftPaymentDate({ KID, paymentDate: 27, registrationToken }),
-          "BAD_REQUEST",
-        );
-        expect(getAgreementByKID.called).to.equal(false);
-        expect(setPaymentDate.called).to.equal(false);
-      });
-    }
-
-    for (const [what, input] of [
-      ["a payment date of 29", { KID, paymentDate: 29 }],
-      ["a negative payment date", { KID, paymentDate: -1 }],
-      ["a string payment date", { KID, paymentDate: "27" }],
-      ["a fractional payment date", { KID, paymentDate: 27.5 }],
-      ["a KID with letters", { KID: "1a", paymentDate: 27 }],
-      ["a numeric KID", { KID: 123, paymentDate: 27 }],
-    ] as Array<[string, unknown]>) {
-      it(`refuses ${what} without touching the database`, async () => {
-        await expectTrpcError(
-          anonymous().setAutoGiroDraftPaymentDate({
-            ...(input as any),
-            registrationToken: autoGiroToken,
-          }),
-          "BAD_REQUEST",
-        );
-        expect(getAgreementByKID.called).to.equal(false);
-      });
-    }
-
-    it("sets the payment date of a drafted agreement", async () => {
-      expect(
-        await anonymous().setAutoGiroDraftPaymentDate({
-          KID,
-          paymentDate: 27,
-          registrationToken: autoGiroToken,
-        }),
-      ).to.equal(true);
-      expect(setPaymentDate.firstCall.args).to.deep.equal([KID, 27]);
-    });
-
-    it("leaves an active agreement alone", async () => {
-      getAgreementByKID.resolves({ KID, active: true });
-      await expectTrpcError(
-        anonymous().setAutoGiroDraftPaymentDate({
-          KID,
-          paymentDate: 27,
-          registrationToken: autoGiroToken,
-        }),
-        "BAD_REQUEST",
-        "Agreement is not in drafted state",
-      );
-      expect(setPaymentDate.called).to.equal(false);
-    });
-
-    it("answers NOT_FOUND for an unknown KID", async () => {
-      getAgreementByKID.resolves(null);
-      await expectTrpcError(
-        anonymous().setAutoGiroDraftPaymentDate({
-          KID,
-          paymentDate: 27,
-          registrationToken: autoGiroToken,
-        }),
-        "NOT_FOUND",
-        "Agreement not found",
-      );
-    });
-
-    it("has no unauthenticated REST route any more", async () => {
-      await request(restApp())
-        .put(`/autogiro/${KID}/drafted/paymentdate`)
-        .send({ paymentDate: 27 })
-        .expect(404);
-      expect(setPaymentDate.called).to.equal(false);
-    });
-  });
-
   describe("over HTTP", () => {
     let app: express.Express;
 
@@ -542,7 +422,6 @@ describe("tRPC widget payment procedures", () => {
         "widget.draftVippsAgreement",
         "widget.registerBankPending",
         "widget.registerDonation",
-        "widget.setAutoGiroDraftPaymentDate",
         "widget.submitReferral",
       ]);
     });
@@ -587,14 +466,6 @@ describe("tRPC widget payment procedures", () => {
         .send({ KID: "1; DROP TABLE", amount: 1, initialCharge: true, monthlyChargeDay: 1 })
         .expect(400);
       expect(draftAgreement.called).to.equal(false);
-    });
-
-    it("polls the Swish status with a GET and no token", async () => {
-      sinon.stub(swish, "getSwishOrder").resolves({ ID: 3, status: "CREATED" } as any);
-      const res = await request(app)
-        .get(`/trpc/widget.swishOrderStatus?input=${encodeURIComponent('{"orderId":"3"}')}`)
-        .expect(200);
-      expect(res.body.result.data).to.deep.equal({ status: "CREATED" });
     });
   });
 });

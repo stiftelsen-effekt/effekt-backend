@@ -62,8 +62,6 @@ export const widgetRegisterDonationOutput = z.object({
   /** Sent back with the follow-up calls below; the Danish backend has none */
   registrationToken: z.string().nullish(),
   paymentProviderUrl: z.string().nullish(),
-  swishOrderID: z.string().nullish(),
-  swishPaymentRequestToken: z.string().nullish(),
 });
 
 /** A positive database id (INT) */
@@ -135,23 +133,5 @@ export const widgetDraftAvtaleGiroInput = z.strictObject({
   KID: kid,
   amount: nokAmount,
   dueDay: z.number().int().min(0).max(28).optional(),
-  registrationToken,
-});
-
-/** widget.swishOrderStatus input: the order id from registerDonation (swishOrderID) */
-export const widgetSwishOrderStatusInput = z.strictObject({
-  orderId: z.string().regex(/^\d{1,10}$/),
-});
-
-/** widget.swishOrderStatus (REST GET /swish/orders/:id/status). Null until Swish reports one. */
-export const widgetSwishOrderStatusOutput = z.object({ status: z.string().nullable() });
-
-/**
- * widget.setAutoGiroDraftPaymentDate input (REST PUT /autogiro/:KID/drafted/paymentdate): the
- * day of the month (0 = last day) for an AutoGiro agreement the donor hasn't signed yet
- */
-export const widgetAutoGiroDraftPaymentDateInput = z.strictObject({
-  KID: kid,
-  paymentDate: z.number().int().min(0).max(28),
   registrationToken,
 });

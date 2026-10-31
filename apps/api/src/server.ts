@@ -141,7 +141,7 @@ DAO.connect(() => {
   );
   // Exactly one trusted proxy hop: Cloud Run's Google Front End appends the real client IP
   // to X-Forwarded-For. Trusting more hops would let clients spoof req.ip (used by the
-  // honeypot, rate limiter and the Swish callback IP allowlist) via their own XFF header.
+  // honeypot and rate limiter) via their own XFF header.
   // Behind the external HTTPS load balancer there is one more hop (client, LB), so the
   // Norwegian service sets TRUST_PROXY_HOPS=2; the Swedish service is still on the domain mapping.
   app.set("trust proxy", config.trustProxyHops);
@@ -214,7 +214,6 @@ DAO.connect(() => {
   const organizationsRoute = organizationsRouter;
   const reportsRoute = require("./routes/reports");
   const vippsRoute = require("./routes/vipps");
-  const swishRoute = require("./routes/swish").default;
   const paymentRoute = require("./routes/payment");
   const referralsRoute = require("./routes/referrals");
   const scheduledRoute = require("./routes/scheduled");
@@ -223,7 +222,6 @@ DAO.connect(() => {
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
   const avtaleGiroRoute = require("./routes/avtalegiro");
-  const autoGiroRoute = require("./routes/autogiro");
   const taxRoute = require("./routes/tax");
   const tidbytRoute = tidbytRouter;
   const inflationRoute = inflationRouter;
@@ -247,7 +245,6 @@ DAO.connect(() => {
   app.use("/organizations", organizationsRoute);
   app.use("/reports", reportsRoute);
   app.use("/vipps", vippsRoute);
-  app.use("/swish", swishRoute);
   app.use("/payment", paymentRoute);
   app.use("/referrals", referralsRoute);
   app.use("/scheduled", scheduledRoute);
@@ -256,7 +253,6 @@ DAO.connect(() => {
   app.use("/logging", loggingRoute);
   app.use("/mail", mailRoute);
   app.use("/avtalegiro", avtaleGiroRoute);
-  app.use("/autogiro", autoGiroRoute);
   app.use("/fundraisers", fundraisersRoute);
   app.use("/tax", taxRoute);
   app.use("/import", importRouter);

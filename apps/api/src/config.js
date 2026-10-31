@@ -1,5 +1,4 @@
 const fs = require("fs");
-const { join } = require("path");
 
 const getAllowedProductionOrigins = () => {
   const allowedProductionOriginsEnv = process.env.ALLOWED_PRODUCTION_ORIGINS || "";
@@ -92,8 +91,6 @@ module.exports = {
     process.env.MAILERSEND_DONATION_REGISTERED_TEMPLATE_ID,
   mailersend_avtalegiro_notification_template_id:
     process.env.MAILERSEND_AVTALEGIRO_NOTIFICATION_TEMPLATE_ID,
-  mailersend_autogiro_registered_template_id:
-    process.env.MAILERSEND_AUTOGIRO_REGISTERED_TEMPLATE_ID,
   mailersend_payment_intent_followup_template_id:
     process.env.MAILERSEND_PAYMENT_INTENT_FOLLOWUP_TEMPLATE_ID,
   mailersend_sanity_security_notification_template_id:
@@ -121,33 +118,6 @@ module.exports = {
   vipps_api_url: process.env.NODE_ENV === "production" ? "api.vipps.no" : "apitest.vipps.no",
   vipps_recurring_webhook_secret: process.env.VIPPS_RECURRING_WEBHOOK_SECRET,
 
-  swish_cert:
-    process.env.SWISH_CERT ||
-    (process.env.NODE_ENV === "development"
-      ? fs.readFileSync(
-          join(__dirname, "..", "certs", "Swish_Merchant_TestCertificate_1234679304.pem"),
-          "utf8",
-        )
-      : undefined),
-  swish_cert_key:
-    process.env.SWISH_CERT_KEY ||
-    (process.env.NODE_ENV === "development"
-      ? fs.readFileSync(
-          join(__dirname, "..", "certs", "Swish_Merchant_TestCertificate_1234679304.key"),
-          "utf8",
-        )
-      : undefined),
-  swish_payee_alias: process.env.SWISH_PAYEE_ALIAS || "1234679304",
-  swish_url: process.env.SWISH_CERT
-    ? "https://cpc.getswish.net/swish-cpcapi/"
-    : "https://mss.cpc.getswish.net/swish-cpcapi/",
-  swish_whitelist: [
-    // Production https://developer.swish.nu/documentation/environments#production-environment
-    "213.132.115.94",
-    // Sandbox https://developer.swish.nu/documentation/environments#swish-sandbox
-    ...["89.46.83.0/24", "103.57.74.0/24", "77.81.6.112"],
-  ],
-
   // AvtaleGiro and OCR Giro files over SFTP with Mastercard Payment Services (formerly Nets). The
   // GIRO_* names win; the old NETS_* names are still read, so deployments can switch at their pace.
   giro_sftp_server: process.env.GIRO_SFTP_SERVER || process.env.NETS_SFTP_SERVER,
@@ -173,9 +143,6 @@ module.exports = {
   bankAccount: process.env.BANK_ACCOUNT,
   // Our AvtaleGiro customer ID (data sender) at Mastercard Payment Services
   giro_customer_id: process.env.GIRO_CUSTOMER_ID || process.env.NETS_CUSTOMER_ID,
-
-  autogiro_customer_number: process.env.AUTOGIRO_CUSTOMER_NUMBER,
-  autogiro_bankgiro_number: process.env.AUTOGIRO_BANKGIRO_NUMBER,
 
   //Server addresss
 

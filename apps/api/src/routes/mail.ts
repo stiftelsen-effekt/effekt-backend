@@ -310,8 +310,8 @@ const verifySanitySecurityWebhook = requireSanityWebhookSignature(
 const fieldValue = (value: unknown) => (value == null ? "" : String(value));
 
 /**
- * A Sanity webhook (signed, see requireSanityWebhookSignature) on publishing a bank or autogiro
- * document whose account number changed. The webhook's projection sends the document type, the
+ * A Sanity webhook (signed, see requireSanityWebhookSignature) on publishing a bank document (the
+ * webhook also matches the former autogiro type) whose account number changed. The webhook's projection sends the document type, the
  * user and every watched field with its value before and after; fields that did not change are
  * left out of the email.
  */

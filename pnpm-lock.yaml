@@ -424,9 +424,6 @@ importers:
       chalk:
         specifier: ^2.4.2
         version: 2.4.2
-      chardet:
-        specifier: ^2.0.0
-        version: 2.0.0
       compression:
         specifier: ^1.8.2
         version: 1.8.2(supports-color@5.5.0)
@@ -463,15 +460,9 @@ importers:
       honeypot:
         specifier: 0.0.2
         version: 0.0.2
-      iconv-lite:
-        specifier: ^0.4.24
-        version: 0.4.24
       ioredis:
         specifier: ^5.8.2
         version: 5.8.2(supports-color@5.5.0)
-      ip-range-check:
-        specifier: ^0.2.0
-        version: 0.2.0
       luxon:
         specifier: ^1.25.0
         version: 1.28.1
@@ -514,9 +505,6 @@ importers:
       ts-node:
         specifier: ^10.4.0
         version: 10.9.2(@types/node@24.19.2)(typescript@5.9.3)
-      uuid:
-        specifier: ^9.0.1
-        version: 9.0.1
       ws:
         specifier: ^8.18.3
         version: 8.21.3
@@ -6882,9 +6870,6 @@ packages:
   character-reference-invalid@2.0.1:
     resolution: {integrity: sha512-iBZ4F4wRbyORVsu0jPV7gXkOsGYjGHPmAyv+HiHG8gi5PtC9KI2j1+v8/tlibRvjoWX027ypmG/n0HtO5t7unw==}
 
-  chardet@2.0.0:
-    resolution: {integrity: sha512-xVgPpulCooDjY6zH4m9YW3jbkaBe3FKIAvF5sj5t7aBNsVl2ljIE+xwJ4iNgiDZHFQvNIpjdKdVOQvvk5ZfxbQ==}
-
   chardet@2.2.0:
     resolution: {integrity: sha512-rddelWYNPRrXq6PtNEN2S3f6t9ILzvqaN5pVgi4kqt9jHQaXIial9PznB5iSPVlQSLNaaH22ItWz3EJtQ10+OA==}
 
@@ -8435,10 +8420,6 @@ packages:
   ip-address@10.7.5:
     resolution: {integrity: sha512-t2v0rkILYv9WXmSL7TpAaU3HXgaFYOPUcH3QHgwQ++gpJuH3bqyMy4Fvt/DJCTKwzH3Cf+bAp5W/mFL39KPLzA==}
     engines: {node: '>= 12'}
-
-  ip-range-check@0.2.0:
-    resolution: {integrity: sha512-oaM3l/3gHbLlt/tCWLvt0mj1qUaI+STuRFnUvARGCujK9vvU61+2JsDpmkMzR4VsJhuFXWWgeKKVnwwoFfzCqw==}
-    deprecated: Contains an SSRF filter-bypass vulnerability, upgrade to 0.2.1+ — see GHSA advisory
 
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
@@ -11265,11 +11246,6 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    hasBin: true
-
-  uuid@9.0.1:
-    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
@@ -18744,8 +18720,6 @@ snapshots:
 
   character-reference-invalid@2.0.1: {}
 
-  chardet@2.0.0: {}
-
   chardet@2.2.0: {}
 
   check-error@1.0.3:
@@ -20498,10 +20472,6 @@ snapshots:
       - supports-color
 
   ip-address@10.7.5: {}
-
-  ip-range-check@0.2.0:
-    dependencies:
-      ipaddr.js: 1.9.1
 
   ipaddr.js@1.9.1: {}
 
@@ -23693,8 +23663,6 @@ snapshots:
   uuid@3.4.0: {}
 
   uuid@8.3.2: {}
-
-  uuid@9.0.1: {}
 
   uuidv7@0.4.4: {}
 

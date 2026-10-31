@@ -4,7 +4,7 @@ const config = require("../config");
 
 /**
  * A short-lived, signed token that registerPendingDonation hands back to the widget with the
- * KID it registered. The widget's follow-up calls (drafting the AvtaleGiro, Vipps or AutoGiro
+ * KID it registered. The widget's follow-up calls (drafting the AvtaleGiro or Vipps
  * agreement, the bank transfer email, the referral answer) send it back, so they only act on the
  * KID and donor of a registration the same client just made. The token is not encrypted: it
  * only carries what the widget already has (the KID, the method and the amount) and the donor

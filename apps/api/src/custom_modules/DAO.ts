@@ -3,7 +3,6 @@ import { donors } from "./DAO_modules/donors";
 import { donations } from "./DAO_modules/donations";
 import { distributions } from "./DAO_modules/distributions";
 import { vipps } from "./DAO_modules/vipps";
-import { swish } from "./DAO_modules/swish";
 import { facebook } from "./DAO_modules/facebook";
 import { payment } from "./DAO_modules/payment";
 import { parsing } from "./DAO_modules/parsing";
@@ -17,7 +16,6 @@ import { organizations } from "./DAO_modules/organizations";
 import * as mysql from "mysql2/promise";
 import { Prisma } from "@prisma/client";
 import config from "../config";
-import { autogiroagreements } from "./DAO_modules/autogiroagreements";
 import { causeareas } from "./DAO_modules/causeareas";
 import { results } from "./DAO_modules/results";
 import { mail } from "./DAO_modules/mail";
@@ -80,11 +78,9 @@ export const DAO = {
   initialpaymentmethod: initialpaymentmethod,
   avtalegiroagreements: avtalegiroagreements,
   avtalegirocharges: avtalegirocharges,
-  autogiroagreements: autogiroagreements,
   facebook: facebook,
   tax: tax,
   logging: logging,
-  swish: swish,
   results: results,
   mail: mail,
   inflationadjustments: inflationadjustments,

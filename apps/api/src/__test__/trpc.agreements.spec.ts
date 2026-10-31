@@ -178,8 +178,8 @@ describe("tRPC agreements router", () => {
       const [sql, params] = query.firstCall.args;
       expect(sql).to.contain("FROM Vipps_agreements VA");
       expect(sql).to.contain("FROM Avtalegiro_agreements AG");
-      expect(sql).to.contain("FROM AutoGiro_agreements AG");
-      expect(sql.match(/UNION ALL/g)).to.have.length(2);
+      expect(sql).to.not.contain("AutoGiro_agreements");
+      expect(sql.match(/UNION ALL/g)).to.have.length(1);
       expect(sql).to.contain("CAST(AG.amount / 100 AS DECIMAL(16, 2))");
       expect(sql).to.match(/ORDER BY createdDb DESC, provider DESC/);
       // The created columns are filled by MySQL defaults (DB clock), returned as UTC
@@ -200,8 +200,8 @@ describe("tRPC agreements router", () => {
     it("only queries the requested providers and passes filters as parameters", async () => {
       await DAO.agreements.getList({
         filter: {
-          providers: ["autogiro"],
-          statuses: ["draft", "pending"],
+          providers: ["avtalegiro"],
+          statuses: ["stopped", "pending"],
           amount: { from: 100, to: 500 },
           chargeDay: { from: 1, to: 20 },
           created: { from: "2026-01-01", to: "2026-01-31" },
@@ -214,14 +214,13 @@ describe("tRPC agreements router", () => {
       });
 
       const [sql, params] = query.firstCall.args;
-      expect(sql).to.contain("FROM AutoGiro_agreements AG");
+      expect(sql).to.contain("FROM Avtalegiro_agreements AG");
       expect(sql).to.not.contain("Vipps_agreements");
-      expect(sql).to.not.contain("Avtalegiro_agreements");
       expect(sql).to.not.contain("UNION ALL");
       expect(sql).to.not.contain("50%");
       expect(sql).to.match(/ORDER BY CHAR_LENGTH\(id\) ASC, id ASC/);
       expect(params).to.deep.equal([
-        ["draft", "pending"],
+        ["stopped", "pending"],
         100,
         500,
         1,
@@ -265,11 +264,10 @@ describe("tRPC agreements router", () => {
     it("maps every provider status to the normalised vocabulary", async () => {
       await DAO.agreements.getList({ filter: {}, sort: { id: "status", desc: true } });
       const [sql] = query.firstCall.args;
-      for (const status of ["active", "paused", "pending", "draft", "stopped"]) {
+      for (const status of ["active", "paused", "pending", "stopped"]) {
         expect(sql).to.contain(`'${status}'`);
       }
       expect(sql).to.contain("DATE(VA.paused_until_date) > CURDATE()");
-      expect(sql).to.contain("M.status = 'DRAFTED'");
     });
   });
 });

@@ -6,7 +6,7 @@ import sinon from "sinon";
 import request from "supertest";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
-import * as swish from "../custom_modules/swish";
+import paymentMethods from "../enums/paymentMethods";
 import methods from "../enums/methods";
 import donationsRouter from "../routes/donations";
 import { organizations } from "../custom_modules/DAO_modules/organizations";
@@ -123,8 +123,6 @@ describe("donations", () => {
             hasAnsweredReferral: false,
             registrationToken: null,
             paymentProviderUrl: "",
-            swishOrderID: null,
-            swishPaymentRequestToken: null,
           },
           status: 200,
         });
@@ -197,108 +195,24 @@ describe("donations", () => {
         expect(addTaxUnitStub.called).to.be.false;
       });
 
-      it("should initiate swish order", async () => {
-        const stub = sinon.stub(swish, "initiateOrder");
-        const KID = "1234567890";
-        withCreatedKID(KID);
-        const orderID = "123";
-        const paymentRequestToken = "234";
-        stub.resolves({ orderID, paymentRequestToken });
-
-        const body = {
-          distributionCauseAreas: [
-            {
-              id: 1,
-              standardSplit: false,
-              percentageShare: 100,
-              organizations: [
-                {
-                  id: 1,
-                  percentageShare: 100,
-                },
-              ],
-            },
-          ],
-          method: methods.SWISH,
-          amount: 100,
-          recurring: false,
-          donor: {
-            email: "test@testesen.no",
-            name: "Test Testesen",
-            newsletter: false,
-          },
-        };
-        const response = await request(server).post("/donations/register").send(body).expect(200);
-
-        expect(stub.calledOnce).to.be.true;
-        expect(stub.firstCall.args[0]).to.equal(KID);
-        expect(stub.firstCall.args[1]).to.deep.equal({ amount: body.amount });
-
-        expect(response.body)
-          .to.have.property("content")
-          .that.has.property("swishOrderID")
-          .equal(orderID);
-        expect(response.body)
-          .to.have.property("content")
-          .that.has.property("swishPaymentRequestToken")
-          .equal(paymentRequestToken);
-      });
-
-      it("should pass a decimal Swish amount on unchanged", async () => {
-        const stub = sinon.stub(swish, "initiateOrder");
-        withCreatedKID("1234567890");
-        stub.resolves({ orderID: "123", paymentRequestToken: "234" });
-
-        await request(server)
-          .post("/donations/register")
-          .send({
-            distributionCauseAreas: [
-              {
-                id: 1,
-                standardSplit: false,
-                percentageShare: 100,
-                organizations: [{ id: 1, percentageShare: 100 }],
-              },
-            ],
-            method: methods.SWISH,
-            amount: "100.50",
-            recurring: false,
-            donor: { email: "test@testesen.no", name: "Test Testesen", newsletter: false },
-          })
-          .expect(200);
-
-        expect(stub.firstCall.args[1]).to.deep.equal({ amount: 100.5 });
-      });
-
-      it("should return 400 for a Swish amount with more than two decimals", async () => {
-        const stub = sinon.stub(swish, "initiateOrder");
-
-        await request(server)
-          .post("/donations/register")
-          .send({
-            distributionCauseAreas: [],
-            method: methods.SWISH,
-            amount: "100.555",
-            recurring: false,
-            donor: { email: "test@testesen.no", name: "Test Testesen", newsletter: false },
-          })
-          .expect(400);
-
-        expect(stub.called).to.be.false;
+      it("should return 400 for the discontinued Swish and AutoGiro methods", async () => {
+        for (const method of [paymentMethods.swish, paymentMethods.autoGiro]) {
+          await request(server)
+            .post("/donations/register")
+            .send({
+              distributionCauseAreas: [],
+              method,
+              amount: 100,
+              recurring: false,
+              donor: { email: "test@testesen.no", name: "Test Testesen", newsletter: false },
+            })
+            .expect(400);
+        }
+        expect(createKIDStub.called).to.be.false;
       });
 
       it("should return 400 if missing body", async () => {
         await request(server).post("/donations/register").send(undefined).expect(400);
-      });
-
-      it("should return 400 if for recurring swish", async () => {
-        await request(server)
-          .post("/donations/register")
-          .send({
-            method: methods.SWISH,
-            recurring: true,
-          })
-          .expect(400);
       });
 
       it("should store a referral code against the KID", async () => {

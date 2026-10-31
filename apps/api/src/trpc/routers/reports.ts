@@ -8,7 +8,6 @@ import type {
 import { buildKu65Report } from "../../custom_modules/ku65";
 import { osloDayEnd, osloDayRange, osloDayStart } from "../../custom_modules/osloDays";
 import {
-  processAutogiroReport,
   processBankNoReport,
   processBankSeReport,
   processFacebookReport,
@@ -85,7 +84,7 @@ export type FilePayload = {
   content: string;
 };
 
-/** Import_logs labels of the uploads that write their own log entry (AutoGiro's module logs) */
+/** Import_logs labels of the uploads */
 export const uploadLogLabels = {
   ocr: "OCR - Upload",
   vipps: "Vipps - Upload",
@@ -244,8 +243,7 @@ const uploadContext = (
 /**
  * Each upload except dry runs writes an Import_logs entry labelled per source (see
  * uploadLogLabels; Facebook, which registers nothing, logs "Facebook - Upload" without returning
- * an id; AutoGiro payments use the entry its processing writes) and returns its id as
- * `importLogId`. Invalid transactions are queued for review linked
+ * an id) and returns its id as `importLogId`. Invalid transactions are queued for review linked
  * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
  */
 const uploadsRouter = router({
@@ -334,30 +332,6 @@ const uploadsRouter = router({
     } catch (ex) {
       console.error("Failed to write the import log of a facebook upload");
       console.error(ex);
-    }
-    return result;
-  }),
-
-  /**
-   * Bankgirot AutoGiro file (SE): payments, mandates, e-mandates or rejected charges.
-   * `metaOwnerID` is validated and stored on queued review items, but the donations themselves
-   * are registered under the default data owner (custom_modules/autogiro.ts doesn't take an
-   * owner). AutoGiro processing writes its own log entries (without the file name); for payments
-   * its id is returned as `importLogId`.
-   */
-  autogiro: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input }) => {
-    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
-    const data = await readBuffer(input.report);
-    const result = await processFile(() => processAutogiroReport(data));
-    if (result.type === "payments") {
-      // AutoGiro amounts are in öre; review items are in whole currency like other sources
-      return {
-        ...(await summarise("autogiro", result, {
-          importLogId: result.importLogId,
-          metaOwnerID,
-        })),
-        type: result.type,
-      };
     }
     return result;
   }),

@@ -8,6 +8,7 @@ import { dbClockColumn } from "../osloDays";
  * results are turned into items.
  */
 
+/** "autogiro" (Sweden, discontinued) is kept so existing items still read; nothing adds new ones */
 export const reviewQueueSources = ["ocr", "vipps", "bankNo", "bankSe", "autogiro"] as const;
 export type ReviewQueueSource = (typeof reviewQueueSources)[number];
 

@@ -128,20 +128,12 @@ describe("tRPC reports router", () => {
         .stub(reportsService, "processBankSeReport")
         .resolves({ valid: 0, invalid: 0, invalidTransactions: [] });
       sinon.stub(reportsService, "processFacebookReport").resolves({ fbCampaigns: [] });
-      sinon
-        .stub(reportsService, "processAutogiroReport")
-        .resolves({ type: "eMandates", newMandates: 0 });
 
       await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml"));
       expect(bankSe.firstCall.args[2]).to.equal(3);
       await admin().uploads.facebook(uploadForm("bank/sampleReport.CSV"));
-      await admin().uploads.autogiro(uploadForm("autogiro/e-mandates.txt"));
 
-      for (const upload of [
-        admin().uploads.bankSe,
-        admin().uploads.facebook,
-        admin().uploads.autogiro,
-      ]) {
+      for (const upload of [admin().uploads.bankSe, admin().uploads.facebook]) {
         await expectTrpcError(
           upload(uploadForm("bank/sampleReport.CSV", { metaOwnerID: "99" })),
           "BAD_REQUEST",
@@ -157,15 +149,11 @@ describe("tRPC reports router", () => {
 
       const cases: [Promise<unknown>, RegExp][] = [
         [admin().uploads.vipps(uploadForm("bank/sampleReport.CSV")), /Not a Vipps settlement/],
-        [
-          admin().uploads.vipps(uploadForm("autogiro/e-mandates.txt")),
-          /Could not read the Vipps report/,
-        ],
+        [admin().uploads.vipps(uploadForm("ocr_test.ocr")), /Could not read the Vipps report/],
         [admin().uploads.bankSe(uploadForm("bank/sampleReport.CSV")), /Not a CAMT.053/],
         [admin().uploads.bankSe(uploadForm("camt/camt053_malformed.xml")), /CAMT.053/],
         [admin().uploads.bankSe(uploadForm("camt/camt053_wrong_namespace.xml")), /No statement/],
         [admin().uploads.bankSe(uploadForm("camt/camt053_xxe.xml")), /entity/],
-        [admin().uploads.autogiro(uploadForm("bank/sampleReport.CSV")), /AutoGiro file/],
       ];
       for (const [promise, message] of cases) {
         await expectTrpcError(promise, "BAD_REQUEST", message);
@@ -423,55 +411,6 @@ describe("tRPC reports router", () => {
       const result = await admin().uploads.facebook(uploadForm("bank/sampleReport.CSV", {}));
 
       expect(result).to.deep.equal({ fbCampaigns: campaigns });
-    });
-
-    it("autogiro maps payment results for review, with amounts in whole SEK", async () => {
-      const date = new Date("2024-03-28T00:00:00.000Z");
-      sinon.stub(reportsService, "processAutogiroReport").resolves({
-        type: "payments",
-        importLogId: 41,
-        valid: 2,
-        invalid: 1,
-        invalidTransactions: [
-          {
-            reason: "KID 123 not found in distributions",
-            transaction: { KID: "123", transactionID: "ag.1", paymentID: 12, amount: 10000, date },
-          },
-        ],
-      });
-
-      const result = await admin().uploads.autogiro(
-        uploadForm("autogiro/paymentSpecification.txt"),
-      );
-
-      expect(result.type).to.equal("payments");
-      if (result.type !== "payments") return;
-      expect(result.invalidTransactions[0].transaction).to.deep.equal({
-        KID: "123",
-        amount: 100,
-        date: "2024-03-28T00:00:00.000Z",
-        transactionID: "ag.1",
-        paymentID: 12,
-        message: null,
-        name: null,
-        location: null,
-      });
-      expect(result.importLogId).to.equal(41);
-      // AutoGiro processing writes its own log entry; the upload doesn't add another
-      expect(logStub.called).to.be.false;
-      expect(queueStub.firstCall.args[0]).to.equal("autogiro");
-      expect(queueStub.firstCall.args.slice(2)).to.deep.equal([41, 3]);
-      expect(queueStub.firstCall.args[1][0]).to.include({ amount: 100, externalId: "ag.1" });
-    });
-
-    it("autogiro passes other file types through", async () => {
-      sinon
-        .stub(reportsService, "processAutogiroReport")
-        .resolves({ type: "eMandates", newMandates: 4 });
-
-      const result = await admin().uploads.autogiro(uploadForm("autogiro/e-mandates.txt", {}));
-
-      expect(result).to.deep.equal({ type: "eMandates", newMandates: 4 });
     });
   });
 

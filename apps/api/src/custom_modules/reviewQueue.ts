@@ -63,10 +63,7 @@ export type SourceInvalidTransaction = {
   transaction: SourceTransaction;
 };
 
-/**
- * Normalises an invalid transaction. AutoGiro amounts are in öre; review items are in whole
- * currency like the other sources.
- */
+/** Normalises an invalid transaction from a report into a review item */
 export const toReviewItem = (
   source: ReviewQueueSource,
   { reason, transaction: t }: SourceInvalidTransaction,
@@ -74,7 +71,7 @@ export const toReviewItem = (
   reason: reason ?? "Unknown error",
   transaction: {
     KID: t.KID == null ? null : String(t.KID),
-    amount: source === "autogiro" ? t.amount / 100 : t.amount,
+    amount: t.amount,
     date: toIso(t.date),
     transactionID: t.transactionID,
     // OCR transactions carry the payment method as `paymentMethod`

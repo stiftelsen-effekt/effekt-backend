@@ -24,19 +24,18 @@ export const agreementfeedback = {
   async addStoppedAgreementReasonRecord(
     reasonId: number,
     avtaleGiroAgreementId: number | null,
-    autogiroAgreementId: number | null,
     vippsAgreementId: string | null,
     otherComment: string | null,
   ): Promise<number> {
-    if (!avtaleGiroAgreementId && !autogiroAgreementId && !vippsAgreementId) {
+    if (!avtaleGiroAgreementId && !vippsAgreementId) {
       throw new Error("At least one agreement id must be provided");
     }
     const [result] = await DAO.query(
       `
-      INSERT INTO Recurring_agreement_stopped (reasonID, avtaleGiroAgreementID, autogiroAgreementID, vippsAgreementID, otherComment)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO Recurring_agreement_stopped (reasonID, avtaleGiroAgreementID, vippsAgreementID, otherComment)
+      VALUES (?, ?, ?, ?)
     `,
-      [reasonId, avtaleGiroAgreementId, autogiroAgreementId, vippsAgreementId, otherComment],
+      [reasonId, avtaleGiroAgreementId, vippsAgreementId, otherComment],
     );
     return result.affectedRows > 0 ? result.insertId : -1;
   },
@@ -44,20 +43,19 @@ export const agreementfeedback = {
     id: number,
     reasonId: number,
     avtaleGiroAgreementId: number | null,
-    autogiroAgreementId: number | null,
     vippsAgreementId: string | null,
     otherComment: string | null,
   ): Promise<number> {
-    if (!avtaleGiroAgreementId && !autogiroAgreementId && !vippsAgreementId) {
+    if (!avtaleGiroAgreementId && !vippsAgreementId) {
       throw new Error("At least one agreement id must be provided");
     }
     const [result] = await DAO.query(
       `
       UPDATE Recurring_agreement_stopped
-      SET reasonID = ?, avtaleGiroAgreementID = ?, autogiroAgreementID = ?, vippsAgreementID = ?, otherComment = ?
+      SET reasonID = ?, avtaleGiroAgreementID = ?, vippsAgreementID = ?, otherComment = ?
       WHERE ID = ?
     `,
-      [reasonId, avtaleGiroAgreementId, autogiroAgreementId, vippsAgreementId, otherComment, id],
+      [reasonId, avtaleGiroAgreementId, vippsAgreementId, otherComment, id],
     );
     return result.affectedRows > 0 ? id : -1;
   },
@@ -79,11 +77,10 @@ export const agreementfeedback = {
       `
       SELECT R.ID FROM Recurring_agreement_stopped R
         LEFT JOIN Avtalegiro_agreements A ON R.avtalegiroAgreementID = A.ID
-        LEFT JOIN AutoGiro_agreements G ON R.autoGiroAgreementID = G.ID
         LEFT JOIN Vipps_agreements V ON R.vippsAgreementID = V.ID
-      WHERE R.ID = ? AND (A.KID = ? OR G.KID = ? OR V.KID = ?)
+      WHERE R.ID = ? AND (A.KID = ? OR V.KID = ?)
     `,
-      [id, KID, KID, KID],
+      [id, KID, KID],
     );
     return result.length > 0;
   },
@@ -99,9 +96,6 @@ export const agreementfeedback = {
     switch (agreementType) {
       case "AvtaleGiro":
         table = "Avtalegiro_agreements";
-        break;
-      case "AutoGiro":
-        table = "AutoGiro_agreements";
         break;
       case "Vipps":
         table = "Vipps_agreements";
@@ -134,15 +128,6 @@ export const agreementfeedback = {
         `
       SELECT ID FROM Recurring_agreement_stopped
       WHERE avtalegiroAgreementID = ? AND timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND reasonID = ?
-    `,
-        [agreementId, reasonId],
-      );
-      return result.length > 0 ? result[0].ID : null;
-    } else if (agreementType === "AutoGiro") {
-      const [result] = await DAO.query<SqlResult<Recurring_agreement_stopped_reasons>[]>(
-        `
-      SELECT ID FROM Recurring_agreement_stopped
-      WHERE autoGiroAgreementID = ? AND timestamp > DATE_SUB(NOW(), INTERVAL 24 HOUR) AND reasonID = ?
     `,
         [agreementId, reasonId],
       );

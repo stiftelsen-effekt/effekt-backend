@@ -1,24 +1,15 @@
-import iconv from "iconv-lite";
 /**
  * Processing of uploaded payment report files. Shared by the REST routes in
  * routes/reports/* and the tRPC procedures in trpc/routers/reports.ts.
  *
  * The returned objects are serialised as-is by the REST routes, so their shapes are part of the
- * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se,facebook,autogiro}).
+ * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se,facebook}).
  */
-import chardet from "chardet";
 import { DateTime } from "luxon";
 import type { Moment } from "moment";
-import { processAutogiroInputFile } from "./autogiro";
-import { AutoGiroParser } from "./parsers/autogiro";
 import { DAO } from "./DAO";
 import { VippsParsingRule } from "./DAO_modules/parsing";
 import { sendDonationReceipt } from "./mail";
-import { AutoGiroContent } from "./parsers/autogiro";
-import {
-  AutoGiroMandateCommentaryCodes,
-  AutoGiroMandateInformationCodes,
-} from "./parsers/autogiro/mandates";
 import {
   parseReport as parseBankReport,
   validateReport as validateBankReport,
@@ -761,123 +752,6 @@ export async function processFacebookReport(
   }
 
   return { fbCampaigns: campaignsWithMissingShares };
-}
-
-//endregion
-
-//region AutoGiro
-
-export type AutogiroPaymentsResult = {
-  valid: number;
-  invalid: number;
-  invalidTransactions: {
-    reason: string | undefined;
-    transaction: {
-      KID: string;
-      transactionID: string;
-      paymentID: number;
-      /** In öre, unlike the registered donation sum */
-      amount: number;
-      date: Date;
-    };
-  }[];
-};
-
-export type AutogiroMandatesResult = {
-  confirmed: number;
-  cancelled: number;
-  invalid: number;
-  rejected: number;
-  invalidMandates: {
-    KID: string;
-    informationCode: AutoGiroMandateInformationCodes;
-    commentaryCode: AutoGiroMandateCommentaryCodes;
-    message: unknown;
-  }[];
-};
-
-export type AutogiroRejectedChargesResult = {
-  rejectedCharges: number;
-  failedRejectedCharges: number;
-};
-
-export type AutogiroReportResult =
-  | ({
-      type: "payments";
-      /** The "Autogiro - Payments BAG" import log entry written while processing */
-      importLogId: number;
-    } & AutogiroPaymentsResult)
-  | { type: "eMandates"; newMandates: number }
-  | ({ type: "mandates" } & AutogiroMandatesResult)
-  | ({ type: "rejectedCharges" } & AutogiroRejectedChargesResult)
-  | { type: "unhandled"; fileType: string };
-
-/**
- * Detects the encoding of an AutoGiro file from Bankgirot and processes it according to its
- * content type (payments, mandates, e-mandates, rejected charges).
- */
-export async function processAutogiroReport(report: Buffer): Promise<AutogiroReportResult> {
-  // processAutogiroInputFile parses again; this separates unreadable files from failures while
-  // processing
-  const data = parseOrThrow("Could not read the AutoGiro file", () => {
-    const decoded = decodeReport(report);
-    AutoGiroParser.parse(decoded);
-    return decoded;
-  });
-
-  const result = await processAutogiroInputFile(data);
-  const fileType = result.openingRecord.fileContents;
-
-  if (fileType === AutoGiroContent.PAYMENT_SPECIFICATION_AND_STOP) {
-    if (!("results" in result)) throw new Error("Missing results in return object");
-    const importLogId = "importLogId" in result ? result.importLogId : undefined;
-    if (typeof importLogId !== "number") throw new Error("Missing import log in return object");
-    const { valid, invalid, invalidTransactions } = result.results;
-    return {
-      type: "payments",
-      importLogId,
-      valid: valid!,
-      invalid: invalid!,
-      invalidTransactions: invalidTransactions!,
-    };
-  } else if (fileType === AutoGiroContent.E_MANDATES) {
-    if (!("emandates" in result)) throw new Error("Missing mandates in e-mandates file");
-    return { type: "eMandates", newMandates: result.emandates.length };
-  } else if (fileType === AutoGiroContent.REJECTED_CHARGES) {
-    if (!("results" in result)) throw new Error("Missing results in return object");
-    const { rejectedCharges, failedRejectedCharges } = result.results;
-    return {
-      type: "rejectedCharges",
-      rejectedCharges: rejectedCharges!,
-      failedRejectedCharges: failedRejectedCharges!,
-    };
-  } else if (fileType === AutoGiroContent.MANDATES) {
-    if (!("results" in result)) throw new Error("Missing results in return object");
-    const { confirmed, cancelled, invalid, rejected, invalidMandates } = result.results;
-    return {
-      type: "mandates",
-      confirmed: confirmed!,
-      cancelled: cancelled!,
-      invalid: invalid!,
-      rejected: rejected!,
-      invalidMandates: invalidMandates!,
-    };
-  }
-  /**
-   * TODO: Handle other file types
-   */
-  return { type: "unhandled", fileType };
-}
-
-/**
- * Decodes a report with the encoding chardet detects. iconv-lite knows the single-byte encodings
- * (windows-1252, ISO-8859-x) that Buffer.toString doesn't; Bankgirot files are Latin-1 if unsure.
- */
-function decodeReport(report: Buffer): string {
-  const encoding = chardet.detect(report);
-  return encoding && iconv.encodingExists(encoding)
-    ? iconv.decode(report, encoding)
-    : report.toString("latin1");
 }
 
 //endregion

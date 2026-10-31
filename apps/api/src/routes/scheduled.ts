@@ -12,7 +12,6 @@ import { DateTime } from "luxon";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
 import express from "express";
-import { createAutoGiroShipment } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
@@ -325,19 +324,6 @@ router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) 
     res.json({ alerted: false, claimDates: results });
   } catch (ex) {
     console.error(ex);
-    next({ ex });
-  }
-});
-
-router.post("/autogiro", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const result = await createAutoGiroShipment();
-    // await sendOcrBackup(JSON.stringify(result, null, 2));
-    res.json({
-      status: 200,
-      content: result,
-    });
-  } catch (ex) {
     next({ ex });
   }
 });
@@ -796,12 +782,8 @@ router.get("/inflation-reminder", authMiddleware.isAdmin, async (req, res, next)
     const summary = {
       totalEligible: {
         avtaleGiro: eligibleAgreements.avtaleGiro.length,
-        autoGiro: eligibleAgreements.autoGiro.length,
         vipps: eligibleAgreements.vipps.length,
-        total:
-          eligibleAgreements.avtaleGiro.length +
-          eligibleAgreements.autoGiro.length +
-          eligibleAgreements.vipps.length,
+        total: eligibleAgreements.avtaleGiro.length + eligibleAgreements.vipps.length,
       },
       agreements: eligibleAgreements,
       generated: DateTime.now().toISO(),
