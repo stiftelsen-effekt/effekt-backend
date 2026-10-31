@@ -35,6 +35,35 @@ jobs:
         if: always()
         run: semgrep scan --metrics=off --config .semgrep/ --exclude .semgrep --error .
 
+      # pnpm 11+ writes pnpm-lock.yaml as two YAML documents: the pnpm version it installs
+      # (packageManagerDependencies), then the workspace's lockfile. Semgrep Supply Chain only
+      # reads single-document lockfiles ("expected a single document in the stream") and then
+      # sees no dependencies at all, so it gets the last document alone: in this checkout, and
+      # through a smudge filter in the baseline checkout a pull request's scan compares with.
+      # The changed file leaves the checkout dirty, which makes `semgrep ci` check the baseline
+      # out in a separate git worktree (where the filter applies) instead of `git reset --hard`.
+      - name: Give Semgrep a single-document pnpm-lock.yaml
+        if: always() && env.SEMGREP_APP_TOKEN != ''
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          script="$RUNNER_TEMP/last-yaml-document"
+          cat > "$script" <<'SCRIPT'
+          #!/bin/sh
+          # Copies stdin's last YAML document (everything after the last `---` line) to stdout
+          file=$(mktemp)
+          cat > "$file"
+          last=$(grep -n '^---$' "$file" | tail -n 1 | cut -d: -f1)
+          tail -n "+$((${last:-0} + 1))" "$file"
+          rm -f "$file"
+          SCRIPT
+          chmod +x "$script"
+          git config filter.last-yaml-document.smudge "$script"
+          git config filter.last-yaml-document.clean cat
+          echo "pnpm-lock.yaml filter=last-yaml-document" >> "$(git rev-parse --git-common-dir)/info/attributes"
+          "$script" < pnpm-lock.yaml > "$RUNNER_TEMP/pnpm-lock.yaml"
+          mv "$RUNNER_TEMP/pnpm-lock.yaml" pnpm-lock.yaml
+          head -n 1 pnpm-lock.yaml
+
       # Rules managed in the Semgrep app (blocking findings fail the job). Skipped when the
       # token is not available (e.g. pull requests from forks).
       - name: Semgrep app rules

@@ -333,7 +333,9 @@ async function getAll(
         WHERE ${whereClause}`;
 
     const [[donations], [statisticsRows]] = await Promise.all([
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column through the jsDBmapping allowlist
       DAO.query(pageQuery, [limit, page * limit]),
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- as above
       DAO.query(statisticsQuery),
     ]);
 
@@ -1221,6 +1223,7 @@ async function add(
   transaction?: PoolConnection,
 ): Promise<number> {
   const query = (sql: string, params: unknown[]) =>
+    // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- this function passes literal SQL with bound parameters
     transaction ? transaction.query<any>(sql, params) : DAO.query(sql, params);
 
   var [donorIDQuery] = await query("SELECT Donor_ID FROM Distributions WHERE KID = ? LIMIT 1", [

@@ -23,6 +23,8 @@ const formatKroner = (ore: number) =>
 function confirmationPage(adjustment: AgreementInflationAdjustment) {
   const current = escapeHtml(formatKroner(adjustment.current_amount));
   const proposed = escapeHtml(formatKroner(adjustment.proposed_amount));
+  // The page interpolates two HTML-escaped amounts and nothing else (the line marked below).
+  // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- only the escaped amounts are interpolated
   return `<!DOCTYPE html>
 <html lang="nb">
   <head>
@@ -37,7 +39,10 @@ function confirmationPage(adjustment: AgreementInflationAdjustment) {
   </head>
   <body>
     <h1>Bekreft nytt beløp</h1>
-    <p>Den faste donasjonen din endres fra ${current} til ${proposed} per måned.</p>
+    ${
+      // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format, javascript.lang.security.html-in-template-string.html-in-template-string -- current and proposed are formatted numbers, HTML-escaped above
+      `<p>Den faste donasjonen din endres fra ${current} til ${proposed} per måned.</p>`
+    }
     <form method="post">
       <button type="submit">Bekreft</button>
     </form>

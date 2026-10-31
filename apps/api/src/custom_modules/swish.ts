@@ -183,7 +183,7 @@ export async function handleOrderStatusUpdate(
     try {
       await sendDonationReceipt(donationID);
     } catch (ex) {
-      console.error(`Failed to send receipt for Swish donation ${donationID}`, ex);
+      console.error("Failed to send receipt for Swish donation %s", donationID, ex);
     }
     return;
   }

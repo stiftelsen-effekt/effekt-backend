@@ -57,7 +57,7 @@ function resilientPoll(
     try {
       return await check(polls);
     } catch (ex) {
-      console.error(`Polling ${label} failed (poll ${polls})`, loggableRequestError(ex));
+      console.error("Polling %s failed (poll %d)", label, polls, loggableRequestError(ex));
       return polls * POLLING_INTERVAL + POLLING_START_DELAY > POLLING_MAX_DURATION;
     }
   };
@@ -368,7 +368,7 @@ module.exports = {
       );
     } catch (ex) {
       // Started without awaiting; never let it reject
-      console.error(`Polling order ${orderId} stopped`, loggableRequestError(ex));
+      console.error("Polling order %s stopped", orderId, loggableRequestError(ex));
     }
   },
 
@@ -1250,7 +1250,7 @@ module.exports = {
         ),
         POLLING_INTERVAL,
       ).catch((ex) => {
-        console.error(`Polling agreement ${agreementId} stopped`, loggableRequestError(ex));
+        console.error("Polling agreement %s stopped", agreementId, loggableRequestError(ex));
       });
     }, POLLING_START_DELAY);
   },

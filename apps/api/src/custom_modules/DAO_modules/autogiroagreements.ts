@@ -26,8 +26,40 @@ export type AutoGiroMandateRow = Pick<
   | "created"
 > & { full_name: string };
 
+/** Columns getAgreements may ORDER BY: each resolves to a column of its SELECT list */
+const AGREEMENT_SORT_COLUMNS = new Set([
+  "id",
+  "full_name",
+  "active",
+  "amount",
+  "payment_date",
+  "kid",
+  "created",
+  "last_updated",
+  "cancelled",
+  "notice",
+]);
+/** Columns getMandates may ORDER BY */
+const MANDATE_SORT_COLUMNS = new Set([
+  "id",
+  "kid",
+  "status",
+  "full_name",
+  "created",
+  "last_updated",
+]);
+
+/** The sort column if it is one of `allowed` (MySQL column names ignore case), else throws */
+function allowedSortColumn(allowed: Set<string>, id: unknown): string {
+  if (typeof id !== "string" || !allowed.has(id.toLowerCase())) {
+    throw new Error(`Invalid sort column: ${String(id)}`);
+  }
+  return id;
+}
+
 /** Runs a query on the transaction's connection if one is given, otherwise on the pool */
 const queryOn = (transaction: PoolConnection | undefined) => (sql: string, params?: unknown[]) =>
+  // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- callers in this file pass literal SQL with bound parameters
   transaction ? transaction.query<any>(sql, params) : DAO.query(sql, params);
 
 export const autogiroagreements = {
@@ -66,7 +98,8 @@ export const autogiroagreements = {
       avgAgreement: string;
     };
   }> {
-    const sortColumn = sort.id;
+    // Interpolated into ORDER BY below, so only known columns (trpc/schemas/giro.ts) get through
+    const sortColumn = allowedSortColumn(AGREEMENT_SORT_COLUMNS, sort?.id);
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
@@ -132,6 +165,7 @@ export const autogiroagreements = {
     `;
 
     const [agreements] = await DAO.query(
+      // nosemgrep: javascript.lang.security.audit.sqli.node-mysql-sqli.node-mysql-sqli -- filter values go through sqlString.escape, the sort column through AGREEMENT_SORT_COLUMNS
       `
           SELECT
               count(*) OVER() AS full_count,
@@ -547,7 +581,8 @@ export const autogiroagreements = {
     limit: number,
     filter: any,
   ): Promise<{ pages: number; rows: AutoGiroMandateRow[] }> {
-    const sortColumn = sort.id;
+    // Interpolated into ORDER BY below, so only known columns (trpc/schemas/giro.ts) get through
+    const sortColumn = allowedSortColumn(MANDATE_SORT_COLUMNS, sort?.id);
     const sortDirection = sort.desc ? "DESC" : "ASC";
     const offset = page * limit;
 
