@@ -1,8 +1,9 @@
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Distribution } from "../../../models";
 import {
   hydrateDistributionAmounts,
   isAllocationVisible,
+  isSameDistribution,
   orderDistributionCauseAreas,
   prepareDistributionForSave,
   setCauseAreaStandardSplit,
@@ -147,4 +148,72 @@ it("removes zero allocations from the payload", () => {
 
   expect(payload.causeAreas[0].organizations).toHaveLength(1);
   expect(payload.causeAreas[0].organizations[0].amount).toBe(333);
+});
+
+describe("isSameDistribution", () => {
+  const saved = hydrateDistributionAmounts(distribution, 300);
+  const padded = (base: Distribution): Distribution => ({
+    ...base,
+    causeAreas: [
+      ...base.causeAreas,
+      {
+        id: 99,
+        name: "Added for editing",
+        standardSplit: true,
+        percentageShare: "0",
+        amount: 0,
+        organizations: [{ id: 990, percentageShare: "100", amount: 0 }],
+      },
+    ],
+  });
+
+  it("ignores cause areas added at 0 so they can be edited", () => {
+    expect(isSameDistribution(padded(saved), saved)).toBe(true);
+  });
+
+  it("ignores ordering", () => {
+    expect(
+      isSameDistribution({ ...saved, causeAreas: [...saved.causeAreas].reverse() }, saved),
+    ).toBe(true);
+  });
+
+  it("sees a changed amount", () => {
+    const edited = padded(saved);
+    edited.causeAreas[0] = {
+      ...edited.causeAreas[0],
+      amount: (edited.causeAreas[0].amount ?? 0) + 1,
+    };
+    expect(isSameDistribution(edited, saved)).toBe(false);
+  });
+
+  it("sees money moved to a cause area added at 0", () => {
+    const edited = padded(saved);
+    const last = edited.causeAreas.length - 1;
+    edited.causeAreas[last] = {
+      ...edited.causeAreas[last],
+      amount: 10,
+      organizations: [{ id: 990, percentageShare: "100", amount: 10 }],
+    };
+    expect(isSameDistribution(edited, saved)).toBe(false);
+  });
+
+  it("sees a changed tax unit and a changed standard split", () => {
+    expect(isSameDistribution({ ...saved, taxUnitId: 5 }, saved)).toBe(false);
+    expect(
+      isSameDistribution(
+        {
+          ...saved,
+          causeAreas: saved.causeAreas.map((causeArea, index) =>
+            index === 0 ? { ...causeArea, standardSplit: true } : causeArea,
+          ),
+        },
+        saved,
+      ),
+    ).toBe(false);
+  });
+
+  it("handles missing distributions", () => {
+    expect(isSameDistribution(null, null)).toBe(true);
+    expect(isSameDistribution(null, saved)).toBe(false);
+  });
 });

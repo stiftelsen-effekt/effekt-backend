@@ -13,7 +13,7 @@ import {
   DKPaymentMethod,
   TaxUnit,
 } from "../../../../../models";
-import { useCauseAreas } from "../../../../../_queries";
+import { isMinsideDistributionsKey, useCauseAreas } from "../../../../../_queries";
 import { DatePickerInput } from "../../../../shared/components/DatePicker/DatePickerInput";
 import {
   EffektButton,
@@ -40,6 +40,7 @@ import {
   getStandardOrganizationIds,
   hydrateDistributionAmounts,
   isAllocationVisible,
+  isSameDistribution,
   orderDistributionCauseAreas,
   prepareDistributionForSave,
   setCauseAreaStandardSplit,
@@ -158,8 +159,8 @@ export const DKAgreementDetails: React.FC<{
     }
 
     const token = await getAccessToken(getAccessTokenSilently);
-    const distributionChanged =
-      JSON.stringify(distribution) !== JSON.stringify(lastSavedDistribution);
+    // Cause areas added at 0 for editing are not a change
+    const distributionChanged = !isSameDistribution(distribution, lastSavedDistribution);
     const agreementSum =
       systemCauseAreas &&
       distribution &&
@@ -202,7 +203,10 @@ export const DKAgreementDetails: React.FC<{
     if (result !== null) {
       successToast(configuration.toasts_configuration.success_text);
       setLastSavedDistribution(cloneDistribution(distribution));
-      await mutate(`/donors/${getUserId(user)}/recurring/`);
+      await Promise.all([
+        mutate(`/donors/${getUserId(user)}/recurring/`),
+        mutate(isMinsideDistributionsKey(getUserId(user))),
+      ]);
     } else {
       failureToast(configuration.toasts_configuration.failure_text);
     }

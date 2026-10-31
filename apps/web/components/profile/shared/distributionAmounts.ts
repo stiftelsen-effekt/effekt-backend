@@ -212,3 +212,33 @@ export const prepareDistributionForSave = (
     }),
   };
 };
+
+/** What a save would change: the tax unit and the cause areas and organizations that get money */
+const comparableDistribution = (distribution: Distribution) => ({
+  taxUnitId: distribution.taxUnitId ?? null,
+  causeAreas: distribution.causeAreas
+    .filter((causeArea) => (causeArea.amount ?? 0) > 0)
+    .map((causeArea) => ({
+      id: causeArea.id,
+      amount: causeArea.amount,
+      standardSplit: !!causeArea.standardSplit,
+      organizations: causeArea.organizations
+        .filter((organization) => (organization.amount ?? 0) > 0)
+        .map((organization) => ({ id: organization.id, amount: organization.amount }))
+        .sort((a, b) => a.id - b.id),
+    }))
+    .sort((a, b) => a.id - b.id),
+});
+
+/**
+ * Whether two hydrated distributions would save the same split. Cause areas and organizations
+ * without money (such as the ones Min Side adds at 0 so they can be edited) and ordering are
+ * ignored.
+ */
+export const isSameDistribution = (
+  a: Distribution | null | undefined,
+  b: Distribution | null | undefined,
+) => {
+  if (!a || !b) return !a && !b;
+  return JSON.stringify(comparableDistribution(a)) === JSON.stringify(comparableDistribution(b));
+};
