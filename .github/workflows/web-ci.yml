@@ -9,6 +9,11 @@ jobs:
   e2e-no:
     # only runs this job on successful deploy to main-site
     if: github.event.deployment_status.state == 'success' && contains(github.event.deployment_status.target_url, 'main-site')
+    # Production runs share the site and the Min Side test account: one at a time, and only the
+    # newest waiting one runs (GitHub drops older pending runs in the group). Previews run freely.
+    concurrency:
+      group: web-e2e-no-${{ startsWith(github.event.deployment_status.environment, 'Production') && 'production' || github.run_id }}
+      cancel-in-progress: false
     permissions:
       contents: read
     uses: $/.github/workflows/web-e2e.yml
@@ -26,6 +31,11 @@ jobs:
   e2e-dk:
     # only runs this job on successful deploy to giv-effektivt
     if: github.event.deployment_status.state == 'success' && contains(github.event.deployment_status.target_url, 'giv-effektivt')
+    # Production runs share the site and the Min Side test account: one at a time, and only the
+    # newest waiting one runs (GitHub drops older pending runs in the group). Previews run freely.
+    concurrency:
+      group: web-e2e-dk-${{ startsWith(github.event.deployment_status.environment, 'Production') && 'production' || github.run_id }}
+      cancel-in-progress: false
     permissions:
       contents: read
     uses: $/.github/workflows/web-e2e.yml
