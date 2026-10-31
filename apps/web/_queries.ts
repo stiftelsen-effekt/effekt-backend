@@ -54,6 +54,15 @@ export const minsideKeys = {
   taxReports: (donorId: number) => ["minside.taxReports", donorId] as const,
 };
 
+/**
+ * Matches every cached minside.distributions query of the donor, whatever KIDs it was for. Revalidate
+ * with `mutate(isMinsideDistributionsKey(donorId))` after changing an agreement's distribution.
+ */
+export const isMinsideDistributionsKey =
+  (donorId: number) =>
+  (key: unknown): boolean =>
+    Array.isArray(key) && key[0] === "minside.distributions" && key[1] === donorId;
+
 const fetcher = async (
   url: string,
   fetchToken: getAccessTokenSilently | null = null,

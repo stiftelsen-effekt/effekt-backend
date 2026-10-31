@@ -27,7 +27,7 @@ import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";
 import { checkPaymentDate } from "../../../../../util/dates";
 import { getUserId } from "../../../../../lib/user";
 import { AgreementSingleCauseAreaDetails } from "./singleCauseAreaDetails/AgreementSingleCauseAreaDetails";
-import { minsideKeys, useCauseAreas } from "../../../../../_queries";
+import { isMinsideDistributionsKey, minsideKeys, useCauseAreas } from "../../../../../_queries";
 import {
   AgreementMultipleCauseAreaDetails,
   AgreementMultipleCauseAreaDetailsConfiguration,
@@ -38,9 +38,11 @@ import {
   getStandardOrganizationId,
   getStandardOrganizationIds,
   hydrateDistributionAmounts,
+  isSameDistribution,
   prepareDistributionForSave,
   setStandardCauseAreaAmount,
 } from "../../distributionAmounts";
+import { runAgreementUpdates } from "./runAgreementUpdates";
 import { useMainLocale } from "../../../../../context/MainLocaleContext";
 
 export type AgreementDetailsConfiguration = {
@@ -193,8 +195,8 @@ export const AgreementDetails: React.FC<{
 
   const save = async () => {
     const token = await getAccessToken(getAccessTokenSilently);
-    const distributionChanged =
-      JSON.stringify(distribution) !== JSON.stringify(lastSavedDistribution);
+    // Cause areas added at 0 for editing are not a change
+    const distributionChanged = !isSameDistribution(distribution, lastSavedDistribution);
     const agreementSum =
       systemCauseAreas &&
       (systemCauseAreas.length > 1 || !distribution.causeAreas[0]?.standardSplit)
@@ -224,64 +226,60 @@ export const AgreementDetails: React.FC<{
 
     setLoadingChanges(true);
 
-    if (type == "Vipps") {
-      let result = null;
+    const donorId = getUserId(user);
+    const revalidate = (agreementsKey: readonly unknown[]) => {
+      mutate(agreementsKey);
+      // The distributions are cached by KID; an AvtaleGiro agreement keeps its KID when its
+      // distribution is replaced
+      mutate(isMinsideDistributionsKey(donorId));
+    };
 
-      if (sumChanged) {
-        result = await updateVippsAgreementPrice(trpc, getUserId(user), agreementId, agreementSum);
-      }
+    if (type == "Vipps" || type == "AvtaleGiro") {
+      const updates =
+        type == "Vipps"
+          ? [
+              sumChanged &&
+                (() => updateVippsAgreementPrice(trpc, donorId, agreementId, agreementSum)),
+              dayChanged && (() => updateVippsAgreementDay(trpc, donorId, agreementId, day)),
+              (distributionChanged || sumChanged) &&
+                (() =>
+                  updateVippsAgreementDistribution(
+                    trpc,
+                    donorId,
+                    agreementId,
+                    distributionPayload,
+                  )),
+            ]
+          : [
+              sumChanged &&
+                (() => updateAvtaleagreementAmount(trpc, donorId, endpoint, agreementSum)),
+              dayChanged && (() => updateAvtaleagreementPaymentDay(trpc, donorId, endpoint, day)),
+              (distributionChanged || sumChanged) &&
+                (() =>
+                  updateAvtalegiroAgreementDistribution(
+                    trpc,
+                    donorId,
+                    endpoint,
+                    distributionPayload,
+                  )),
+            ];
+      const saved = await runAgreementUpdates(
+        updates.filter((update): update is () => Promise<true | null> => !!update),
+      );
 
-      if (dayChanged) {
-        result = await updateVippsAgreementDay(trpc, getUserId(user), agreementId, day);
-      }
-
-      if (distributionChanged || sumChanged) {
-        result = await updateVippsAgreementDistribution(
-          trpc,
-          getUserId(user),
-          agreementId,
-          distributionPayload,
-        );
-      }
-
-      if (result != null) {
+      // Revalidate either way: an earlier change may have gone through before one failed
+      revalidate(
+        type == "Vipps"
+          ? minsideKeys.vippsAgreements(donorId)
+          : minsideKeys.avtaleGiroAgreements(donorId),
+      );
+      if (saved) {
         successToast(configuration.toasts_configuration.success_text);
-        mutate(minsideKeys.vippsAgreements(getUserId(user)));
-        setLoadingChanges(false);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
       } else {
         failureToast(configuration.toasts_configuration.failure_text);
-        setLoadingChanges(false);
       }
-    } else if (type == "AvtaleGiro") {
-      let result = null;
-
-      if (sumChanged) {
-        result = await updateAvtaleagreementAmount(trpc, getUserId(user), endpoint, agreementSum);
-      }
-
-      if (dayChanged) {
-        result = await updateAvtaleagreementPaymentDay(trpc, getUserId(user), endpoint, day);
-      }
-
-      if (distributionChanged || sumChanged) {
-        result = await updateAvtalegiroAgreementDistribution(
-          trpc,
-          getUserId(user),
-          endpoint,
-          distributionPayload,
-        );
-      }
-
-      if (result !== null) {
-        successToast(configuration.toasts_configuration.success_text);
-        mutate(minsideKeys.avtaleGiroAgreements(getUserId(user)));
-        setLoadingChanges(false);
-        setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
-      } else {
-        failureToast(configuration.toasts_configuration.failure_text);
-        setLoadingChanges(false);
-      }
+      setLoadingChanges(false);
     } else if (type == "AutoGiro") {
       let result = await updateAutoGiroAgreement(
         endpoint,
@@ -293,7 +291,7 @@ export const AgreementDetails: React.FC<{
 
       if (result !== null) {
         successToast(configuration.toasts_configuration.success_text);
-        mutate(minsideKeys.autoGiroAgreements(getUserId(user)));
+        revalidate(minsideKeys.autoGiroAgreements(donorId));
         setLoadingChanges(false);
         setLastSavedDistribution(JSON.parse(JSON.stringify(distribution)));
       } else {
