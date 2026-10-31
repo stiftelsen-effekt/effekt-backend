@@ -5,7 +5,7 @@ import { getClient } from "../../../../../lib/sanity.client";
 import { withStaticProps } from "../../../../../util/withStaticProps";
 import { fetchCauseAreasAction } from "../store/layout/actions";
 import { fetchReferralsAction } from "../store/referrals/actions";
-import { setWidgetApiLocale } from "../store/widgetApi";
+import { setWidgetApiLocale, widgetAsksForReferrals } from "../store/widgetApi";
 import {
   setOperationsConfig,
   setCauseAreaSelection,
@@ -223,7 +223,7 @@ export const Widget = withStaticProps(
     // The Danish site's backend is REST only (see store/widgetApi.ts)
     setWidgetApiLocale(widget.locale);
     dispatch(fetchCauseAreasAction.started(undefined));
-    dispatch(fetchReferralsAction.started(undefined));
+    if (widgetAsksForReferrals()) dispatch(fetchReferralsAction.started(undefined));
   }, [dispatch, widget.locale]);
 
   usePrefilledDistribution({
