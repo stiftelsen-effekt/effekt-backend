@@ -9,6 +9,7 @@ import { selectOCRFilesToImport, type OCRFile } from "../custom_modules/ocrFiles
 import { decideRetry, RetryDecision, RetryPath } from "../custom_modules/avtalegiro/receipts";
 import { AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL } from "../custom_modules/DAO_modules/avtalegirocharges";
 import { DateTime } from "luxon";
+import { OSLO_ZONE } from "../custom_modules/osloDays";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
 import express from "express";
@@ -198,16 +199,18 @@ async function processAvtaleGiroDeletions(now: DateTime, requeueUnconfirmed: boo
 }
 
 /**
- * Triggered by a google cloud scheduler webhook every day at 10:00
+ * The time of an AvtaleGiro run in Europe/Oslo, so file names, due dates and the day's shipments
+ * use the Norwegian date whatever the process time zone is. `?date=YYYY-MM-DD` reruns a past day.
+ */
+const avtaleGiroRunTime = (date: unknown): DateTime =>
+  DateTime.fromJSDate(date ? new Date(String(date)) : new Date()).setZone(OSLO_ZONE);
+
+/**
+ * Triggered by a google cloud scheduler webhook every day at 10:00 Europe/Oslo
  */
 router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    let today;
-    if (req.query.date) {
-      today = DateTime.fromJSDate(new Date(req.query.date));
-    } else {
-      today = DateTime.fromJSDate(new Date());
-    }
+    const today = avtaleGiroRunTime(req.query.date);
 
     await processAvtaleGiroDeletions(today, false);
 
@@ -223,16 +226,11 @@ router.post("/avtalegiro", authMiddleware.isAdmin, async (req, res, next) => {
 });
 
 /**
- * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00
+ * Triggered by a google cloud scheduler webhook every day at 11:00, 12:00 and 13:00 Europe/Oslo
  */
 router.post("/avtalegiro/retry", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    let today: DateTime;
-    if (req.query.date) {
-      today = DateTime.fromJSDate(new Date(req.query.date));
-    } else {
-      today = DateTime.fromJSDate(new Date());
-    }
+    const today = avtaleGiroRunTime(req.query.date);
 
     await processAvtaleGiroDeletions(today, true);
 

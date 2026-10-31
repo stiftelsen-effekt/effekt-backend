@@ -28,6 +28,9 @@ const escapeCsvValue = (value) => {
  * @param {Date|string|null} date - The date to format
  * @returns {string} - Formatted date string or empty string
  */
+// SQL date-time strings are read as Oslo wall clock, the same zone Dates are written in
+const parseSqlTimestamp = (value: string) => DateTime.fromSQL(value, { zone: "Europe/Oslo" });
+
 const formatDate = (date) => {
   if (!date) return "";
   if (date instanceof Date) {
@@ -35,7 +38,7 @@ const formatDate = (date) => {
     return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-  const dt = DateTime.fromSQL(date, { zone: "Europe/Oslo" });
+  const dt = parseSqlTimestamp(date);
   return dt.isValid ? dt.toFormat("yyyy-MM-dd HH:mm:ss") : "";
 };
 
@@ -94,15 +97,13 @@ export const generateCsv = (rows, headers: string[] | null = null, formatters = 
   return csvRows.join("\n");
 };
 
+/** Whether a value is a SQL date or date-time string ("2026-10-24", "2026-10-24 14:05:00") */
 function isValidTimestamp(value) {
-  // Require at least YYYY-MM-DD format
-  const minDatePattern = /^\d{4}-\d{2}-\d{2}/;
-
-  if (!minDatePattern.test(value)) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(value)) {
     return false;
   }
 
-  return DateTime.fromSQL(value, { zone: "no-NB" }).isValid;
+  return parseSqlTimestamp(value).isValid;
 }
 
 /**
