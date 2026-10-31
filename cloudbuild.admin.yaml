@@ -1,5 +1,6 @@
 # Builds the admin (apps/admin) and publishes it to its bucket behind the effekt-load-balancer.
-# Trigger: push to main touching apps/admin/**, apps/api/src/trpc/**, pnpm-lock.yaml or this file.
+# Trigger: push to main touching a file in _GUARD_INCLUDE below (the admin, the API source its
+# types come from, shared packages, the lockfile, this file).
 # Substitutions (set on the trigger): _BUCKET, _API_URL, _AUTH_DOMAIN, _AUTH_CLIENT_ID, _AUTH_AUDIENCE,
 # _FEATURE_REGRANTING ("false" hides Regranting), _REGRANTING_BACKFILLED ("false" shows a notice
 # on the regranting pages that past rounds aren't imported yet)
@@ -10,7 +11,7 @@ steps:
   - id: guard
     name: "gcr.io/cloud-builders/git"
     entrypoint: bash
-    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_INCLUDE=$_GUARD_INCLUDE"]
     args: ["scripts/deploy/guard.sh"]
 
   - id: install
@@ -75,7 +76,7 @@ steps:
     name: "gcr.io/cloud-builders/git"
     waitFor: ["build"]
     entrypoint: bash
-    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_INCLUDE=$_GUARD_INCLUDE"]
     args: ["scripts/deploy/guard.sh"]
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
@@ -116,5 +117,9 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
+  # The AdminDeploy trigger's includedFiles: the guard skips this build only for a newer commit
+  # that changes one of them, since only such a commit starts a newer build. Keep in sync with the
+  # trigger (docs/deploy.md).
+  _GUARD_INCLUDE: "apps/admin/** apps/api/src/** apps/api/prisma/schema.prisma apps/api/package.json apps/api/tsconfig*.json packages/** pnpm-lock.yaml pnpm-workspace.yaml cloudbuild.admin.yaml scripts/deploy/**"
   _FEATURE_REGRANTING: "true"
   _REGRANTING_BACKFILLED: "false"

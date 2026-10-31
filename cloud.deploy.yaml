@@ -5,7 +5,7 @@ steps:
   - name: "gcr.io/cloud-builders/git"
     id: "guard"
     entrypoint: "bash"
-    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_IGNORE=$_GUARD_IGNORE"]
     args: ["scripts/deploy/guard.sh"]
 
   # The API image (apps/api/Dockerfile), built from the repository root. BuildKit, for
@@ -43,7 +43,7 @@ steps:
   - name: "gcr.io/cloud-builders/git"
     id: "guard-before-release"
     entrypoint: "bash"
-    env: ["COMMIT_SHA=$COMMIT_SHA"]
+    env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_IGNORE=$_GUARD_IGNORE"]
     args: ["scripts/deploy/guard.sh"]
 
   # :latest is a convenience tag for people (docker pull); nothing deploys from it
@@ -124,6 +124,12 @@ steps:
       - "--platform"
       - "managed"
       - "--allow-unauthenticated"
+
+substitutions:
+  # The BackendDeploy trigger's ignoredFiles: the guard skips this build only for a newer commit
+  # that changes a file outside them, since only such a commit starts a newer build. Keep in sync
+  # with the trigger (docs/deploy.md).
+  _GUARD_IGNORE: "apps/web/** apps/admin/** docs/** .github/** functions/**"
 
 # No `images:`: the push step above publishes the image, and a skipped build has none to push.
 
