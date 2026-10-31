@@ -199,7 +199,6 @@ describe("luxon characterization", () => {
     });
 
     it("finds claim due dates four banking days ahead around month and year ends", () => {
-      // Midday, as getDueDates checks banking days on the JS date in the machine's zone
       const due = (iso: string) => getDueDates(oslo(`${iso}T12:00`)).map((d) => d.toISODate());
       expect(due("2026-10-23")).to.deep.equal(["2026-10-29"]);
       expect(due("2026-10-26")).to.deep.equal(["2026-10-30"]);
@@ -220,6 +219,26 @@ describe("luxon characterization", () => {
       expect(due("2026-10-24")).to.deep.equal([]);
     });
 
+    it("finds claim due dates for the Oslo day, whatever the zone of the run time", () => {
+      const due = (dt: DateTime) => getDueDates(dt).map((d) => d.toISODate());
+      // 00:30 on Monday 26 October in Oslo is still Sunday in UTC (the day DST ends)
+      expect(due(utc("2026-10-25T23:30:00"))).to.deep.equal(["2026-10-30"]);
+      // 00:30 on Saturday 24 October in Oslo is still Friday in UTC
+      expect(due(utc("2026-10-23T22:30:00"))).to.deep.equal([]);
+      // 01:30 on Monday 30 March in Oslo, the day after DST starts, is still Sunday in UTC
+      expect(due(utc("2026-03-29T23:30:00"))).to.deep.equal(["2026-04-08"]);
+      // 00:30 on 2 January 2027 in Oslo (a Saturday) is New Year's Day in UTC
+      expect(due(utc("2027-01-01T23:30:00"))).to.deep.equal([]);
+      // 23:30 on Tuesday 27 October in Oslo, after the change to winter time
+      expect(due(oslo("2026-10-27T23:30"))).to.deep.equal(due(oslo("2026-10-27T10:00")));
+      // The scheduled runs (10:00 to 13:00 Oslo) give the same dates as a UTC time of that instant
+      for (const iso of ["2026-03-30T10:00", "2026-10-26T13:00", "2026-12-28T10:00"]) {
+        expect(due(oslo(iso).toUTC()), iso).to.deep.equal(due(oslo(iso)));
+      }
+      const [first] = getDueDates(utc("2026-10-25T23:30:00"));
+      expect(first.zoneName).to.equal(OSLO);
+    });
+
     it("writes AvtaleGiro dates as ddLLyy", () => {
       const line = writer.firstAndSecondLine(
         { amount: 10000, KID: "000000000000001" },
@@ -231,7 +250,7 @@ describe("luxon characterization", () => {
       expect(line.slice(15, 21)).to.equal("040127");
     });
 
-    it("formats CSV dates in Oslo time and leaves SQL timestamp strings as they are", () => {
+    it("formats CSV dates and SQL timestamp strings in Oslo time", () => {
       const csv = generateCsv(
         [
           {
@@ -243,6 +262,23 @@ describe("luxon characterization", () => {
         ["at", "day", "sql"],
       );
       expect(csv).to.equal("at,day,sql\n2026-10-25 02:30:00,2026-10-25,2026-10-25 02:30:00");
+
+      const strings = generateCsv(
+        [
+          {
+            fraction: "2026-10-24 14:05:00.123456",
+            minutes: "2026-10-24 14:05",
+            offset: "2026-10-24 12:05:00 +00:00",
+            month: "2026-10",
+            impossible: "2026-02-30",
+            text: "2026-10-24 at the office",
+          },
+        ],
+        ["fraction", "minutes", "offset", "month", "impossible", "text"],
+      );
+      expect(strings.split("\n")[1]).to.equal(
+        "2026-10-24 14:05:00,2026-10-24 14:05:00,2026-10-24 14:05:00,2026-10,2026-02-30,2026-10-24 at the office",
+      );
     });
 
     it("writes review queue dates as ISO", () => {

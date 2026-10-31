@@ -4,7 +4,8 @@ import { DateTime } from "luxon";
 
 const writer = require("./avtalegiro/filewriterutil");
 const config = require("../config");
-import workdays from "norwegian-workdays";
+import { isBankingDay } from "./avtalegiro/charges";
+import { OSLO_ZONE } from "./osloDays";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { donationHelpers } from "./donationHelpers";
 import { DistributionInput } from "../schemas/types";
@@ -233,45 +234,40 @@ export async function updateAgreements(agreements) {
 }
 
 /**
- * A function that returns a list of due dates for payment claims
- * We are required to send claims four banking days in advance of the due date
- * Holidays and weekends are not counted as banking days
- * Takes in a date to calculate the due date from
- * @returns
+ * The due dates to send payment claims for on a given day.
+ * We are required to send claims four banking days in advance of the due date. Holidays and
+ * weekends are not banking days, and claims are only sent on banking days.
+ * Banking days are Norwegian calendar days, so the date is read in Europe/Oslo whatever the
+ * process time zone is (UTC on Cloud Run): between midnight and 01:00/02:00 Oslo time the UTC
+ * date is still the day before.
+ * @param date The time of the run
+ * @returns The due dates, latest first, as Oslo dates at the run's time of day
  */
 export function getDueDates(date: DateTime) {
-  // Start iterating backwards 30 days from the date given
-  // Keep going until 4 days after the date given
-  // Add all the dates that have 4 banking days in between
-  // Return the list of dates
+  const today = date.setZone(OSLO_ZONE);
 
-  // We only send claims on banking days
-  // Thus, we start by checking if the date given is a banking day
-  if (!workdays.isWorkingDay(date.toJSDate())) {
+  if (!isBankingDay(today)) {
     return [];
   }
 
-  let dueDates: DateTime[] = [];
-  let iterationDate = date.plus({ days: 30 });
-  while (iterationDate >= date.plus({ days: 4 })) {
+  // Go back from 30 days ahead to 4 days ahead, and keep the dates with exactly four banking
+  // days from today up to the day before
+  const dueDates: DateTime[] = [];
+  const earliest = today.plus({ days: 4 });
+  for (
+    let dueDate = today.plus({ days: 30 });
+    dueDate >= earliest;
+    dueDate = dueDate.minus({ days: 1 })
+  ) {
     let bankingDays = 0;
-    let innerIterationDate = iterationDate.minus({ days: 1 });
-    while (innerIterationDate >= date) {
-      if (workdays.isWorkingDay(innerIterationDate.toJSDate())) {
-        bankingDays++;
-      }
-      innerIterationDate = innerIterationDate.minus({ days: 1 });
+    for (let day = dueDate.minus({ days: 1 }); day >= today; day = day.minus({ days: 1 })) {
+      if (isBankingDay(day)) bankingDays++;
     }
 
     if (bankingDays === 4) {
-      dueDates.push(iterationDate);
+      dueDates.push(dueDate);
     }
-
-    iterationDate = iterationDate.minus({ days: 1 });
   }
-
-  // Debug table to visualize the due dates
-  // printDueDatesTable(date, dueDates);
 
   return dueDates;
 }
