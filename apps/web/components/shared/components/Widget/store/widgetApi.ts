@@ -184,7 +184,7 @@ export const draftVippsAgreementRequest = async (input: {
 
 /**
  * Drafts an AvtaleGiro agreement for the registered KID (amount in NOK, dueDay 0 = last day of the
- * month), before the donor signs it at Nets. Throws on failure.
+ * month), before the donor signs it at Mastercard Payment Services. Throws on failure.
  */
 export const draftAvtaleGiroRequest = async (input: {
   KID: string;

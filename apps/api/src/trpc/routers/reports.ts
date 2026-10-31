@@ -249,7 +249,7 @@ const uploadContext = (
  * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
  */
 const uploadsRouter = router({
-  /** Nets OCR file (AvtaleGiro and KID bank payments, NO) */
+  /** OCR Giro file from Mastercard Payment Services (AvtaleGiro and KID bank payments, NO) */
   ocr: adminProcedure.input(reportUploadInput).mutation(async ({ input, ctx }) => {
     const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
     const data = await readText(input.report);

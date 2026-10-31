@@ -6,7 +6,7 @@ const { utcDate } = require("../utcDate");
 
 module.exports = {
   /**
-   * Checks that a file is a Nets OCR file: 80 character records starting with "NY", the first
+   * Checks that a file is an OCR Giro file: 80 character records starting with "NY", the first
    * a transmission start record (NY000010). Returns why it isn't, or null.
    * @param {string} data
    * @returns {string | null}
@@ -15,7 +15,7 @@ module.exports = {
     const lines = data.split(/\r?\n/).filter((line) => line.trim().length > 0);
     if (lines.length === 0) return "the file is empty";
     if (!lines[0].startsWith("NY000010")) {
-      return "the file doesn't start with a Nets transmission start record (NY000010)";
+      return "the file doesn't start with an OCR Giro transmission start record (NY000010)";
     }
     const bad = lines.findIndex((line) => line.length !== 80 || !line.startsWith("NY"));
     if (bad !== -1) return `line ${bad + 1} is not an 80 character OCR record`;

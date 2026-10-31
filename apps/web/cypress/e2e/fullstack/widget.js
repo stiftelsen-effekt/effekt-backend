@@ -2,8 +2,8 @@
  * Full-stack donation widget: a one-off bank transfer and a monthly AvtaleGiro registered through
  * the real API (tRPC widget.causeAreas, widget.referralTypes, widget.registerDonation,
  * widget.registerBankPending, widget.draftAvtaleGiro) into the database. No payment provider is
- * involved (the hand-over to Nets is stubbed), and the emails have no Mailersend key locally, so
- * nothing leaves the stack.
+ * involved (the hand-over to Mastercard Payment Services is stubbed), and the emails have no
+ * Mailersend key locally, so nothing leaves the stack.
  */
 import { trpcData, trpcInput, trpcUrl } from "../../support/trpc";
 
@@ -113,8 +113,8 @@ describe("Donation widget (full stack)", () => {
       const { KID, registrationToken } = trpcData(interception, "widget.registerDonation");
       expect(KID).to.match(/^\d+$/);
 
-      // The saga hands the donor over to Nets with the form's native submit(): stub it, so the
-      // test stays on the page
+      // The saga hands the donor over to Mastercard Payment Services with the form's native
+      // submit(): stub it, so the test stays on the page
       cy.window().then((win) => {
         cy.stub(win.HTMLFormElement.prototype, "submit").as("formSubmit");
       });
