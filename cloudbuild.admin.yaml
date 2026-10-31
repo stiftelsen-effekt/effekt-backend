@@ -51,10 +51,12 @@ steps:
         "corepack enable && pnpm --dir apps/admin test",
       ]
 
+  # Builds while the tests run. After typecheck, not alongside it: both write the generated
+  # route tree (src/routeTree.gen.ts).
   - id: build
     name: "node:24.22.1"
     entrypoint: bash
-    waitFor: ["typecheck", "test"]
+    waitFor: ["typecheck"]
     env:
       - "VITE_API_URL=${_API_URL}"
       - "VITE_AUTH_MODE=auth0"
@@ -74,47 +76,48 @@ steps:
   # Check again before publishing: a newer merge may have landed during the build
   - id: guard-before-publish
     name: "gcr.io/cloud-builders/git"
-    waitFor: ["build"]
+    waitFor: ["build", "test"]
     entrypoint: bash
     env: ["COMMIT_SHA=$COMMIT_SHA", "DEPLOY_GUARD_INCLUDE=$_GUARD_INCLUDE"]
     args: ["scripts/deploy/guard.sh"]
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
   # immediately. Assets are uploaded first so a new index.html never points at missing files.
+  # `gcloud storage rsync` rather than `gsutil rsync`: the bucket keeps every past build's assets,
+  # and gsutil took about a minute to compare them.
   - id: publish-assets
-    name: "gcr.io/cloud-builders/gsutil"
+    name: "gcr.io/cloud-builders/gcloud"
     waitFor: ["guard-before-publish"]
     entrypoint: bash
     args:
       - "scripts/deploy/unless-skipped.sh"
-      - "gsutil"
-      - "-m"
-      - "-h"
-      - "Cache-Control:public, max-age=31536000, immutable"
+      - "gcloud"
+      - "storage"
       - "rsync"
-      - "-r"
+      - "--recursive"
+      - "--cache-control=public, max-age=31536000, immutable"
       - "apps/admin/dist/assets"
       - "gs://${_BUCKET}/assets"
 
   - id: publish-index
-    name: "gcr.io/cloud-builders/gsutil"
+    name: "gcr.io/cloud-builders/gcloud"
     waitFor: ["publish-assets"]
     entrypoint: bash
     args:
       - "scripts/deploy/unless-skipped.sh"
-      - "gsutil"
-      - "-m"
-      - "-h"
-      - "Cache-Control:no-cache"
+      - "gcloud"
+      - "storage"
       - "rsync"
-      - "-r"
-      - "-x"
-      - "^assets/"
+      - "--recursive"
+      - "--cache-control=no-cache"
+      - "--exclude=^assets/"
       - "apps/admin/dist"
       - "gs://${_BUCKET}"
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  # The default machine has 2 vCPUs; install, typecheck, the tests and the build are CPU-bound
+  machineType: E2_HIGHCPU_32
 
 substitutions:
   # The AdminDeploy trigger's includedFiles: the guard skips this build only for a newer commit

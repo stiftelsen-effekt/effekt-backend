@@ -90,8 +90,10 @@ steps:
       - "managed"
       - "--allow-unauthenticated"
 
+  # Sweden migrates and deploys alongside Norway: separate databases, separate services
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
+    waitFor: ["push-latest"]
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
