@@ -62,9 +62,39 @@ jobs:
         env:
           # Cypress runs in web-e2e.yml; this job doesn't need its binary.
           CYPRESS_INSTALL_BINARY: "0"
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Test
-        run: pnpm test
-      - name: Lint
-        run: pnpm lint
+      # tsc's incremental build info, for both the API's tRPC declarations (apps/api/dist-types,
+      # docs/web-trpc.md) and the web typecheck. tsc compares file contents, so build info from an
+      # older commit only means less is skipped, never a stale result.
+      - name: Restore the TypeScript build info
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            apps/api/dist-types
+            apps/web/node_modules/.cache/tsc
+          key: web-tsc-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            web-tsc-${{ hashFiles('pnpm-lock.yaml') }}-
+            web-tsc-
+      - name: Build the tRPC types
+        run: pnpm types:api
+      # Typecheck (`pnpm typecheck` minus the type build above, incremental), lint and test are
+      # independent of each other: run them at once and print each one's output in its own group.
+      - name: Typecheck, lint and test
+        run: |
+          mkdir -p "$RUNNER_TEMP/checks"
+          pnpm exec tsc --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/web.tsbuildinfo \
+            >"$RUNNER_TEMP/checks/typecheck.log" 2>&1 & tsc=$!
+          pnpm lint >"$RUNNER_TEMP/checks/lint.log" 2>&1 & lint=$!
+          pnpm test >"$RUNNER_TEMP/checks/test.log" 2>&1 & tests=$!
+          failed=""
+          for check in typecheck:$tsc lint:$lint test:$tests; do
+            name=${check%%:*}
+            if wait "${check##*:}"; then status=passed; else status=FAILED; failed="$failed $name"; fi
+            echo "::group::$name ($status)"
+            cat "$RUNNER_TEMP/checks/$name.log"
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::Failed:$failed"
+            exit 1
+          fi
