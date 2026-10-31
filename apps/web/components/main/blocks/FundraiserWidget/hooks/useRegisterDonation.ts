@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TRPCClientError } from "@trpc/client";
 import { useMainLocale } from "../../../../../context/MainLocaleContext";
 import {
@@ -23,6 +23,7 @@ import {
   getReferralCodeFromLocation,
   getStoredReferralCode,
 } from "../../../../../util/referralCode";
+import type { FormattingLocale } from "../../../../../util/formatting";
 
 interface UseRegisterDonationProps {
   fundraiserId: string;
@@ -37,6 +38,7 @@ interface UseRegisterDonationProps {
     _type: string;
   }>;
   onSuccess: (kid: string) => void;
+  locale: FormattingLocale;
 }
 
 // The fundraiser widget has no charge day picker. Vipps charges the first donation straight
@@ -147,21 +149,60 @@ const registerFundraiserDonation = async (
   }
 };
 
+// The fundraiser widget's Sanity config has no error text, so the message lives here
+const GENERIC_ERROR_MESSAGE: Record<FormattingLocale, string> = {
+  "no-NB": "Noe gikk galt. Vennligst prøv igjen.",
+  "sv-SE": "Något gick fel. Försök igen.",
+  "da-DK": "Noget gik galt. Prøv venligst igen.",
+  "en-US": "Something went wrong. Please try again.",
+  "et-EE": "Midagi läks valesti. Palun proovi uuesti.",
+};
+
+export const fundraiserErrorMessage = (locale: FormattingLocale) =>
+  GENERIC_ERROR_MESSAGE[locale] ?? GENERIC_ERROR_MESSAGE["en-US"];
+
 export function useRegisterDonation({
   fundraiserId,
   organizationInfo,
   paymentMethods,
   onSuccess,
+  locale,
 }: UseRegisterDonationProps) {
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  // Set synchronously so a double click can't register (and charge) the donation twice
+  const inFlight = useRef(false);
   const [kid, setKid] = useState<string | null>(null);
   // Our backend's tRPC, or the Danish REST backend (site from the main layout's MainLocaleContext)
   const mainLocale = useMainLocale();
   const flavor = apiFlavorFor(mainLocale);
   const trpc = publicTrpcFor(mainLocale);
 
+  // Back from Vipps, Nets or a card page restores this page from the back/forward cache with the
+  // button still spinning; let the donor try again
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        inFlight.current = false;
+        setLoading(false);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  const fail = (err: unknown) => {
+    console.error("Error:", err);
+    inFlight.current = false;
+    setLoading(false);
+    setError(fundraiserErrorMessage(locale));
+  };
+
   const registerDonation = (formData: FormData) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
+    setError(null);
 
     // Find the selected payment method from the configured payment methods
     const selectedPaymentMethod = paymentMethods.find(
@@ -222,8 +263,7 @@ export function useRegisterDonation({
     registerFundraiserDonation(flavor, trpc, donation)
       .then(async (result) => {
         if (!result.ok) {
-          console.error("Error:", result.error);
-          setLoading(false);
+          fail(result.error);
           return;
         }
         const receivedKid = result.content.KID as string;
@@ -240,14 +280,12 @@ export function useRegisterDonation({
           window.open(result.content.paymentProviderUrl, "_self");
         } else {
           onSuccess(receivedKid);
+          inFlight.current = false;
           setLoading(false);
         }
       })
-      .catch((error) => {
-        console.error("Error:", error);
-        setLoading(false);
-      });
+      .catch(fail);
   };
 
-  return { registerDonation, loading, kid };
+  return { registerDonation, loading, error, kid };
 }

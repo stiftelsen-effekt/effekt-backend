@@ -272,6 +272,10 @@
     cursor: pointer;
     margin-top: 16px;
     margin-bottom: 2rem;
+
+    &:disabled {
+      cursor: progress;
+    }
   }
 
   &__privacy-link {

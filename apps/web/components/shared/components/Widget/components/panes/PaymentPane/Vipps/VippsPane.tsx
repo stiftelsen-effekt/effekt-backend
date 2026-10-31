@@ -6,7 +6,6 @@ import { draftAgreementAction, setVippsAgreement } from "../../../../store/donat
 import { State } from "../../../../store/state";
 import { RecurringDonation } from "../../../../types/Enums";
 import { SubmitButton } from "../../../shared/Buttons/NavigationButtons";
-import { ErrorField } from "../../../shared/Error/ErrorField";
 import { CenterDiv, Pane, PaneContainer, PaneTitle } from "../../Panes.style";
 import { VippsDatePicker } from "./VippsDatePicker/VippsDatePicker";
 import { VippsButtonWrapper } from "./VippsPane.style";
@@ -23,7 +22,6 @@ export const VippsPane: React.FC<{
   const dispatch = useDispatch<Dispatch<DonationActionTypes | Action<undefined>>>();
   const donationState = useSelector((state: State) => state.donation);
   const { paymentProviderURL, recurring, vippsAgreement } = donationState;
-  const [draftError, setDraftError] = useState(false);
   const [chooseChargeDay, setChooseChargeDay] = useState(0);
   const plausible = usePlausible();
 
@@ -57,7 +55,6 @@ export const VippsPane: React.FC<{
               {chooseChargeDay === 1 && (
                 <VippsDatePicker config={config.recurring_selector_date_picker_configuration} />
               )}
-              {draftError && <ErrorField text="Det har skjedd en feil, vennligst prøv på nytt" />}
             </div>
             <CenterDiv>
               <div data-cy="vipps-recurring-button" style={{ marginBottom: 30 }}>

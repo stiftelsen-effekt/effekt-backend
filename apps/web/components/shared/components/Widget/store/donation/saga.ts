@@ -31,6 +31,7 @@ import {
 export function* draftVippsAgreement(): SagaIterator<void> {
   try {
     yield put(setLoading(true));
+    yield put(clearApiError());
 
     const donation = yield select((state: State) => state.donation);
     const causeAreas = yield select((state: State) => state.layout.causeAreas) || [];
@@ -65,25 +66,24 @@ export function* draftVippsAgreement(): SagaIterator<void> {
       registrationToken: donation.registrationToken,
     };
 
-    let vippsConfirmationUrl: string;
-    try {
-      vippsConfirmationUrl = yield call(draftVippsAgreementRequest, data);
-    } catch (ex) {
-      yield put(setLoading(false));
-      throw ex;
-    }
+    const vippsConfirmationUrl: string = yield call(draftVippsAgreementRequest, data);
 
     window.location.href = vippsConfirmationUrl;
 
     yield put(setPaymentProviderURL(vippsConfirmationUrl));
   } catch (ex) {
-    console.error(ex);
+    console.error("Drafting Vipps agreement failed", ex);
+    // Show the widget's generic error message rather than leaving the donor at a button that
+    // silently stopped spinning
+    yield put(setApiError(null));
+    yield put(setLoading(false));
   }
 }
 
 export function* draftAvtaleGiro(): SagaIterator<void> {
   try {
     yield put(setLoading(true));
+    yield put(clearApiError());
     const dueDay: number = yield select((state: State) => state.donation.dueDay);
 
     const donation = yield select((state: State) => state.donation);
@@ -112,17 +112,14 @@ export function* draftAvtaleGiro(): SagaIterator<void> {
       registrationToken: donation.registrationToken,
     };
 
-    try {
-      yield call(draftAvtaleGiroRequest, data);
-    } catch (ex) {
-      yield put(setLoading(false));
-      throw new Error("Drafting AvtaleGiro failed", { cause: ex });
-    }
+    yield call(draftAvtaleGiroRequest, data);
 
     const form = document.getElementById("avtalegiro-form") as HTMLFormElement;
     form.submit();
   } catch (ex) {
-    console.error(ex);
+    console.error("Drafting AvtaleGiro failed", ex);
+    yield put(setApiError(null));
+    yield put(setLoading(false));
   }
 }
 

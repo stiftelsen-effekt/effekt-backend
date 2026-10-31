@@ -30,6 +30,7 @@ interface PaymentMethodPaneProps {
   onChange: (field: keyof FormData, value: any) => void;
   onSubmit: () => void;
   loading: boolean;
+  error?: string | null;
   config: {
     allow_anonymous_donations: boolean;
     tax_deduction?: {
@@ -78,6 +79,7 @@ export const PaymentMethodPane = React.forwardRef<HTMLDivElement, PaymentMethodP
       onChange,
       onSubmit,
       loading,
+      error,
       config,
       className,
       visible,
@@ -377,6 +379,8 @@ export const PaymentMethodPane = React.forwardRef<HTMLDivElement, PaymentMethodP
             type="submit"
             className={styles["donation-widget__button"]}
             data-cy="fundraiser-submit-button"
+            disabled={loading}
+            aria-busy={loading || undefined}
           >
             {loading ? (
               <Spinner className={styles["donation-widget__spinner"]} />
@@ -384,6 +388,15 @@ export const PaymentMethodPane = React.forwardRef<HTMLDivElement, PaymentMethodP
               fundraiserSubmitButtonText(formData.paymentMethod, formData.recurring)
             )}
           </button>
+          {error && (
+            <div
+              role="alert"
+              data-cy="fundraiser-submit-error"
+              style={{ color: "var(--primary)", fontSize: "14px", marginTop: "-1.5rem" }}
+            >
+              {error}
+            </div>
+          )}
         </form>
       </div>
     );

@@ -70,11 +70,17 @@ export const FundraiserWidget: React.FC<DonationWidgetProps> = ({
     paymentMethodPaneRef,
     bankTransferPaneRef,
   ] = paneRefs;
-  const { loading, kid, registerDonation } = useRegisterDonation({
+  const {
+    loading,
+    error: registrationError,
+    kid,
+    registerDonation,
+  } = useRegisterDonation({
     fundraiserId,
     organizationInfo,
     paymentMethods: widgetConfig?.payment_methods || [],
     onSuccess: () => goToNextStep(),
+    locale,
   });
   const [privacyPolicyError, setPrivacyPolicyError] = useState(false);
   const availablePaymentMethods = useMemo(
@@ -202,6 +208,7 @@ export const FundraiserWidget: React.FC<DonationWidgetProps> = ({
             onChange={updateField}
             onSubmit={handlePaymentMethodSubmit}
             loading={loading}
+            error={registrationError}
             config={{
               tax_deduction:
                 config.tax_deduction_enabled && config.tax_deduction
