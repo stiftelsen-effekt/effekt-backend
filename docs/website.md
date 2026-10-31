@@ -34,7 +34,7 @@ pnpm web:dev            # from the repo root; http://localhost:3000
 
 ## Sanity Studio
 
-The Studio lives in `apps/web/studio` and is built into `public/studio` on every site build (`prebuild`).
+The Studio lives in `apps/web/studio` and is built into `public/studio` by every site build (`prebuild`, `apps/web/build-studio.mjs`). A build reuses the previous Studio build, kept in `.next/cache/studio`, when the files in `studio/` and the Studio's build environment are unchanged.
 Only `SANITY_STUDIO_*` variables reach it; `studio/sanity.cli.ts` maps a few of the site's variables to
 those names. Run these in `apps/web` (you need a Sanity user; ask in the tech channel):
 
