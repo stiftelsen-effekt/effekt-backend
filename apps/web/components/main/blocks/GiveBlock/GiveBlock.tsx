@@ -16,7 +16,7 @@ export const GiveBlock: React.FC<GiveBlockProps> = ({
   donateLabel,
   accentColor,
 }) => {
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [, setWidgetContext] = useContext(WidgetContext);
   const plausible = usePlausible();
 
   let accentStyles: CSSProperties = {};

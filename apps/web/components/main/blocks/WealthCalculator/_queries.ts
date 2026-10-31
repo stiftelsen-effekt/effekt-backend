@@ -36,7 +36,7 @@ export const getNorwegianTaxEstimate = async (
     }
 
     return tax;
-  } catch (error) {
+  } catch {
     throw new Error("Could not find tax amount for NO");
   }
 };
@@ -77,7 +77,7 @@ export const getSwedishTaxEstimate = async (
     }
 
     return tax;
-  } catch (error) {
+  } catch {
     throw new Error("Could not find tax amount for SV");
   }
 };
@@ -195,7 +195,7 @@ const getNorwegianInflation2017 = async () => {
     const inflation = await res.json();
 
     return inflation;
-  } catch (error) {
+  } catch {
     throw new Error("Could not find inflation rate for NOK");
   }
 };
@@ -206,7 +206,7 @@ const getSwedishInflation2017 = async () => {
     const inflation = await res.json();
 
     return inflation;
-  } catch (error) {
+  } catch {
     throw new Error("Could not find inflation rate for SEK");
   }
 };
@@ -217,7 +217,7 @@ const getDanishInflation2017 = async () => {
     const inflation = await res.json();
 
     return inflation;
-  } catch (error) {
+  } catch {
     throw new Error("Could not find inflation rate for DKK");
   }
 };

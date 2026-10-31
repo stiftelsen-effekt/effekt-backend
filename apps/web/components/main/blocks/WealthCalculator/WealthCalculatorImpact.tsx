@@ -23,8 +23,8 @@ export const WealthCalculatorImpact: React.FC<{
   setDonationPercentage: (value: number) => void;
   postTaxIncome: number;
   config: WealthCalculatorImpactConfig;
-}> = ({ donationPercentage, setDonationPercentage, postTaxIncome, config }) => {
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+}> = ({ donationPercentage, postTaxIncome, config }) => {
+  const [, setWidgetContext] = useContext(WidgetContext);
   const plausible = usePlausible();
 
   const donationAmount = useMemo(() => {

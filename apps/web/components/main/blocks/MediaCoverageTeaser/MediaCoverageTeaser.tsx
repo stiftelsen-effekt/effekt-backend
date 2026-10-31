@@ -21,7 +21,7 @@ export const MediaCoverageTeaser: React.FC<{
     };
   }[];
   readMoreButton: NavLink;
-}> = ({ title, coverage, readMoreButton }) => {
+}> = ({ coverage, readMoreButton }) => {
   return (
     <div className={styles.container}>
       <div className={styles.coverageList}>

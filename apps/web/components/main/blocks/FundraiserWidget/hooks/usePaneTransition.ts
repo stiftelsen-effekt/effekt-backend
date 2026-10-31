@@ -9,7 +9,7 @@ interface TransitionState {
   direction: "forward" | "backward";
 }
 
-export function usePaneTransition(totalPanes: number) {
+export function usePaneTransition(_totalPanes: number) {
   // Opted out of the React Compiler: it memoizes the `paneRefs` array literal
   // below, hook calls included, so the four useRef calls are skipped after the
   // first render and React throws "Should have a queue" (minified error #311),

@@ -18,7 +18,6 @@ export interface TeasersItemProps {
 }
 
 export const TeasersItem: React.FC<TeasersItemProps> = ({
-  id,
   title,
   paragraph,
   links,

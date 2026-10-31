@@ -35,7 +35,7 @@ export const NewsletterSignup: React.FC<{
       } else {
         setMessage("Der opstod en fejl. Prøv venligst igen.");
       }
-    } catch (error) {
+    } catch {
       setMessage("Der opstod en fejl. Prøv venligst igen.");
     } finally {
       setLoading(false);

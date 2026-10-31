@@ -46,7 +46,7 @@ export const ProfilePage = withStaticProps(
       },
     }; // satisfies GeneralPageProps (requires next@13);;
   },
-)(({ data, navbarData, draftMode }) => {
+)(({ data, navbarData }) => {
   const page = data.result.page;
 
   if (!data) return <div>Missing data.</div>;

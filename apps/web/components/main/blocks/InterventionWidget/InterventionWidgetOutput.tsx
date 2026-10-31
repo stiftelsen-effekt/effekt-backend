@@ -57,7 +57,7 @@ export const InterventionWidgetOutput: React.FC<{
   const [selectedIntervention, setSelectedIntervention] = useState<string>(
     interventions ? interventions[0].title : "",
   );
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [, setWidgetContext] = useContext(WidgetContext);
   const plausible = usePlausible();
   const currentDate = useMemo(() => new Date(), []);
 

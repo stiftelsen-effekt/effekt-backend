@@ -133,7 +133,7 @@ export const BlockTablesContent: React.FC<{
               setScrollButtonTouchStart(e.touches[0].clientX);
             }
           }}
-          onTouchEnd={(e) => {
+          onTouchEnd={() => {
             setScrollButtonTouchStart(-1);
             if (hasScrolled) setScrollButtonDisplayed(false);
           }}

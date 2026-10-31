@@ -40,7 +40,6 @@ const formatHarvardCitation = ({
   const journalString = journal ? `${journal}, ` : "";
   const timestampString = timestamp ? ` (Tidsstempel: ${timestamp}) ` : "";
   const editionString = edition ? ` ${edition}. utgave, ` : "";
-  const noteString = note ? `${note}` : "";
   const serieString = serie ? ` ${serie} ` : "";
   const numberInSerieString = number_in_serie ? `No. ${number_in_serie}. ` : "";
 

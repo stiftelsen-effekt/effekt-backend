@@ -24,7 +24,7 @@ export interface WidgetPaneProps extends ComponentProps<typeof WidgetType> {
 }
 
 export const WidgetPane: React.FC<WidgetPaneProps> = ({ darkMode, ...widgetProps }) => {
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [widgetContext] = useContext(WidgetContext);
 
   // On initial load, have no animation
   // Then reset on render
