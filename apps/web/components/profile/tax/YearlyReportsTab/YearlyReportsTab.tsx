@@ -25,10 +25,11 @@ export const YearlyReportsTab: React.FC<{
     error: reportsError,
   } = useYearlyTaxReports(user as User, getAccessTokenSilently);
 
-  const { loading: donationsLoading, data: donations } = useDonations(
-    user as User,
-    getAccessTokenSilently,
-  );
+  const {
+    loading: donationsLoading,
+    data: donations,
+    error: donationsError,
+  } = useDonations(user as User, getAccessTokenSilently);
 
   const kids = useMemo(() => {
     const kidsSet = new Set<string>();
@@ -38,12 +39,11 @@ export const YearlyReportsTab: React.FC<{
 
   const shouldFetchDistributions = !donationsLoading && donations !== undefined && kids.length > 0;
 
-  const { loading: distributionsLoading, data: distributions } = useDistributions(
-    user as User,
-    getAccessTokenSilently,
-    shouldFetchDistributions,
-    kids,
-  );
+  const {
+    loading: distributionsLoading,
+    data: distributions,
+    error: distributionsError,
+  } = useDistributions(user as User, getAccessTokenSilently, shouldFetchDistributions, kids);
   const donationsLoaded = Array.isArray(donations);
   const reportsLoaded = Array.isArray(reportsData);
   const resolvedDistributions = shouldFetchDistributions ? distributions : [];
@@ -53,7 +53,11 @@ export const YearlyReportsTab: React.FC<{
   const loading =
     donationsLoading || (shouldFetchDistributions && distributionsLoading) || reportsLoading;
 
-  if (reportsError) {
+  // Any failed query would otherwise leave the tab on the spinner
+  const loadError =
+    reportsError || donationsError || (shouldFetchDistributions ? distributionsError : undefined);
+
+  if (loadError) {
     return (
       <div className={styles.container}>
         <h4 className={styles.header}>Dine årsoppgaver</h4>
@@ -61,7 +65,7 @@ export const YearlyReportsTab: React.FC<{
           Henting av dine årsrapporter feilet. Våre utviklere er varlset om feilen og er på saken.
           Kontakt oss gjerne på donasjon@gieffektivt.no så finner vi ut av det!{" "}
         </p>
-        <ErrorMessage>{JSON.stringify(reportsError, null, 2)}</ErrorMessage>
+        <ErrorMessage>{JSON.stringify(loadError, null, 2)}</ErrorMessage>
       </div>
     );
   }

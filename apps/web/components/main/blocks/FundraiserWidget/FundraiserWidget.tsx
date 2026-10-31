@@ -5,7 +5,7 @@ import type { SanityImageObject } from "@sanity/image-url";
 import { FetchFundraiserResult } from "../../../../studio/sanity.types";
 import { NavLink } from "../../../shared/components/Navbar/Navbar";
 import { validateWidgetConfig } from "./validateWidgetConfig";
-import { useFundraiserForm, FormData } from "./hooks/useFundraiserForm";
+import { useFundraiserForm } from "./hooks/useFundraiserForm";
 import { usePaneTransition } from "./hooks/usePaneTransition";
 import { useRegisterDonation } from "./hooks/useRegisterDonation";
 import { OrganizationInfoPane } from "./panes/OrganizationInfoPane";
@@ -39,7 +39,6 @@ interface DonationWidgetProps {
     };
   };
   locale: FormattingLocale;
-  onComplete?: (formData: FormData) => void;
 }
 
 export const FundraiserWidget: React.FC<DonationWidgetProps> = ({

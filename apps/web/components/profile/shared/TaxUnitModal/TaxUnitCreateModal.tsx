@@ -11,6 +11,7 @@ import styles from "./TaxUnitModal.module.scss";
 import { Check } from "react-feather";
 import { validateOrg, validateSsn } from "@ssfbank/norwegian-id-validators";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { ErrorMessage } from "../ErrorMessage/ErrorMessage";
 import { useTaxUnits } from "../../../../_queries";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
@@ -28,10 +29,11 @@ const TaxUnitCreateModalStandard: React.FC<{
   const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
-  const { data: existingUnits, loading: loadingUnits } = useTaxUnits(
-    user as User,
-    getAccessTokenSilently,
-  );
+  const {
+    data: existingUnits,
+    loading: loadingUnits,
+    error: errorLoadingUnits,
+  } = useTaxUnits(user as User, getAccessTokenSilently);
 
   const [name, setName] = useState("");
   const [ssn, setSsn] = useState("");
@@ -67,6 +69,11 @@ const TaxUnitCreateModalStandard: React.FC<{
 
   if (loadingUnits) {
     return <Spinner />;
+  }
+
+  // The existing units back the duplicate check, so the form needs them
+  if (errorLoadingUnits) {
+    return <ErrorMessage />;
   }
 
   const ssnDigits = ssn.replace(/\D/g, "");

@@ -86,7 +86,10 @@ function MyApp({
       document.addEventListener("visibilitychange", handleVisibilityChange);
       return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- registers the listener once
+    // The listener reads `tracking` from the first render, which is always false (tracking is off
+    // during hydration), so this beacon is never sent. Adding `tracking` to the deps would start
+    // sending visibility_hidden events again, which is an analytics decision, not a lint fix.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, []);
 
   if (!appStaticProps) {

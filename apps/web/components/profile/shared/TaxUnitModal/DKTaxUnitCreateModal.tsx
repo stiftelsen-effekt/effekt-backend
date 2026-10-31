@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import styles from "./TaxUnitModal.module.scss";
 import { AlertCircle, Check } from "react-feather";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { ErrorMessage } from "../ErrorMessage/ErrorMessage";
 import { useTaxUnits } from "../../../../_queries";
 import { EffektTextInput } from "../../../shared/components/EffektTextInput/EffektTextInput";
 import { validateTin, formatTinInput } from "../../../../util/tin-validation";
@@ -24,10 +25,11 @@ export const DKTaxUnitCreateModal: React.FC<{
   const { getAccessTokenSilently, user } = useAuth0();
   const trpc = useTrpcClient(getAccessTokenSilently);
 
-  const { data: existingUnits, loading: loadingUnits } = useTaxUnits(
-    user as User,
-    getAccessTokenSilently,
-  );
+  const {
+    data: existingUnits,
+    loading: loadingUnits,
+    error: errorLoadingUnits,
+  } = useTaxUnits(user as User, getAccessTokenSilently);
 
   const [name, setName] = useState("");
   const [ssn, setSsn] = useState("");
@@ -63,6 +65,11 @@ export const DKTaxUnitCreateModal: React.FC<{
 
   if (loadingUnits) {
     return <Spinner />;
+  }
+
+  // The existing units back the duplicate check, so the form needs them
+  if (errorLoadingUnits) {
+    return <ErrorMessage />;
   }
 
   const ssnDigits = ssn.replace(/\D/g, "");

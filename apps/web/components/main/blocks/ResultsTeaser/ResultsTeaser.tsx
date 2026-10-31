@@ -7,7 +7,6 @@ import { NavLink } from "../../../shared/components/Navbar/Navbar";
 import { publicTrpcFor } from "../../../../lib/trpc/client";
 
 export const ResultsTeaser: React.FC<{
-  title: string;
   sumSubtitle?: string;
   donorsSubtitle?: string;
   seeMoreButton?: NavLink;

@@ -89,20 +89,19 @@ export function HistogramRange({
     [bins],
   );
   const lastIndex = edges.length - 1;
-  const toIndex = (amount: number | undefined, fallback: number) => {
-    if (amount === undefined) return fallback;
-    const index = edges.findIndex((edge) => edge >= amount);
-    return index === -1 ? lastIndex : index;
-  };
-  const [range, setRange] = useState<[number, number]>([
-    toIndex(value.min, 0),
-    toIndex(value.max, lastIndex),
-  ]);
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes to the range
-    setRange([toIndex(value.min, 0), toIndex(value.max, lastIndex)]);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- toIndex is rebuilt every render; it reads edges, of which only lastIndex is tracked
-  }, [value.min, value.max, lastIndex]);
+  const rangeFor = (): [number, number] => [
+    edgeIndex(edges, value.min, 0),
+    edgeIndex(edges, value.max, lastIndex),
+  ];
+  const [range, setRange] = useState<[number, number]>(rangeFor);
+  // Follow outside changes to the value and to the bin edges (new edges can keep the same count),
+  // adjusting the state while rendering rather than in an effect.
+  const syncKey = `${value.min}|${value.max}|${edges.join(",")}`;
+  const [syncedKey, setSyncedKey] = useState(syncKey);
+  if (syncedKey !== syncKey) {
+    setSyncedKey(syncKey);
+    setRange(rangeFor());
+  }
 
   const maxCount = Math.max(1, ...bins.map((bin) => bin.count));
   const barWidth = 100 / Math.max(bins.length, 1);
@@ -159,6 +158,13 @@ export function HistogramRange({
       <NumberRangeInputs value={value} onChange={onChange} unit={unit} label={label} />
     </div>
   );
+}
+
+/** The index of the first edge at or above `amount`, the last edge if none is, or `fallback` without an amount. */
+export function edgeIndex(edges: number[], amount: number | undefined, fallback: number) {
+  if (amount === undefined) return fallback;
+  const index = edges.findIndex((edge) => edge >= amount);
+  return index === -1 ? edges.length - 1 : index;
 }
 
 /** Buckets raw values into bins with the given edges; overflow goes in the last bin. */
