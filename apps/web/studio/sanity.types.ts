@@ -3858,12 +3858,6 @@ export type Pointlist = {
   >;
 };
 
-export type Key_point = {
-  _type: "key_point";
-  heading?: string;
-  body?: string;
-};
-
 export type Introsection = {
   _type: "introsection";
   heading?: string;
@@ -7116,7 +7110,6 @@ export type AllSanitySchemaTypes =
   | Link
   | Pointlistpoint
   | Pointlist
-  | Key_point
   | Introsection
   | Contributor
   | Role

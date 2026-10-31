@@ -1,5 +1,4 @@
 import contributor from "./types/contributor";
-import keyPoint from "./types/key-point";
 import organization from "./types/organization";
 import role from "./types/role";
 import testimonial from "./types/testimonial";
@@ -122,7 +121,6 @@ export const types = [
   testimonial,
   contributor,
   introsection,
-  keyPoint,
   pointlist,
   pointlistpoint,
   link,
