@@ -27,6 +27,7 @@ import {
   getStoredReferralCode,
   storeReferralCode,
 } from "../../../../../util/referralCode";
+import { splitAmountByShares } from "../utils/donationCalculations";
 
 /** Designed pane content width, before the reserved scrollbar gutter. */
 export const WIDGET_CONTENT_WIDTH = 576;
@@ -265,9 +266,9 @@ const handlePrefilledCauseArea = (
     if (org.share > 0) shareByOrgId[org.organizationId] = org.share;
   });
 
+  const amountByOrgId = splitAmountByShares(causeAreaAmount, shareByOrgId);
   causeArea.organizations.forEach((organization) => {
-    const share = shareByOrgId[organization.id] ?? 0;
-    dispatch(setOrgAmount(organization.id, Math.round((share / 100) * causeAreaAmount)));
+    dispatch(setOrgAmount(organization.id, amountByOrgId[organization.id] ?? 0));
   });
 
   return shareByOrgId;

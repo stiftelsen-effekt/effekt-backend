@@ -44,6 +44,7 @@ import { thousandize } from "../../../../../../../util/formatting";
 import { useAmountCalculation } from "../AmountPane/useAmountCalculation";
 import { AmountContext, SmartDistributionContext } from "../../../types/WidgetProps";
 import { useIsMobile } from "../../../../../../../hooks/useIsMobile";
+import { splitAmountByShares, standardShareByOrgId } from "../../../utils/donationCalculations";
 
 interface SingleCauseAreaPaneProps {
   nextButtonText: string;
@@ -108,10 +109,13 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
   // (not local component state) because panes unmount/remount when navigating.
   const hasPrefilledOrgs = !!prefilledShares && Object.keys(prefilledShares).length > 0;
   const isTrackingPrefilledShares = hasPrefilledOrgs && !hasManuallyEditedPrefilledOrgAmount;
+  const trackedOrgAmounts =
+    isTrackingPrefilledShares && prefilledShares
+      ? splitAmountByShares(currentAmount, prefilledShares)
+      : {};
   const displayOrgAmount = (orgId: number) => {
-    const share = prefilledShares?.[orgId];
-    if (isTrackingPrefilledShares && share !== undefined) {
-      return Math.round((share / 100) * currentAmount);
+    if (isTrackingPrefilledShares && prefilledShares?.[orgId] !== undefined) {
+      return trackedOrgAmounts[orgId] ?? 0;
     }
     return orgAmounts[orgId] || 0;
   };
@@ -185,11 +189,13 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
     if (value === ShareType.CUSTOM) {
       const hasSetOrgAmounts = activeOrganizations.some((org) => (orgAmounts[org.id] || 0) > 0);
       if (!hasSetOrgAmounts) {
-        const causeAreaAmount = causeAreaAmounts[causeArea.id] || 0;
+        const amountByOrgId = splitAmountByShares(
+          causeAreaAmounts[causeArea.id] || 0,
+          standardShareByOrgId(causeArea),
+        );
         for (const org of causeArea.organizations) {
           if (!org.standardShare) continue;
-          const orgShare = Math.round((org.standardShare / 100) * causeAreaAmount);
-          dispatch(setOrgAmount(org.id, orgShare));
+          dispatch(setOrgAmount(org.id, amountByOrgId[org.id] ?? 0));
         }
       }
     }
@@ -383,8 +389,8 @@ export const SingleCauseAreaPane: React.FC<SingleCauseAreaPaneProps> = ({
                 return;
               }
               if (isTrackingPrefilledShares && prefilledShares) {
-                Object.entries(prefilledShares).forEach(([orgId, share]) => {
-                  dispatch(setOrgAmount(Number(orgId), Math.round((share / 100) * currentAmount)));
+                Object.keys(prefilledShares).forEach((orgId) => {
+                  dispatch(setOrgAmount(Number(orgId), trackedOrgAmounts[Number(orgId)] ?? 0));
                 });
               }
               dispatch(setSum(effectiveTotalAmount));

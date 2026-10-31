@@ -3,7 +3,10 @@ import {
   calculateDonationBreakdown,
   calculateOrganizationSharesWithinCauseArea,
   distributeSharesWithRemainder,
+  splitAmountByShares,
+  standardShareByOrgId,
 } from "./donationCalculations";
+import { ShareType } from "../types/Enums";
 
 describe("calculateDonationBreakdown", () => {
   const causeAreas = [
@@ -311,5 +314,67 @@ describe("calculateOrganizationSharesWithinCauseArea", () => {
     ]);
 
     expect(shares.map((s) => s.id).sort()).toEqual([1, 10, 12]);
+  });
+});
+
+describe("splitAmountByShares", () => {
+  it("splits so the parts add up to the amount", () => {
+    expect(splitAmountByShares(101, { 1: 50, 2: 50 })).toEqual({ 1: 51, 2: 50 });
+    const thirds = splitAmountByShares(100, { 1: 33.33, 2: 33.33, 3: 33.34 });
+    expect(Object.values(thirds).reduce((a, b) => a + b, 0)).toBe(100);
+    const odd = splitAmountByShares(1001, { 1: 29, 2: 29, 3: 42 });
+    expect(Object.values(odd).reduce((a, b) => a + b, 0)).toBe(1001);
+  });
+
+  it("covers only the part of the amount the shares cover", () => {
+    expect(splitAmountByShares(1000, { 1: 30 })).toEqual({ 1: 300 });
+  });
+
+  it("leaves out organizations without a part", () => {
+    expect(splitAmountByShares(0, { 1: 50, 2: 50 })).toEqual({});
+    expect(splitAmountByShares(100, { 1: 0, 2: 100 })).toEqual({ 2: 100 });
+  });
+});
+
+describe("standardShareByOrgId", () => {
+  it("lists organizations with a standard share", () => {
+    expect(
+      standardShareByOrgId({
+        id: 1,
+        organizations: [
+          { id: 11, standardShare: 60 },
+          { id: 12, standardShare: 40 },
+          { id: 13, standardShare: 0 },
+        ],
+      } as any),
+    ).toEqual({ 11: 60, 12: 40 });
+  });
+});
+
+describe("calculateDonationBreakdown with excluded cause areas", () => {
+  const areas = [
+    { id: 1, name: "A", organizations: [{ id: 11, standardShare: 100 }] },
+    { id: 5, name: "Other", organizations: [{ id: 51 }, { id: 52 }] },
+  ] as any;
+
+  it("leaves an excluded custom cause area out of the operations cut base", () => {
+    const breakdown = calculateDonationBreakdown(
+      { 1: 1000 },
+      { 51: 500, 52: 500 },
+      { 1: ShareType.STANDARD, 5: ShareType.CUSTOM },
+      {},
+      {},
+      areas,
+      "multiple",
+      undefined,
+      true,
+      10,
+      [5],
+      undefined,
+    );
+    // 10% of the 1000 to area 1, not of 2000
+    expect(breakdown.operationsAmount).toBe(100);
+    expect(breakdown.causeAreaAmounts).toEqual({ 1: 900 });
+    expect(breakdown.totalAmount).toBe(1000);
   });
 });
