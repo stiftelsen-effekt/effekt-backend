@@ -16,7 +16,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-    uses: ./.github/workflows/web-e2e.yml
+    uses: $/.github/workflows/web-e2e.yml
     with:
       group: "GiEffektivt e2e tests"
       # The production Min Side Auth0 app only allows exact callbacks, so production
@@ -38,7 +38,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-    uses: ./.github/workflows/web-e2e.yml
+    uses: $/.github/workflows/web-e2e.yml
     with:
       group: "GivEffektivt e2e tests"
       base-url: ${{ github.event.deployment_status.target_url }}

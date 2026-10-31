@@ -1,0 +1,6 @@
+# actionlint (1.7.12) doesn't know GitHub's self-repository syntax for reusable workflows,
+# `uses: $/.github/workflows/<file>`, which zizmor requires over `./.github/workflows/<file>`.
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'reusable workflow call "\$/\.github/workflows/[^"]+" at "uses" is not following the format'
