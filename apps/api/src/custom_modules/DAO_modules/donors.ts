@@ -704,6 +704,32 @@ async function updateNewsletter(donorID, newsletter) {
 }
 
 /**
+ * ID, email and newsletter flag of every donor with an email, for the Mailchimp sync.
+ * Much lighter than getAll, which aggregates all donations for each page.
+ */
+async function getNewsletterSyncRows(): Promise<
+  { id: number; email: string; newsletter: boolean }[]
+> {
+  const [rows] = await DAO.query<{ id: number; email: string; newsletter: number }[]>(
+    `SELECT ID AS id, email, newsletter FROM Donors WHERE email IS NOT NULL AND email <> ''`,
+  );
+  return rows.map((row) => ({ id: row.id, email: row.email, newsletter: Boolean(row.newsletter) }));
+}
+
+/**
+ * Sets the newsletter flag for many donors, a chunk of IDs per statement
+ */
+async function setNewsletterForDonors(donorIDs: number[], newsletter: boolean): Promise<void> {
+  const chunkSize = 1000;
+  for (let i = 0; i < donorIDs.length; i += chunkSize) {
+    await DAO.query(`UPDATE Donors SET newsletter = ? WHERE ID IN (?)`, [
+      newsletter,
+      donorIDs.slice(i, i + chunkSize),
+    ]);
+  }
+}
+
+/**
  * Updates donor information
  * @param {number} donorID
  * @param {string} name
@@ -753,6 +779,8 @@ export const donors = {
   search,
   add,
   updateNewsletter,
+  getNewsletterSyncRows,
+  setNewsletterForDonors,
   update,
   mergeDonors,
   deleteById,

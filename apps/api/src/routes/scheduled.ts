@@ -15,8 +15,12 @@ import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpayme
 import paymentMethods from "../enums/paymentMethods";
 import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
-import { RequestLocale } from "../middleware/locale";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";
+import {
+  addMembersInBatches,
+  getMemberStatuses,
+  planNewsletterSync,
+} from "../custom_modules/mailchimpNewsletterSync";
 
 const router = express.Router();
 const ocrParser = require("../custom_modules/parsers/OCR");
@@ -323,117 +327,48 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
   // Counters
   let addedToMailchimp = 0;
   let failedAddedToMailchimp = 0;
+  let rejectedByMailchimp = 0;
   let addedToDonor = 0;
   let removedFromMailchimp = 0;
   let removedFromDonor = 0;
-  let failures: any[] = [];
+  let failures: { code?: string; message: string }[] = [];
 
   try {
-    let members: any[] = [];
-    let offset = 0;
-    const count = 1000;
+    const memberStatuses = await getMemberStatuses();
+    console.log("Mailchimp sync: found", memberStatuses.size, "members in the list");
 
-    while (true) {
-      const result = await mailchimp.lists.getListMembersInfo("4c98331f9d", {
-        fields: ["members.email_address", "members.status"],
-        count: 1000,
-        offset: offset,
-      });
-      members = members.concat(result.members);
-      if (result.members.length < count) break;
-      else offset += count;
-    }
-    console.log("Found ", members.length, "mailchimp members for list");
+    const donors = await DAO.donors.getNewsletterSyncRows();
+    console.log("Mailchimp sync: checking", donors.length, "donors");
 
-    // Create a map of members with email as key and status as value
-    const membersMap = members.reduce((map, member) => {
-      map[member.email_address.toLowerCase().trim()] = member.status;
-      return map;
-    }, {});
+    const plan = planNewsletterSync(donors, memberStatuses);
 
-    // Go through db donors and update mailchimp status
+    // Donors that unsubscribed in Mailchimp, though newsletter is set in the database
+    await DAO.donors.setNewsletterForDonors(plan.donorIDsToUnsubscribe, false);
+    removedFromDonor = plan.donorIDsToUnsubscribe.length;
 
-    let donors: any[] = [];
-    let page = 0;
-    while (true) {
-      // getAll requires a sort since the donor list rewrite (2025-05-09); passing null made
-      // every sync fail from then on.
-      const newDonors = await DAO.donors.getAll(
-        { id: "id", desc: false },
-        page,
-        count,
-        null,
-        RequestLocale.NO,
-      );
-      if (newDonors.rows.length === 0) break;
-      donors = donors.concat(newDonors.rows);
-      if (donors.length < count) break;
+    // Donors that subscribed in Mailchimp, for example after donating
+    await DAO.donors.setNewsletterForDonors(plan.donorIDsToSubscribe, true);
+    addedToDonor = plan.donorIDsToSubscribe.length;
 
-      page++;
-    }
+    // Donors with newsletter set in the database that are missing in Mailchimp
+    const added = await addMembersInBatches(plan.emailsToAdd);
+    addedToMailchimp = added.added;
+    rejectedByMailchimp = added.rejectedAsInvalid;
+    failedAddedToMailchimp = added.failed;
+    failures = added.failures;
 
-    donors = donors.sort((a, b) => b.registered - a.registered);
-
-    for (let donor of donors) {
-      const email = donor.email.toLowerCase().trim();
-      if (donor.newsletter) {
-        if (email in membersMap) {
-          if (membersMap[email] == "unsubscribed") {
-            // Donor has newsletter set to true in DB
-            // but mailchimp says they have actively unsubscribed
-            // Set DB donor newsletter to false
-            console.log("Found member", donor.email, "with status", membersMap[email]);
-            removedFromDonor++;
-            await DAO.donors.updateNewsletter(donor.id, false);
-          } else {
-            // Newsletter on DB donor is true and status in mailchimp is
-            // either pending or cleaned. Do nothing.
-          }
-          continue;
-        } else {
-          // Donor has newsletter set to true on their DB donor, but are not subscribed in mailchimp
-          // add them
-          console.log("Adding", donor.email, "to mailchimp");
-          try {
-            await mailchimp.lists.addListMember("4c98331f9d", {
-              email_address: email,
-              status: "subscribed",
-            });
-            addedToMailchimp++;
-          } catch (ex) {
-            const parsedError = JSON.parse(ex.response.text);
-            if (parsedError.detail.match(/.*looks fake or invalid.*/)) {
-              console.log("Failed to add", donor.email, "to mailchimp. Looks fake or invalid");
-              continue;
-            } else {
-              failedAddedToMailchimp++;
-              failures.push(ex);
-            }
-          }
-          continue;
-        }
-      } else {
-        if (email in membersMap) {
-          if (membersMap[email] === "subscribed") {
-            // Donor has newsletter set to false, but is marked as subscribed in mailchimp
-            // They could for example have started subscribing at a later date (after donating)
-            console.log("Updating newsletter status to true for ", donor.email);
-            await DAO.donors.updateNewsletter(donor.id, true);
-            addedToDonor++;
-          } else {
-            // Newsletter is either pending, cleaned or they have unsubscribed according to malichimp,
-            // and the db donor has newsletter set as false. Do nothing.
-          }
-          continue;
-        } else {
-          // Donor email not in mailchimp and newsleter in DB is false. Do nothing.
-          continue;
-        }
-      }
-    }
+    console.log("Mailchimp sync done", {
+      addedToMailchimp,
+      failedAddedToMailchimp,
+      rejectedByMailchimp,
+      addedToDonor,
+      removedFromDonor,
+    });
 
     await DAO.logging.add("MailChimp sync", {
       addedToMailchimp,
+      failedAddedToMailchimp,
+      rejectedByMailchimp,
       addedToDonor,
       removedFromDonor,
       removedFromMailchimp,
@@ -445,6 +380,7 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
       content: {
         addedToMailchimp,
         failedAddedToMailchimp,
+        rejectedByMailchimp,
         addedToDonor,
         removedFromDonor,
         removedFromMailchimp,

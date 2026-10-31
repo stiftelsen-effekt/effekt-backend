@@ -632,37 +632,51 @@ describe("POST /scheduled/mailchimp/newsletter/sync", function () {
     sinon.restore();
   });
 
-  it("reads donors with a sort and logs the sync", async function () {
+  it("syncs both ways in bulk and logs counts without email addresses", async function () {
     const mailchimp = require("@mailchimp/mailchimp_marketing");
     sinon.stub(mailchimp, "setConfig");
     sinon.stub(mailchimp.lists, "getListMembersInfo").resolves({
-      members: [{ email_address: "subscribed@example.org", status: "subscribed" }],
+      members: [
+        { email_address: "subscribed@example.org", status: "subscribed" },
+        { email_address: "Unsubscribed@example.org", status: "unsubscribed" },
+      ],
     });
-    const getAll = sinon.stub(donors, "getAll").callsFake(async (sort, page) => {
-      if (!sort) throw new Error("No sort provided for getAllDonors");
-      return {
-        rows:
-          page === 0
-            ? [
-                {
-                  id: 1,
-                  email: "subscribed@example.org",
-                  newsletter: false,
-                  registered: new Date(),
-                },
-              ]
-            : [],
-      } as any;
+    const addOne = sinon.stub(mailchimp.lists, "addListMember").resolves();
+    const batch = sinon.stub(mailchimp.lists, "batchListMembers").resolves({
+      total_created: 1,
+      errors: [{ email_address: "fake@example", error: "fake@example looks fake or invalid" }],
     });
-    const updateNewsletter = sinon.stub(donors, "updateNewsletter").resolves();
+    sinon.stub(donors, "getNewsletterSyncRows").resolves([
+      { id: 1, email: "subscribed@example.org", newsletter: false },
+      { id: 2, email: "unsubscribed@example.org", newsletter: true },
+      { id: 3, email: "new@example.org", newsletter: true },
+      { id: 4, email: "fake@example", newsletter: true },
+    ]);
+    const setNewsletter = sinon.stub(donors, "setNewsletterForDonors").resolves();
     const log = sinon.stub(DAO.logging, "add").resolves();
+    const consoleLog = sinon.stub(console, "log");
 
     const response = await request(server).post("/scheduled/mailchimp/newsletter/sync");
 
     expect(response.status).to.equal(200);
-    expect(getAll.firstCall.args[0]).to.deep.equal({ id: "id", desc: false });
-    expect(updateNewsletter.calledOnceWith(1, true)).to.be.true;
+    expect(setNewsletter.calledWith([2], false)).to.be.true;
+    expect(setNewsletter.calledWith([1], true)).to.be.true;
+    expect(addOne.called).to.be.false;
+    expect(batch.calledOnce).to.be.true;
+    expect(batch.firstCall.args[1].members.map((m) => m.email_address)).to.deep.equal([
+      "new@example.org",
+      "fake@example",
+    ]);
     expect(log.firstCall.args[0]).to.equal("MailChimp sync");
+    expect(log.firstCall.args[1]).to.include({
+      addedToMailchimp: 1,
+      rejectedByMailchimp: 1,
+      failedAddedToMailchimp: 0,
+      addedToDonor: 1,
+      removedFromDonor: 1,
+    });
+    const logged = JSON.stringify([log.args, consoleLog.args]);
+    expect(logged).not.to.include("@example");
   });
 
   it("records the error and answers when the sync fails", async function () {
