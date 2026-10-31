@@ -980,7 +980,8 @@ async function addAgreement(
   }
 
   try {
-    DAO.query(
+    // INSERT IGNORE: an agreement that is already stored counts as success
+    await DAO.query(
       `
             INSERT IGNORE INTO Vipps_agreements
                 (ID, donorID, KID, amount, monthly_charge_day, agreement_url_code, status)
@@ -991,6 +992,7 @@ async function addAgreement(
 
     return true;
   } catch (ex) {
+    console.error("Error inserting Vipps agreement", ex);
     return false;
   }
 }
@@ -1008,7 +1010,8 @@ async function addAgreement(
  */
 async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status, type) {
   try {
-    DAO.query(
+    // INSERT IGNORE: a charge that is already stored counts as success
+    await DAO.query(
       `
             INSERT IGNORE INTO Vipps_agreement_charges
                 (chargeID, agreementId, amountNOK, KID, dueDate, status, type)
@@ -1019,7 +1022,7 @@ async function addCharge(chargeID, agreementID, amountNOK, KID, dueDate, status,
 
     return true;
   } catch (ex) {
-    console.error("Error inserting charge");
+    console.error("Error inserting charge", ex);
     return false;
   }
 }
@@ -1162,10 +1165,14 @@ async function updateVippsOrderDonation(orderID, donationID) {
  */
 async function updateAgreementPrice(agreementId, price) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`, [price, agreementId]);
+    const [result] = await DAO.query<ResultSetHeader>(
+      `UPDATE Vipps_agreements SET amount = ? WHERE ID = ?`,
+      [price, agreementId],
+    );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
+    console.error("Error updating Vipps agreement", ex);
     return false;
   }
 }
@@ -1178,10 +1185,14 @@ async function updateAgreementPrice(agreementId, price) {
  */
 async function updateAgreementStatus(agreementID, status) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET status = ? WHERE ID = ?`, [status, agreementID]);
+    const [result] = await DAO.query<ResultSetHeader>(
+      `UPDATE Vipps_agreements SET status = ? WHERE ID = ?`,
+      [status, agreementID],
+    );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
+    console.error("Error updating Vipps agreement", ex);
     return false;
   }
 }
@@ -1198,13 +1209,14 @@ async function updateAgreementCancellationDate(agreementID) {
   const mysqlDate = today.toISOString().split("T")[0];
 
   try {
-    DAO.query(`UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`, [
-      mysqlDate,
-      agreementID,
-    ]);
+    const [result] = await DAO.query<ResultSetHeader>(
+      `UPDATE Vipps_agreements SET cancellation_date = ? WHERE ID = ?`,
+      [mysqlDate, agreementID],
+    );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
+    console.error("Error updating Vipps agreement", ex);
     return false;
   }
 }
@@ -1217,13 +1229,14 @@ async function updateAgreementCancellationDate(agreementID) {
  */
 async function updateAgreementChargeDay(agreementId, chargeDay) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`, [
-      chargeDay,
-      agreementId,
-    ]);
+    const [result] = await DAO.query<ResultSetHeader>(
+      `UPDATE Vipps_agreements SET monthly_charge_day = ? WHERE ID = ?`,
+      [chargeDay, agreementId],
+    );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
+    console.error("Error updating Vipps agreement", ex);
     return false;
   }
 }
@@ -1236,10 +1249,14 @@ async function updateAgreementChargeDay(agreementId, chargeDay) {
  */
 async function updateAgreementKID(agreementId, KID) {
   try {
-    DAO.query(`UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`, [KID, agreementId]);
+    const [result] = await DAO.query<ResultSetHeader>(
+      `UPDATE Vipps_agreements SET KID = ? WHERE ID = ?`,
+      [KID, agreementId],
+    );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
+    console.error("Error updating Vipps agreement", ex);
     return false;
   }
 }
@@ -1257,7 +1274,7 @@ async function updateChargeStatus(newStatus, agreementID, chargeID) {
   }
 
   try {
-    DAO.query(
+    const [result] = await DAO.query<ResultSetHeader>(
       `
             UPDATE Vipps_agreement_charges
             SET status = ?
@@ -1267,9 +1284,9 @@ async function updateChargeStatus(newStatus, agreementID, chargeID) {
       [newStatus, agreementID, chargeID],
     );
 
-    return true;
+    return result.affectedRows > 0;
   } catch (ex) {
-    console.error("Error setting charge status to CANCELLED");
+    console.error("Error setting charge status", ex);
     return false;
   }
 }
