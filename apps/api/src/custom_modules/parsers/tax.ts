@@ -17,14 +17,15 @@ import { parse } from "csv-parse/sync";
 export const parseReport = (report) => {
   let reportText = report.toString();
   try {
-    var data = parse(reportText, {
+    // csv-parse 5 typed the sync parse as any, which the code below relies on
+    var data: any = parse(reportText, {
       delimiter: ";",
       bom: true,
       skip_empty_lines: true,
     });
   } catch {
     try {
-      var data = parse(reportText, {
+      var data: any = parse(reportText, {
         delimiter: ",",
         bom: true,
         skip_empty_lines: true,

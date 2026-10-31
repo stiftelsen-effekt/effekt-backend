@@ -32,7 +32,8 @@ type Transaction = {
 export const parseDirectAmfDonationsReport = (report: Buffer): Transaction[] | false => {
   let reportText = report.toString();
   try {
-    var data = parse(reportText, {
+    // csv-parse 5 typed the sync parse as any, which the code below relies on
+    var data: any = parse(reportText, {
       delimiter: ";",
       bom: true,
       skip_empty_lines: true,
@@ -42,7 +43,7 @@ export const parseDirectAmfDonationsReport = (report: Buffer): Transaction[] | f
     }
   } catch {
     try {
-      var data = parse(reportText, {
+      var data: any = parse(reportText, {
         delimiter: ",",
         bom: true,
         skip_empty_lines: true,
