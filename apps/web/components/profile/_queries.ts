@@ -15,7 +15,7 @@ export const saveDonor = async (data: Donor, user: User, trpc: TrpcClient) => {
       newsletter: data.newsletter,
     });
     return data;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

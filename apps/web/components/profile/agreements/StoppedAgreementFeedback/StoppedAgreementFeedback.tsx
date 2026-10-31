@@ -44,11 +44,11 @@ export const StoppedAgreementFeedback = ({
   KID: string;
   agreementType: AgreementTypes;
 }) => {
-  const { loading, isValidating, data, error } = useAgreementFeedbackTypes();
+  const { loading, data, error } = useAgreementFeedbackTypes();
   const { getAccessTokenSilently } = useAuth0();
 
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSelection[]>([]);
-  const [otherComment, setOtherComment] = useState<string | undefined>(undefined);
+  const [otherComment] = useState<string | undefined>(undefined);
   const operationQueue = useRef<QueuedOperation[]>([]);
   const processingQueue = useRef<boolean>(false);
 
@@ -121,7 +121,7 @@ export const StoppedAgreementFeedback = ({
           );
         }
       }
-    } catch (error) {
+    } catch {
       // On error, we only show a toast if this is the latest operation for this feedbackTypeId
       const latestOp = [...operationQueue.current]
         .reverse()

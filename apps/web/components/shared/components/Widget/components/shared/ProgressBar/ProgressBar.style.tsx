@@ -28,7 +28,7 @@ interface ProgressCircleProps {
 
 /** Typed */
 export const ProgressCircle = styled.div.withConfig({
-  shouldForwardProp: (prop, defaultValidatorFn) => !["filled"].includes(prop),
+  shouldForwardProp: (prop) => !["filled"].includes(prop),
 })<ProgressCircleProps>`
   width: 20px;
   height: 20px;
@@ -54,7 +54,7 @@ interface ActionButtonProps {
 }
 
 export const ActionButton = styled.button.withConfig({
-  shouldForwardProp: (prop, defaultValidatorFn) => !["active"].includes(prop),
+  shouldForwardProp: (prop) => !["active"].includes(prop),
 })<ActionButtonProps>`
   font-size: 40px;
   line-height: 40px;

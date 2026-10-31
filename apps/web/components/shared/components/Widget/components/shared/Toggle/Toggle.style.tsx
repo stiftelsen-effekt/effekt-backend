@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const StyledToggle = styled.button.withConfig({
-  shouldForwardProp: (prop, defaultValidatorFn) => !["active"].includes(prop),
+  shouldForwardProp: (prop) => !["active"].includes(prop),
 })<{ active: string }>`
   display: flex;
   align-items: center;
@@ -25,7 +25,7 @@ export const StyledToggle = styled.button.withConfig({
 `;
 
 export const StyledToggleCircle = styled.div.withConfig({
-  shouldForwardProp: (prop, defaultValidatorFn) => !["active"].includes(prop),
+  shouldForwardProp: (prop) => !["active"].includes(prop),
 })<{ active: string }>`
   height: 22px;
   aspect-ratio: 1;

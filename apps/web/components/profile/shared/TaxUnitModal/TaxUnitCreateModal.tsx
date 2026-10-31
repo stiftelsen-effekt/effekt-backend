@@ -28,12 +28,10 @@ const TaxUnitCreateModalStandard: React.FC<{
   const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
-  const {
-    data: existingUnits,
-    loading: loadingUnits,
-    isValidating: validatingUnits,
-    error: errorLoadingUnits,
-  } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { data: existingUnits, loading: loadingUnits } = useTaxUnits(
+    user as User,
+    getAccessTokenSilently,
+  );
 
   const [name, setName] = useState("");
   const [ssn, setSsn] = useState("");

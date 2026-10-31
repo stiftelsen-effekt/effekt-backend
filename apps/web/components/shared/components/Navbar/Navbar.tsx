@@ -152,7 +152,7 @@ export const Navbar = withStaticProps(
   };
 
   const { dashboardPath } = useRouterContext();
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [, setWidgetContext] = useContext(WidgetContext);
   const { loggedIn, logout } = useContext(NavbarAuthContext);
 
   const [expandMenu, setExpandMenu] = useState<boolean>(false);

@@ -45,7 +45,6 @@ export const ProfileLayout = withStaticProps(getProfileLayoutStaticProps)(({
   widgetData,
   profileData,
   consentState,
-  draftMode,
 }) => {
   const { dashboardPath } = useRouterContext();
 

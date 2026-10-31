@@ -24,12 +24,7 @@ export const DKTaxUnitEditModal: React.FC<{
   const { getAccessTokenSilently, user } = useAuth0();
   const trpc = useTrpcClient(getAccessTokenSilently);
 
-  const {
-    data: existingUnits,
-    loading: loadingUnits,
-    isValidating: validatingUnits,
-    error: errorLoadingUnits,
-  } = useTaxUnits(user as User, getAccessTokenSilently);
+  const { loading: loadingUnits } = useTaxUnits(user as User, getAccessTokenSilently);
 
   const initialSsnDigits = initial.ssn.replace(/\D/g, "");
   const [name, setName] = useState(initial.name === "Anonym" ? "" : initial.name);

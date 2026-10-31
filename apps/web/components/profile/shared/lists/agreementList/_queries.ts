@@ -188,7 +188,7 @@ export const addStoppedAgreementFeedback = async (
     } else {
       return result.content; // Inserted id of the feedback record in DB
     }
-  } catch (e) {
+  } catch {
     throw new Error("Failed to add feedback");
   }
 };
@@ -216,7 +216,7 @@ export const deleteStoppedAgreementFeedback = async (
     } else {
       return true;
     }
-  } catch (e) {
+  } catch {
     throw new Error("Failed to delete feedback");
   }
 };

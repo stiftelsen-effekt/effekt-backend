@@ -375,7 +375,7 @@ export const useWidgetScaleEffect = (
   widgetRef: React.RefObject<HTMLDivElement | null>,
   inline: boolean,
 ) => {
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [widgetContext] = useContext(WidgetContext);
   const [scalingFactor, setScalingFactor] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(979);
   const [lastHeight, setLastHeight] = useState(979);

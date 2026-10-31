@@ -21,17 +21,14 @@ export const YearlyReportsTab: React.FC<{
 
   const {
     loading: reportsLoading,
-    isValidating: reportsIsValidating,
     data: reportsData,
     error: reportsError,
   } = useYearlyTaxReports(user as User, getAccessTokenSilently);
 
-  const {
-    loading: donationsLoading,
-    data: donations,
-    isValidating: donationsIsValidating,
-    error: donationsError,
-  } = useDonations(user as User, getAccessTokenSilently);
+  const { loading: donationsLoading, data: donations } = useDonations(
+    user as User,
+    getAccessTokenSilently,
+  );
 
   const kids = useMemo(() => {
     const kidsSet = new Set<string>();
@@ -41,12 +38,12 @@ export const YearlyReportsTab: React.FC<{
 
   const shouldFetchDistributions = !donationsLoading && donations !== undefined && kids.length > 0;
 
-  const {
-    loading: distributionsLoading,
-    data: distributions,
-    isValidating: distributionsValidating,
-    error: distributionsError,
-  } = useDistributions(user as User, getAccessTokenSilently, shouldFetchDistributions, kids);
+  const { loading: distributionsLoading, data: distributions } = useDistributions(
+    user as User,
+    getAccessTokenSilently,
+    shouldFetchDistributions,
+    kids,
+  );
   const donationsLoaded = Array.isArray(donations);
   const reportsLoaded = Array.isArray(reportsData);
   const resolvedDistributions = shouldFetchDistributions ? distributions : [];

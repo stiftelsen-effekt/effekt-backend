@@ -2,7 +2,6 @@ import React from "react";
 import { DistributionCauseArea } from "../../../../models";
 import style from "./Distribution.module.scss";
 import { useCauseAreas } from "../../../../_queries";
-import { useAuth0 } from "@auth0/auth0-react";
 import { isAllocationVisible } from "../distributionAmounts";
 
 export const DistributionController: React.FC<{
@@ -10,8 +9,6 @@ export const DistributionController: React.FC<{
   savedCauseArea?: DistributionCauseArea;
   onChange: (causeArea: DistributionCauseArea) => void;
 }> = ({ causeArea, savedCauseArea = causeArea, onChange }) => {
-  const { getAccessTokenSilently } = useAuth0();
-
   const { data: causeAreas, loading: causeArasLoading } = useCauseAreas();
 
   if (causeArasLoading) return <div>Loading cause areas...</div>;

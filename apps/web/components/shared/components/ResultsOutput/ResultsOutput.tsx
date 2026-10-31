@@ -172,7 +172,7 @@ export const ResultsOutput: React.FC<{
         </div>
         {graphData.total.organizations
           .map((o) => Object.entries(o))
-          .map(([[organization, value]], i) => {
+          .map(([[organization, value]]) => {
             const orgLink = organizationLinks
               ? organizationLinks.find((l) => l.abbreviation === organization)
               : null;
