@@ -83,8 +83,6 @@ export const DonorPane: React.FC<{
       fields.forEach((field) => delete next[field]);
       return next;
     });
-  // The input shows Danish CPR/CVR numbers formatted, while the value sent is what the donor typed
-  const [ssnInput, setSsnInput] = React.useState(values.ssn);
 
   const latestValues = React.useRef(values);
   React.useEffect(() => {
@@ -366,11 +364,9 @@ export const DonorPane: React.FC<{
                         autoComplete="off"
                         placeholder={text.tax_deduction_ssn_placeholder}
                         name="ssn"
-                        value={ssnInput}
-                        onChange={(e) => {
-                          setValue("ssn", e.target.value);
-                          setSsnInput(formatSsnInput(e.target.value));
-                        }}
+                        value={values.ssn}
+                        // A Danish CPR/CVR number is kept and sent as shown (010101-1234)
+                        onChange={(e) => setValue("ssn", formatSsnInput(e.target.value))}
                       />
                       {errors.ssn && (
                         <ErrorField text={text.tax_deduction_ssn_invalid_error_text} />
