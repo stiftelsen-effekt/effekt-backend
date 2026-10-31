@@ -2,7 +2,7 @@ import { createTRPCClient, httpBatchLink, httpLink, type TRPCClient } from "@trp
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@effekt/api";
 import type { MainLocale } from "../../context/MainLocaleContext";
-import { restLink } from "./restLink";
+import { restLink, restRoutes } from "./restLink";
 
 export type { AppRouter };
 export type TrpcClient = TRPCClient<AppRouter>;
@@ -18,6 +18,14 @@ export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type ApiFlavor = "trpc" | "rest";
 export const apiFlavorFor = (mainLocale: MainLocale): ApiFlavor =>
   mainLocale === "dk" ? "rest" : "trpc";
+
+/**
+ * Whether the site's backend has the procedure (e.g. "minside.updateProfile"). The Danish backend
+ * only has the procedures restLink maps; use this to hide features that would always fail there.
+ */
+export const isProcedureAvailable = (mainLocale: MainLocale, procedure: string): boolean =>
+  apiFlavorFor(mainLocale) === "trpc" ||
+  Object.prototype.hasOwnProperty.call(restRoutes, procedure);
 
 const apiUrl = () => process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
 

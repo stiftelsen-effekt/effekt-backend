@@ -10,6 +10,8 @@ import { saveDonor } from "../../_queries";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
 import { EffektCheckbox } from "../../../shared/components/EffektCheckbox/EffektCheckbox";
 import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
+import { useMainLocale } from "../../../../context/MainLocaleContext";
+import { isProcedureAvailable } from "../../../../lib/trpc/client";
 
 export type ProfilePageInfoConfiguration = {
   name_label: string;
@@ -26,6 +28,8 @@ export const ProfileInfo: React.FC<{
 }> = ({ config, titleTemplate }) => {
   const { getAccessTokenSilently, user } = useAuth0();
   const trpc = useTrpcClient(getAccessTokenSilently);
+  // The Danish backend has no route for saving the profile, so it is shown read-only there
+  const editable = isProcedureAvailable(useMainLocale(), "minside.updateProfile");
 
   const { donor: initialDonor, setDonor: setGlobalDonor } = useContext(DonorContext);
   const [editedDonor, setDonor] = useState<Donor | null>(initialDonor);
@@ -56,6 +60,7 @@ export const ProfileInfo: React.FC<{
             id="name"
             type="text"
             defaultValue={donor.name ?? undefined}
+            disabled={!editable}
             className={style.input}
             onChange={(e) => {
               setDonor({ ...donor, name: e.target.value });
@@ -66,20 +71,24 @@ export const ProfileInfo: React.FC<{
           {config.email_label}
           <input id="email" type="email" disabled value={donor.email} className={style.input} />
         </div>
-        <div className={style.inputContainer}>
-          <EffektCheckbox
-            dataCy="checkbox-newsletter"
-            checked={donor.newsletter}
-            onChange={() => {
-              setDonor({ ...donor, newsletter: !donor.newsletter });
-            }}
-          >
-            {config.newsletter_label}
-          </EffektCheckbox>
-        </div>
-        <EffektButton role={"submit"} onClick={save} cy="btn-save">
-          {config.save_button_label}
-        </EffektButton>
+        {editable && (
+          <>
+            <div className={style.inputContainer}>
+              <EffektCheckbox
+                dataCy="checkbox-newsletter"
+                checked={donor.newsletter}
+                onChange={() => {
+                  setDonor({ ...donor, newsletter: !donor.newsletter });
+                }}
+              >
+                {config.newsletter_label}
+              </EffektCheckbox>
+            </div>
+            <EffektButton role={"submit"} onClick={save} cy="btn-save">
+              {config.save_button_label}
+            </EffektButton>
+          </>
+        )}
       </section>
     </>
   );
