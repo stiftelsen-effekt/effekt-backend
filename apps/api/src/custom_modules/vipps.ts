@@ -28,6 +28,100 @@ function agreementUrlCodeOf(agreement: {
   return fromUrl || agreement.productDescription;
 }
 
+/** How many days ahead of its due date the daily job creates a charge. */
+const CHARGE_DAYS_IN_ADVANCE = 3;
+
+/**
+ * How many days a missed charge is caught up. If the daily job did not run (or failed) on the
+ * day a charge should have been created, a later run within this many days still creates it.
+ */
+const CHARGE_CATCH_UP_DAYS = 3;
+
+/**
+ * Charge statuses (Vipps recurring v3) that mean the month is already being, or has been,
+ * collected. Only FAILED and CANCELLED charges leave the month open for a new charge.
+ */
+const COLLECTING_CHARGE_STATUSES = new Set([
+  "PENDING",
+  "DUE",
+  "RESERVED",
+  "PROCESSING",
+  "CHARGED",
+  "PARTIALLY_CAPTURED",
+  "REFUNDED",
+  "PARTIALLY_REFUNDED",
+]);
+
+const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const addDays = (date: Date, days: number) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+
+/**
+ * Decides whether the daily job should create a charge for an agreement, and for which due date.
+ *
+ * The due date is always CHARGE_DAYS_IN_ADVANCE days from today. A charge is created when the
+ * agreement's scheduled date in that month (its charge day, or the last day of the month for
+ * charge day 0) or its force_charge_date falls within the last CHARGE_CATCH_UP_DAYS days up to
+ * and including the due date. Catching up a scheduled date that has passed requires the
+ * agreement to have existed when that charge should have been created, so a new agreement is
+ * not charged earlier than it would have been on its first regular run.
+ *
+ * Whether the month already has a charge is checked separately (hasChargedDueMonth).
+ */
+function scheduledChargeDueDate(
+  agreement: {
+    monthly_charge_day: number;
+    force_charge_date?: string | null;
+    timestamp_created?: Date | string | null;
+  },
+  now: Date,
+): Date | null {
+  const dueDate = addDays(startOfDay(now), CHARGE_DAYS_IN_ADVANCE);
+  const windowStart = addDays(dueDate, -CHARGE_CATCH_UP_DAYS);
+
+  const lastDayOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
+  const chargeDay = agreement.monthly_charge_day;
+  if (Number.isInteger(chargeDay) && chargeDay >= 0) {
+    const scheduled = new Date(
+      dueDate.getFullYear(),
+      dueDate.getMonth(),
+      chargeDay === 0 ? lastDayOfMonth : Math.min(chargeDay, lastDayOfMonth),
+    );
+    if (scheduled.getTime() === dueDate.getTime()) return dueDate;
+
+    if (scheduled >= windowStart && scheduled < dueDate && agreement.timestamp_created) {
+      const created = new Date(agreement.timestamp_created);
+      const shouldHaveBeenCreatedOn = addDays(scheduled, -CHARGE_DAYS_IN_ADVANCE);
+      if (!isNaN(created.getTime()) && created < shouldHaveBeenCreatedOn) return dueDate;
+    }
+  }
+
+  if (agreement.force_charge_date) {
+    const force = new Date(agreement.force_charge_date);
+    if (!isNaN(force.getTime())) {
+      const forceDay = startOfDay(force);
+      if (forceDay >= windowStart && forceDay <= dueDate) return dueDate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Idempotency key for the scheduled charge of an agreement on a due date, so a rerun of the
+ * daily job cannot create a second charge at Vipps. Hex, like the random keys used elsewhere.
+ */
+function scheduledChargeIdempotencyKey(agreementId: string, formattedDueDate: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(`scheduled-charge:${agreementId}:${formattedDueDate}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+const errorMessageOf = (ex: unknown) => (ex instanceof Error ? ex.message : String(ex));
+
 /**
  * @typedef TransactionLogItem
  * @property {number} amount In øre
@@ -842,6 +936,7 @@ module.exports = {
    * @param {number} amountKroner The amount to charge in kroner, not øre
    * @param {number} daysInAdvance How many days in advance of the due date
    * @param {Date} dueDate Optional due date, by default 3 days from current date
+   * @param {string} idempotencyKey Optional Vipps Idempotency-Key, random by default
    * @return {boolean} Success
    */
   async createCharge(
@@ -849,6 +944,7 @@ module.exports = {
     amountKroner,
     daysInAdvance = 3,
     dueDate?: Date,
+    idempotencyKey?: string,
   ): Promise<boolean | string> {
     if (daysInAdvance <= 2) {
       console.error("Today must be more than 2 days in advance of the due date");
@@ -877,7 +973,7 @@ module.exports = {
       transactionType: "DIRECT_CAPTURE",
     };
 
-    const headers = this.getVippsHeaders(token);
+    const headers = this.getVippsHeaders(token, idempotencyKey);
 
     try {
       const vippsAgreement = await this.getAgreement(agreementId);
@@ -1018,34 +1114,27 @@ module.exports = {
   },
 
   /**
-   * Checks if an agreement already has been charged in the month of a new charge
-   * Used to prevent double charging
+   * Checks if an agreement already has a charge in the month of a new charge that is being, or
+   * has been, collected (see COLLECTING_CHARGE_STATUSES). Used to prevent double charging.
+   * Throws if the charges cannot be fetched, so the caller does not charge on unknown state.
    * @param {string} agreementId The agreement id
-   * @param {Date} newCHargeDueDate The date of the new charge
-   * @returns {boolean} True if charged the month of the new charge
+   * @param {Date} newChargeDueDate The date of the new charge
+   * @returns {boolean} True if the month of the new charge already has a charge
    */
   async hasChargedDueMonth(agreementId: string, newChargeDueDate: Date) {
     const charges = await this.getCharges(agreementId);
-    let hasCharged = false;
-
-    try {
-      if (charges)
-        charges.forEach((charge) => {
-          const chargeDate = new Date(charge.due);
-
-          if (
-            newChargeDueDate.getFullYear() === chargeDate.getFullYear() &&
-            newChargeDueDate.getMonth() === chargeDate.getMonth() &&
-            charge.status === "CHARGED"
-          ) {
-            hasCharged = true;
-          }
-        });
-      return hasCharged;
-    } catch (ex) {
-      console.error(loggableRequestError(ex));
-      return false;
+    if (!Array.isArray(charges)) {
+      throw new Error(`Could not fetch charges for agreement ${agreementId}`);
     }
+
+    return charges.some((charge) => {
+      const chargeDate = new Date(charge.due);
+      return (
+        newChargeDueDate.getFullYear() === chargeDate.getFullYear() &&
+        newChargeDueDate.getMonth() === chargeDate.getMonth() &&
+        COLLECTING_CHARGE_STATUSES.has(charge.status)
+      );
+    });
   },
 
   /**
@@ -1169,13 +1258,13 @@ module.exports = {
    * Gets vipps authorization headers
    * @param {VippsToken} token
    */
-  getVippsHeaders(token) {
+  getVippsHeaders(token, idempotencyKey?: string) {
     return {
       "content-type": "application/json",
       merchant_serial_number: config.vipps_merchant_serial_number,
       "Ocp-Apim-Subscription-Key": config.vipps_ocp_apim_subscription_key,
       Authorization: `${token.type} ${token.token}`,
-      "Idempotency-Key": crypto.randomBytes(16).toString("hex"),
+      "Idempotency-Key": idempotencyKey ?? crypto.randomBytes(16).toString("hex"),
     };
   },
 
@@ -1183,20 +1272,26 @@ module.exports = {
    * Synchronizes effektDB with agreements and charges from Vipps database
    * Also adds completed charges to Donations table
    * Used in daily schedule
+   *
+   * Each agreement is synchronized on its own, so one that fails does not stop the rest.
+   * @returns The number of agreements fetched and the agreements (or statuses) that failed
    */
-  async synchronizeVippsAgreementDatabase() {
-    try {
-      let agreements: any[] = [];
+  async synchronizeVippsAgreementDatabase(): Promise<{
+    agreements: number;
+    failed: Array<{ agreementId?: string; status?: string; error: string }>;
+  }> {
+    const failed: Array<{ agreementId?: string; status?: string; error: string }> = [];
+    let agreements: any[] = [];
 
-      // Vipps does not allow fetching all statuses in a single request
-      const active = await this.getAgreements("ACTIVE");
-      const pending = await this.getAgreements("PENDING");
-      const stopped = await this.getAgreements("STOPPED");
-      const expired = await this.getAgreements("EXPIRED");
+    // Vipps does not allow fetching all statuses in a single request
+    for (const status of ["ACTIVE", "PENDING", "STOPPED", "EXPIRED"]) {
+      const fetched = await this.getAgreements(status);
+      if (Array.isArray(fetched)) agreements = agreements.concat(fetched);
+      else failed.push({ status, error: `Could not fetch ${status} agreements` });
+    }
 
-      agreements = agreements.concat(active, pending, stopped, expired);
-
-      for (let i = 0; i < agreements.length; i++) {
+    for (let i = 0; i < agreements.length; i++) {
+      try {
         const anonDonorId = 1464;
         const standardKID = 87397824;
         const chargeDay = 1;
@@ -1217,12 +1312,10 @@ module.exports = {
         await DAO.vipps.updateAgreementStatus(agreements[i].id, agreements[i].status);
 
         const agreement = await DAO.vipps.getAgreement(agreements[i].id);
-        if (!agreement) {
-          console.error(`Agreement ${agreements[i].id} not found in database`);
-          continue;
-        }
+        if (!agreement) throw new Error("Agreement not found in database");
 
         const charges = await this.getCharges(agreements[i].id);
+        if (!Array.isArray(charges)) throw new Error("Could not fetch charges");
 
         for (let j = 0; j < charges.length; j++) {
           // Adds charge if it does not exist in effektDB
@@ -1282,81 +1375,81 @@ module.exports = {
             // TODO: Update donation sum to 0
           }
         }
+      } catch (ex) {
+        console.error(`Failed to synchronize Vipps agreement ${agreements[i]?.id}`);
+        console.error(loggableRequestError(ex));
+        failed.push({ agreementId: agreements[i]?.id, error: errorMessageOf(ex) });
       }
-
-      return true;
-    } catch (ex) {
-      console.error(loggableRequestError(ex));
     }
+
+    return { agreements: agreements.length, failed };
   },
 
   /**
-   * Checks for future agreement charge due dates and creates charges for them
+   * Creates the charges that fall due CHARGE_DAYS_IN_ADVANCE days from now, catching up charges
+   * missed in the last CHARGE_CATCH_UP_DAYS days (see scheduledChargeDueDate).
+   * Each agreement is handled on its own, so one that fails does not stop the rest.
    * Used in daily schedule
    */
-  async createFutureDueCharges() {
-    try {
-      const daysInAdvance = 3;
-      const timeNow = new Date().getTime();
-      const dueDate = new Date(timeNow + 1000 * 60 * 60 * 24 * daysInAdvance);
-      const dueDayIsLastDayOfMonth =
-        new Date(timeNow + 1000 * 60 * 60 * 24 * (daysInAdvance + 1)).getDate() === 1;
-      const activeAgreements = await DAO.vipps.getActiveAgreements();
+  async createFutureDueCharges(now: Date = new Date()): Promise<{
+    activeAgreements: number;
+    createdCharges: number;
+    failed: Array<{ agreementId: string; error: string }>;
+  }> {
+    const failed: Array<{ agreementId: string; error: string }> = [];
+    const activeAgreements = await DAO.vipps.getActiveAgreements();
 
-      if (!activeAgreements || activeAgreements.length === 0) {
-        return {
-          activeAgreements: 0,
-          createdCharges: 0,
-        };
-      }
-
-      // Find agreements with due dates that are 3 days from now
-      if (activeAgreements) {
-        let chargeCount = 0;
-
-        for (let i = 0; i < activeAgreements.length; i++) {
-          const agreement = activeAgreements[i];
-          // Both columns are nullable; null gives the epoch / NaN, which both mean "not set" below
-          const pauseEnd = agreement.paused_until_date as string;
-          const chargeDay = agreement.monthly_charge_day;
-          const forceChargeDate = new Date(agreement.force_charge_date as string);
-
-          // If agreement charge should be created today
-          if (
-            chargeDay === dueDate.getDate() ||
-            (chargeDay === 0 && dueDayIsLastDayOfMonth) || // chargeDay at 0 means should charge on last day of month
-            dueDate.setHours(0, 0, 0, 0) === forceChargeDate.setHours(0, 0, 0, 0)
-          ) {
-            // Check if agreement is not paused
-            // Invalid pause ending date is treated as not paused
-            if (new Date(pauseEnd) < new Date() || isNaN(Date.parse(pauseEnd))) {
-              // Check if agreement is also active in Vipps database
-              const vippsAgreement = await this.getAgreement(agreement.ID);
-              const monthAlreadyCharged = await this.hasChargedDueMonth(agreement.ID, dueDate);
-              if (vippsAgreement.status === "ACTIVE" && !monthAlreadyCharged) {
-                const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
-                console.log(
-                  "Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id,
-                );
-                chargeCount += 1;
-
-                await this.createCharge(
-                  vippsAgreement.id,
-                  vippsAgreement.pricing.amount / 100,
-                  daysInAdvance,
-                );
-              }
-            }
-          }
-        }
-
-        return {
-          activeAgreements: activeAgreements.length,
-          createdCharges: chargeCount,
-        };
-      }
-    } catch (ex) {
-      console.error(loggableRequestError(ex));
+    if (!activeAgreements || activeAgreements.length === 0) {
+      return { activeAgreements: 0, createdCharges: 0, failed };
     }
+
+    let chargeCount = 0;
+
+    for (const agreement of activeAgreements) {
+      try {
+        const dueDate = scheduledChargeDueDate(agreement as any, now);
+        if (!dueDate) continue;
+
+        // Both columns are nullable; an invalid pause ending date is treated as not paused
+        const pauseEnd = agreement.paused_until_date as string;
+        if (!(new Date(pauseEnd) < now || isNaN(Date.parse(pauseEnd)))) continue;
+
+        // Check if agreement is also active in Vipps database
+        const vippsAgreement = await this.getAgreement(agreement.ID);
+        if (!vippsAgreement) throw new Error("Could not fetch agreement from Vipps");
+        if (vippsAgreement.status !== "ACTIVE") continue;
+
+        if (await this.hasChargedDueMonth(agreement.ID, dueDate)) continue;
+
+        const formattedDueDate = moment(dueDate).format("YYYY-MM-DD");
+        console.log(
+          "Creating charge due " + formattedDueDate + " for agreement " + vippsAgreement.id,
+        );
+
+        const chargeId = await this.createCharge(
+          vippsAgreement.id,
+          vippsAgreement.pricing.amount / 100,
+          CHARGE_DAYS_IN_ADVANCE,
+          dueDate,
+          scheduledChargeIdempotencyKey(vippsAgreement.id, formattedDueDate),
+        );
+        if (!chargeId) throw new Error("Could not create charge due " + formattedDueDate);
+
+        chargeCount += 1;
+      } catch (ex) {
+        console.error(`Failed to create charge for Vipps agreement ${agreement.ID}`);
+        console.error(loggableRequestError(ex));
+        failed.push({ agreementId: agreement.ID, error: errorMessageOf(ex) });
+      }
+    }
+
+    return {
+      activeAgreements: activeAgreements.length,
+      createdCharges: chargeCount,
+      failed,
+    };
   },
+
+  scheduledChargeDueDate,
+  scheduledChargeIdempotencyKey,
 };
