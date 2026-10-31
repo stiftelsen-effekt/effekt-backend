@@ -13,6 +13,7 @@ import { TaxUnitCreateModal } from "./TaxUnitCreateModal";
 
 import styles from "./TaxUnitModal.module.scss";
 import { useFailureToast } from "../../../shared/failureToast";
+import { canConfirmTaxUnitDelete } from "./canConfirmTaxUnitDelete";
 
 export const TaxUnitDeleteModal: React.FC<{
   open: boolean;
@@ -31,12 +32,15 @@ export const TaxUnitDeleteModal: React.FC<{
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [transferDonations, setTransferDonations] = useState(false);
 
-  const deleteUnit = useCallback(async () => {
-    setLoading(true);
+  // Moving the donations needs a unit to move them to; without one the unit would just be deleted
+  const valid = canConfirmTaxUnitDelete(transferDonations, selectedTaxUnit);
 
-    if (!user) {
+  const deleteUnit = useCallback(async () => {
+    if (!user || !canConfirmTaxUnitDelete(transferDonations, selectedTaxUnit)) {
       return;
     }
+
+    setLoading(true);
 
     const transferUnit = transferDonations ? selectedTaxUnit : null;
 
@@ -60,7 +64,7 @@ export const TaxUnitDeleteModal: React.FC<{
   }, [trpc, user, taxUnit, selectedTaxUnit, transferDonations, onSuccess, onFailure, failureToast]);
 
   return (
-    <Lightbox open={open} onConfirm={deleteUnit} onCancel={onClose} loading={loading}>
+    <Lightbox open={open} onConfirm={deleteUnit} onCancel={onClose} loading={loading} valid={valid}>
       <div className={styles.container}>
         <h5>Slett skatteenhet</h5>
 

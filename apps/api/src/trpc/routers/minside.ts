@@ -273,6 +273,10 @@ export const minsideRouter = router({
   deleteTaxUnit: donorProcedure(permissions.write_profile, deleteTaxUnitInput)
     .output(mutationOkOutput)
     .mutation(async ({ input }) => {
+      // Moving the donations to the unit being deleted would leave them on an archived unit
+      if (input.transferTaxUnitId != null && input.transferTaxUnitId === input.taxUnitId) {
+        throw badRequest("Cannot move the donations to the tax unit being deleted");
+      }
       // REST passes transferId on unchecked; only allow the donor's own units
       if (input.transferTaxUnitId != null) {
         await getOwnTaxUnit(input.donorId, input.transferTaxUnitId);

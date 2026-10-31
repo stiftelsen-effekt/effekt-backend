@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { DateTime } from "luxon";
-import { dateTimeNumeric, onlyDate } from "./formatting";
+import { dateTimeNumeric, getFormattingLocale, onlyDate, thousandize } from "./formatting";
 
 // These helpers replaced luxon in client code, so check they still match it.
 // Both use the process time zone; run with e.g. TZ=America/Los_Angeles to
@@ -22,5 +22,12 @@ describe("date formatting matches luxon", () => {
 
   test.each(inputs)("dateTimeNumeric(%s)", (input) => {
     expect(dateTimeNumeric(input)).toBe(DateTime.fromISO(input).toFormat("dd.MM.yyyy HH:mm"));
+  });
+});
+
+describe("thousandize with the site's locale", () => {
+  test("groups Danish amounts with periods and Norwegian ones with spaces", () => {
+    expect(thousandize(1234567, getFormattingLocale("dk"))).toBe("1.234.567");
+    expect(thousandize(1234567, getFormattingLocale("no")).replace(/\s/g, " ")).toBe("1 234 567");
   });
 });
