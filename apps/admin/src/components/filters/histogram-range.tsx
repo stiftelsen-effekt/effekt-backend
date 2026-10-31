@@ -33,7 +33,9 @@ export function NumberRangeInputs({
 }) {
   const [min, setMin] = useState(inputText(value.min));
   const [max, setMax] = useState(inputText(value.max));
+  // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes to the range
   useEffect(() => setMin(inputText(value.min)), [value.min]);
+  // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes to the range
   useEffect(() => setMax(inputText(value.max)), [value.max]);
 
   const commit = () => onChange({ min: parseNumber(min), max: parseNumber(max) });
@@ -97,7 +99,9 @@ export function HistogramRange({
     toIndex(value.max, lastIndex),
   ]);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes to the range
     setRange([toIndex(value.min, 0), toIndex(value.max, lastIndex)]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- toIndex is rebuilt every render; it reads edges, of which only lastIndex is tracked
   }, [value.min, value.max, lastIndex]);
 
   const maxCount = Math.max(1, ...bins.map((bin) => bin.count));

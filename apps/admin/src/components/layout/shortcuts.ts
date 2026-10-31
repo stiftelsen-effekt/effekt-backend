@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { ignoresSingleKey } from "@/hooks/use-hotkey";
 import type { NavItem } from "./nav";
 
@@ -71,7 +71,9 @@ const SEQUENCE_MS = 1200;
  */
 export function useGoToShortcuts(items: NavItem[], go: (item: NavItem) => void) {
   const latest = useRef({ items, go });
-  latest.current = { items, go };
+  useLayoutEffect(() => {
+    latest.current = { items, go };
+  });
 
   useEffect(() => {
     let pendingUntil = 0;

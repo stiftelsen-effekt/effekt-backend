@@ -34,6 +34,7 @@ function useProviderResults(query: string) {
   useEffect(() => {
     const trimmed = query.trim();
     const active = providers.filter((provider) => trimmed && provider.applies(trimmed));
+    // oxlint-disable-next-line react/set-state-in-effect -- marks the providers for the new query as loading
     setState(
       Object.fromEntries(active.map((p) => [p.id, { group: p.group, results: [], loading: true }])),
     );
@@ -89,6 +90,7 @@ export function CommandPalette({
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- clears the query when the palette closes
     if (!open) setQuery("");
   }, [open]);
 

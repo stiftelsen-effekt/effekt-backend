@@ -1,7 +1,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowDownToLineIcon, SmartphoneIcon } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth";
 import { BarChart } from "@/components/charts";
 import type { AttentionItem } from "@/components/domain/attention-list";
@@ -84,7 +84,7 @@ function homeQueries(trpc: ReturnType<typeof useTRPC>, today: Date) {
 function HomePage() {
   const trpc = useTRPC();
   const { user } = useAuth();
-  const today = useMemo(() => new Date(), []);
+  const [today] = useState(() => new Date());
   const q = useMemo(() => homeQueries(trpc, today), [trpc, today]);
   const months = q.months;
   const thisMonth = months.at(-1)!;

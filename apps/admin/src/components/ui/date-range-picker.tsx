@@ -234,6 +234,7 @@ export function DateRangePicker({
   // Remount the editor on open so its calendar starts at the current value.
   const [openCount, setOpenCount] = useState(0);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- remounts the editor each time it opens
     if (open) setOpenCount((count) => count + 1);
   }, [open]);
 
