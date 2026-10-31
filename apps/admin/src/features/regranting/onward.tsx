@@ -5,6 +5,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useRef } from "react";
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { ConfirmDialog } from "@/components/domain/confirm-dialog";
 import { DateTime, Money } from "@/components/domain/format";
@@ -30,6 +31,7 @@ import { notify } from "@/lib/notify";
 import { useTRPC, type RouterOutputs } from "@/lib/trpc";
 import { validateDocument } from "./documents";
 import { parsePreciseDecimal } from "./payment-form";
+import { saveSteps } from "./save-steps";
 import { ForeignAmount, OrganizationPicker, ProjectPicker, RecipientLink } from "./ui";
 
 export type OnwardLine = RouterOutputs["regranting"]["onward"]["transfer"]["lines"][number];
@@ -307,11 +309,14 @@ export function AllocationDialog({
   const createGrantee = useMutation(trpc.regranting.onward.grantees.create.mutationOptions());
   const create = useMutation(trpc.regranting.onward.allocations.create.mutationOptions());
   const update = useMutation(trpc.regranting.onward.allocations.update.mutationOptions());
+  // What a failed save already created (report, its link, grantee), so Save again reuses it
+  const steps = useRef(saveSteps()).current;
   const what = line.projectName
     ? `${line.organizationName} · ${line.projectName}`
     : line.organizationName;
 
   const initial = (): AllocationForm => {
+    steps.reset();
     const latestReport = reports.data?.[0];
     const base: AllocationForm = {
       target: "recipient",
@@ -405,24 +410,36 @@ export function AllocationDialog({
       onSave={async (v) => {
         let reportId = Number(v.reportId);
         if (v.reportId === NEW) {
-          const report = await createReport.mutateAsync({
+          const reportInput = {
             payeeId,
             reportedAt: v.reportedAt,
             reference: v.reportReference.trim() || null,
-          });
+          };
+          const report = await steps.once("report", reportInput, () =>
+            createReport.mutateAsync(reportInput),
+          );
           reportId = report.id;
-          if (v.reportLink.trim())
-            await addDocument.mutateAsync({
+          if (v.reportLink.trim()) {
+            const documentInput = {
               onwardReportId: reportId,
               url: v.reportLink.trim(),
               label: v.reportReference.trim() || null,
-            });
+            };
+            await steps.once("document", documentInput, () =>
+              addDocument.mutateAsync(documentInput),
+            );
+          }
         }
         let externalGranteeId: number | null = null;
         if (mode !== "retained" && v.target === "grantee") {
+          const granteeInput = { name: v.newGrantee.trim() };
           externalGranteeId = v.externalGranteeId
             ? Number(v.externalGranteeId)
-            : (await createGrantee.mutateAsync({ name: v.newGrantee.trim() })).id;
+            : (
+                await steps.once("grantee", granteeInput, () =>
+                  createGrantee.mutateAsync(granteeInput),
+                )
+              ).id;
         }
         const fields = {
           kind: mode === "retained" ? ("retained" as const) : ("grant" as const),

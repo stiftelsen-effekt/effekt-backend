@@ -944,7 +944,7 @@ model Regrant_round_donations {
   Donation_ID Int
 
   Regrant_rounds Regrant_rounds @relation(fields: [Round_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_donations_to_Regrant_rounds")
-  Donations      Donations      @relation(fields: [Donation_ID], references: [ID], onDelete: Cascade, onUpdate: Cascade, map: "fk_Regrant_round_donations_to_Donations")
+  Donations      Donations      @relation(fields: [Donation_ID], references: [ID], onDelete: Restrict, onUpdate: Cascade, map: "fk_Regrant_round_donations_to_Donations")
 
   @@id([Round_ID, Donation_ID])
   @@index([Donation_ID], map: "fk_Regrant_round_donations_to_Donations_idx")

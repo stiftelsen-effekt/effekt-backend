@@ -95,6 +95,7 @@ import {
   routingUpdateInput,
   statementInput,
   transferCreateInput,
+  transferSavePaymentsInput,
   transferSetLineInput,
   transferSetLinesInput,
   transferUpdateInput,
@@ -523,6 +524,29 @@ const lockTransferRound = async (
   return transfer;
 };
 
+/** The round's transfers have exactly these ids and lines (amounts compared in øre) */
+const sameTransfers = (
+  current: Transfer[],
+  basis: {
+    id: number;
+    lines: { organizationId: number; projectId: number | null; amountNok: number }[];
+  }[],
+) => {
+  const key = (l: { organizationId: number; projectId: number | null }) =>
+    `${l.organizationId}:${l.projectId ?? ""}`;
+  const ore = (amount: string | number) => Math.round(Number(amount) * 100);
+  const lineSet = (
+    lines: { organizationId: number; projectId: number | null; amountNok: string | number }[],
+  ) =>
+    lines
+      .map((l) => `${key(l)}=${ore(l.amountNok)}`)
+      .sort()
+      .join(",");
+  if (current.length !== basis.length) return false;
+  const expected = new Map(basis.map((t) => [t.id, lineSet(t.lines)]));
+  return current.every((t) => expected.get(t.id) === lineSet(t.lines));
+};
+
 const transfersRouter = router({
   get: adminProcedure
     .input(byId)
@@ -590,6 +614,52 @@ const transfersRouter = router({
         );
       });
       return getTransferOrThrow(input.id);
+    }),
+
+  /**
+   * The round builder's Save: replaces the lines of changed transfers and creates new ones, all
+   * in one transaction (all or nothing). CONFLICT when the round's transfers no longer match
+   * `basis`, the state the plan was made from; reload and save again.
+   */
+  savePayments: adminProcedure
+    .input(transferSavePaymentsInput)
+    .mutation(async ({ input }): Promise<{ updated: number; created: number }> => {
+      const all = [...input.setLines, ...input.create].flatMap((t) => t.lines);
+      if (all.length) await assertLines(all, "a transfer line");
+      const payees = await Promise.all(input.create.map((c) => getPayeeOrThrow(c.payeeId)));
+      await dao().inTransaction(async (conn) => {
+        await lockRoundIn(conn, input.roundId, ["draft"], "edit");
+        const current = await dao().getTransfers(input.roundId, conn);
+        if (!sameTransfers(current, input.basis))
+          throw conflict(
+            "The round's transfers changed since you loaded them. Nothing was saved; check the reloaded round and save again.",
+          );
+        const ids = new Set(current.map((t) => t.id));
+        for (const s of input.setLines) {
+          if (!ids.has(s.id)) throw badRequest(`Transfer #${s.id} isn't in this round`);
+          await dao().replaceTransferLines(
+            conn,
+            s.id,
+            s.lines.map((l) => ({ ...l, amount: l.amountNok })),
+            true,
+          );
+        }
+        for (const [i, c] of input.create.entries()) {
+          const transferId = await dao().createTransfer(conn, {
+            roundId: input.roundId,
+            payeeId: payees[i].id,
+            currency: payees[i].currency,
+            amountNok: 0,
+          });
+          await dao().replaceTransferLines(
+            conn,
+            transferId,
+            c.lines.map((l) => ({ ...l, amount: l.amountNok })),
+            true,
+          );
+        }
+      });
+      return { updated: input.setLines.length, created: input.create.length };
     }),
 
   /** Sets one (recipient, project) line of a draft's transfer ("Pay now"); 0 removes it */

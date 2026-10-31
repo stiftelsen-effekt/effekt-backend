@@ -117,8 +117,7 @@ function Round({ roundId }: { roundId: number }) {
   const [confirmSave, setConfirmSave] = useState(false);
   const [approvalIssues, setApprovalIssues] = useState<Issue[] | null>(null);
   const checklist = useChecklist(roundId);
-  const setLines = useMutation(trpc.regranting.transfers.setLines.mutationOptions());
-  const createTransfer = useMutation(trpc.regranting.transfers.create.mutationOptions());
+  const savePayments = useMutation(trpc.regranting.transfers.savePayments.mutationOptions());
   if (builderQuery.isError) {
     return (
       <div className="p-6">
@@ -150,17 +149,22 @@ function Round({ roundId }: { roundId: number }) {
   const transferCount = builder ? transferCountAfter(builder, edits) : null;
   const invalidate = () => queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
 
+  // One call, applied by the API in one transaction: a failed save changes nothing, and a plan
+  // made from transfers that changed since (e.g. a retry after a lost response) is refused.
+  // The round is reloaded either way, so a retry is planned from what is saved.
   async function save() {
     if (!builder) return;
     const plan = planSave(builder, edits);
-    for (const s of plan.setLines) await setLines.mutateAsync(s);
-    for (const c of plan.create) await createTransfer.mutateAsync({ roundId, ...c });
-    await invalidate();
-    setEdits(new Map());
-    notify.success(
-      "Payments saved",
-      `${plan.setLines.length + plan.create.length} transfers updated`,
-    );
+    try {
+      await savePayments.mutateAsync({ roundId, ...plan });
+      setEdits(new Map());
+      notify.success(
+        "Payments saved",
+        `${plan.setLines.length + plan.create.length} transfers updated`,
+      );
+    } finally {
+      await invalidate();
+    }
   }
 
   return (
@@ -370,7 +374,7 @@ function Round({ roundId }: { roundId: number }) {
           <div className="px-4 sm:px-6">
             <UnsavedChangesBar
               dirty={edits.size > 0}
-              saving={setLines.isPending || createTransfer.isPending}
+              saving={savePayments.isPending}
               saveLabel={`Save ${edits.size} ${edits.size === 1 ? "change" : "changes"}…`}
               onSave={() => setConfirmSave(true)}
               onDiscard={() => setEdits(new Map())}

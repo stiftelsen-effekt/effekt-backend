@@ -279,6 +279,13 @@ describe("tRPC donations router", () => {
       await expectTrpcError(admin().donations.delete({ id: 43 }), "NOT_FOUND");
     });
 
+    it("refuses to delete a donation a regranting round holds", async () => {
+      sinon
+        .stub(DAO.donations, "remove")
+        .rejects(Object.assign(new Error("ER_ROW_IS_REFERENCED_2"), { errno: 1451 }));
+      await expectTrpcError(admin().donations.delete({ id: 42 }), "CONFLICT");
+    });
+
     it("resends a receipt, optionally to another address", async () => {
       const getByID = sinon.stub(DAO.donations, "getByID").resolves(existingDonation as any);
       getByID.withArgs(43).rejects(new Error("Could not find donation with ID 43"));

@@ -2,7 +2,7 @@
  * The round builder's client-side state: "Pay now" edits held locally until saved, and the
  * figures that follow from them (carries over, totals per recipient, payee and round). All
  * money is exact (lib/money.ts); the API's figures are the starting point and the save sends
- * whole line sets per transfer (regranting.transfers.setLines / create).
+ * whole line sets per transfer, all in one call (regranting.transfers.savePayments).
  */
 import { compareMoney, fromMinorUnits, moneySign, sumMoney, toMinorUnits } from "@/lib/money";
 import type { Builder, BuilderLine, BuilderRecipient, Transfer } from "./model";
@@ -188,6 +188,11 @@ export function setPayment(
 }
 
 export type SavePlan = {
+  /** The transfers (and lines) the plan was made from; the API refuses the plan if they changed */
+  basis: {
+    id: number;
+    lines: { organizationId: number; projectId: number | null; amountNok: number }[];
+  }[];
   /** Existing transfers whose lines change: the full new line set */
   setLines: {
     id: number;
@@ -260,6 +265,14 @@ export function planSave(
       amountNok: Number(l.amount),
     }));
   return {
+    basis: builder.transfers.map((t) => ({
+      id: t.id,
+      lines: t.lines.map((l) => ({
+        organizationId: l.organizationId,
+        projectId: l.projectId,
+        amountNok: Number(l.amountNok),
+      })),
+    })),
     setLines: [...touched].map((id) => ({ id, lines: toApi(lines.get(id)!) })),
     create: [...created].map(([payeeId, set]) => ({ payeeId, lines: toApi(set) })),
   };

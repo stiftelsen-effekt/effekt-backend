@@ -279,6 +279,24 @@ export const transferSetLinesInput = z.strictObject({
   syncAmount: z.boolean().default(true),
 });
 
+/**
+ * The round builder's Save: every transfer whose lines change and every new transfer, applied
+ * in one transaction. `basis` is the round's transfers (with lines) the plan was made from; if
+ * they changed in the meantime (a colleague's edit, or a save whose response got lost) the save
+ * is refused with CONFLICT, so a retry never applies a stale plan twice.
+ */
+export const transferSavePaymentsInput = z.strictObject({
+  roundId: id,
+  basis: z.array(
+    z.strictObject({
+      id,
+      lines: z.array(z.strictObject({ ...lineFields, amountNok: z.number().finite() })),
+    }),
+  ),
+  setLines: z.array(z.strictObject({ id, lines: transferLinesSchema })),
+  create: z.array(z.strictObject({ payeeId: id, lines: transferLinesSchema.min(1) })),
+});
+
 export const transferSetLineInput = z.strictObject({
   id,
   ...lineFields,
