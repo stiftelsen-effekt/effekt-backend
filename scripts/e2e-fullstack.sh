@@ -14,6 +14,9 @@
 #   E2E_BACKEND_FROM_HOST=1
 #                      run the backend from node:24.22.1 with this checkout's install mounted
 #                      (compose.e2e-ci.yml; Linux x64 only, as in CI) instead of from that image
+#   E2E_WAIT_FOR=<file>
+#                      wait (up to 3 min) until this file exists before starting the stack: CI
+#                      starts db, auth and oidc ahead in the background and writes it when done
 #   E2E_WEB_PORT (3100), E2E_API_PORT (5150), E2E_AUTH_PORT (8191), E2E_DB_PORT (3317)
 #
 # The production build is written to apps/web/.next, replacing any earlier `next build`.
@@ -63,7 +66,12 @@ if [ "${E2E_SKIP_STACK_BUILD:-0}" != "1" ] && [ "${E2E_BACKEND_FROM_HOST:-0}" !=
 fi
 # The stack starts while the web app builds below. The fundraiser pages, which read the API, are
 # left out of the build (E2E_DEFER_API_PAGES) and rendered on first request, once it is up.
-compose up -d --wait >"$LOG_DIR/stack-up.log" 2>&1 &
+{
+  if [ -n "${E2E_WAIT_FOR:-}" ]; then
+    for _ in $(seq 1 180); do [ -e "$E2E_WAIT_FOR" ] && break; sleep 1; done
+  fi
+  compose up -d --wait
+} >"$LOG_DIR/stack-up.log" 2>&1 &
 STACK_PID=$!
 
 # Public, non-secret build settings. Content comes read-only from the production Sanity dataset

@@ -59,7 +59,8 @@ the `effekt-backend-dev:local` image, read-only, with `scripts/e2e/pnpm-exec.sh`
 (real pnpm would reinstall the workspace into the mount): the runner's `pnpm install` already includes the API
 package, and getting the image from a layer cache and loading it into Docker took ~45s. That only
 works on Linux x64 (native builds such as Prisma's engines); locally the script builds the image
-as before. The stack's images are pulled in the background while the job sets up Node.
+as before. While the job sets up Node, a background step pulls the stack's images and starts
+`db`, `auth` and `oidc`; the script waits for it (`E2E_WAIT_FOR`) before its own `compose up`.
 
 ### Content (Sanity)
 

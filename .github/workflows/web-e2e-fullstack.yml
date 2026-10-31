@@ -48,12 +48,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The stack's images (MySQL, the mock OIDC issuer, nginx, Node) download while the next
-      # steps set up Node and install; `docker compose up` in the e2e step waits for them.
-      - name: Pull the stack's images in the background
+      # The stack's images (MySQL, the mock OIDC issuer, nginx, Node) download, and the services
+      # that need nothing from the install (db, auth, oidc) start, while the next steps set up
+      # Node and install. The e2e step waits for this to finish before its own `compose up`.
+      - name: Start the database and OIDC issuer in the background
         run: |
-          nohup docker compose -f compose.dev.yml -f compose.e2e.yml -f compose.e2e-ci.yml \
-            pull --quiet >"$RUNNER_TEMP/compose-pull.log" 2>&1 &
+          (
+            compose() { docker compose -f compose.dev.yml -f compose.e2e.yml -f compose.e2e-ci.yml "$@"; }
+            compose pull --quiet && compose up -d db auth oidc
+            echo "$?" >"$RUNNER_TEMP/e2e-early-stack.done"
+          ) >"$RUNNER_TEMP/e2e-early-stack.log" 2>&1 &
       # The pnpm version comes from packageManager in the root package.json.
       - name: Setup pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -91,6 +95,7 @@ jobs:
         run: pnpm e2e:fullstack
         env:
           E2E_BACKEND_FROM_HOST: "1"
+          E2E_WAIT_FOR: ${{ runner.temp }}/e2e-early-stack.done
       - name: Upload screenshots and logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
