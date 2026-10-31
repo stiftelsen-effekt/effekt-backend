@@ -85,7 +85,7 @@
     "@types/react": "catalog:",
     "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "catalog:",
-    "csv-parse": "^7.0.3",
+    "csv-parse": "catalog:",
     "cypress": "^16.2.0",
     "cypress-dotenv": "^3.0.1",
     "cypress-fail-fast": "^8.2.0",
