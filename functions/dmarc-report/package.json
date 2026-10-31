@@ -14,7 +14,7 @@
     "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
   },
   "dependencies": {
-    "@google-cloud/functions-framework": "^5.0.5",
+    "@google-cloud/functions-framework": "catalog:",
     "fast-xml-parser": "5.11.2",
     "fflate": "0.8.3",
     "imapflow": "2.3.0",

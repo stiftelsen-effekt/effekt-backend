@@ -60,7 +60,7 @@
     "moment": "^2.29.4",
     "morgan": "^1.10.0",
     "mysql2": "^3.10.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "catalog:",
     "norwegian-workdays": "catalog:",
     "object-hash": "^2.1.1",
     "prisma": "^7.10.1",

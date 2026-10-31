@@ -184,6 +184,9 @@ catalogs:
     '@auth0/auth0-react':
       specifier: 2.28.2
       version: 2.28.2
+    '@google-cloud/functions-framework':
+      specifier: 5.0.5
+      version: 5.0.5
     '@trpc/client':
       specifier: 11.19.0
       version: 11.19.0
@@ -211,6 +214,9 @@ catalogs:
     csv-parse:
       specifier: 7.0.3
       version: 7.0.3
+    date-fns:
+      specifier: 4.4.0
+      version: 4.4.0
     dotenv:
       specifier: 18.0.9
       version: 18.0.9
@@ -220,6 +226,9 @@ catalogs:
     luxon:
       specifier: 3.7.2
       version: 3.7.2
+    node-fetch:
+      specifier: 2.7.0
+      version: 2.7.0
     norwegian-workdays:
       specifier: github:stiftelsen-effekt/norwegian-workdays#v1.1.0
       version: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417
@@ -316,7 +325,7 @@ importers:
         specifier: 1.1.1
         version: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       date-fns:
-        specifier: 4.4.0
+        specifier: 'catalog:'
         version: 4.4.0
       lucide-react:
         specifier: 1.61.0
@@ -494,7 +503,7 @@ importers:
         specifier: ^3.10.0
         version: 3.12.0
       node-fetch:
-        specifier: ^2.6.1
+        specifier: 'catalog:'
         version: 2.7.0
       norwegian-workdays:
         specifier: 'catalog:'
@@ -817,7 +826,7 @@ importers:
         specifier: ^6.17.0
         version: 6.21.0(9058edf31a405e0ebcb26351f391a07d)
       date-fns:
-        specifier: ^4.4.0
+        specifier: 'catalog:'
         version: 4.4.0
       katex:
         specifier: 'catalog:'
@@ -857,10 +866,10 @@ importers:
   functions/api-scheduled:
     dependencies:
       '@google-cloud/functions-framework':
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(supports-color@8.1.1)
       node-fetch:
-        specifier: ^2.6.1
+        specifier: 'catalog:'
         version: 2.7.0
     devDependencies:
       oxlint:
@@ -873,7 +882,7 @@ importers:
   functions/dmarc-report:
     dependencies:
       '@google-cloud/functions-framework':
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(supports-color@8.1.1)
       fast-xml-parser:
         specifier: 5.11.2

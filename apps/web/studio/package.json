@@ -23,7 +23,7 @@
     "@sanity/table": "^3.1.17",
     "@sanity/ui": "^4.3.0",
     "@sanity/vision": "^6.17.0",
-    "date-fns": "^4.4.0",
+    "date-fns": "catalog:",
     "katex": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
