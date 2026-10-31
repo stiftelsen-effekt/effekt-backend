@@ -219,7 +219,7 @@ export const restLink =
         } catch (cause) {
           // An answer the schema rejects is the backend's fault, like a 5xx, so it gets an HTTP
           // status too (502): callers that treat an HTTP error as "no data" handle it the same way
-          console.error(`${op.path}: unexpected response from the REST API`, cause);
+          console.error("%s: unexpected response from the REST API", op.path, cause);
           throw restError(
             op.path,
             "INTERNAL_SERVER_ERROR",

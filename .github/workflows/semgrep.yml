@@ -35,6 +35,21 @@ jobs:
         if: always()
         run: semgrep scan --metrics=off --config .semgrep/ --exclude .semgrep --error .
 
+      # pnpm 11+ writes pnpm-lock.yaml as two YAML documents: the pnpm version it installs
+      # (packageManagerDependencies), then the workspace's lockfile. Semgrep Supply Chain only
+      # reads single-document lockfiles ("expected a single document in the stream") and then
+      # sees no dependencies at all, so the scan gets the second document alone. skip-worktree
+      # keeps the checkout clean for `semgrep ci`, which refuses diff-aware scans otherwise.
+      - name: Give Semgrep a single-document pnpm-lock.yaml
+        if: always() && env.SEMGREP_APP_TOKEN != ''
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if [ "$(grep -c '^---$' pnpm-lock.yaml)" -gt 1 ]; then
+            awk 'n >= 2 || (/^---$/ && ++n == 2)' pnpm-lock.yaml > "$RUNNER_TEMP/pnpm-lock.yaml"
+            mv "$RUNNER_TEMP/pnpm-lock.yaml" pnpm-lock.yaml
+            git update-index --skip-worktree pnpm-lock.yaml
+          fi
+
       # Rules managed in the Semgrep app (blocking findings fail the job). Skipped when the
       # token is not available (e.g. pull requests from forks).
       - name: Semgrep app rules

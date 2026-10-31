@@ -246,6 +246,7 @@ catalogs:
 overrides:
   '@types/react': ^19.3.0
   '@module-federation/vite>@module-federation/dts-plugin': ^2.9.2
+  '@module-federation/dts-plugin>undici': ^7.30.1
   '@vercel/frameworks>js-yaml': ^3.15.2
   '@vercel/frameworks>smol-toml': ^1.9.0
   typeid-js>uuid: ^11.1.1
@@ -10678,10 +10679,6 @@ packages:
   undici-types@7.24.6:
     resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
-  undici@7.29.1:
-    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
-    engines: {node: '>=20.18.1'}
-
   undici@7.30.1:
     resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
@@ -12993,7 +12990,7 @@ snapshots:
       adm-zip: 0.6.1
       isomorphic-ws: 5.0.0(ws@8.21.3)
       typescript: 5.9.3
-      undici: 7.29.1
+      undici: 7.30.1
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -13008,7 +13005,7 @@ snapshots:
       adm-zip: 0.6.1
       isomorphic-ws: 5.0.0(ws@8.21.3)
       typescript: 7.0.2
-      undici: 7.29.1
+      undici: 7.30.1
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -22682,8 +22679,6 @@ snapshots:
   undici-types@5.26.5: {}
 
   undici-types@7.24.6: {}
-
-  undici@7.29.1: {}
 
   undici@7.30.1: {}
 

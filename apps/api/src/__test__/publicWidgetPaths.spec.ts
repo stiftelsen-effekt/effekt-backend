@@ -62,6 +62,7 @@ describe("public widget paths", () => {
     it("refuses tokens not signed with the key", () => {
       const token = createRegistrationToken(claims);
       const [version, payload] = token.split(".");
+      // nosemgrep: javascript.lang.security.audit.hardcoded-hmac-key.hardcoded-hmac-key -- a wrong key on purpose, to forge a signature the API must refuse
       const forged = crypto.createHmac("sha256", "guess").update(`${version}.${payload}`);
       for (const bad of [
         `${version}.${payload}.${forged.digest("base64url")}`,
