@@ -115,6 +115,9 @@ export const DonorPane: React.FC<{
   const newsletterChecked = watch("newsletter");
   const isAnonymous = watch("isAnonymous");
   const [loadingMethod, setLoadingMethod] = React.useState<string | null>(null);
+  // Set synchronously on the first click, before validation awaits, so a double click (or a
+  // click on a second payment method) can't register the donation twice
+  const submittingRef = React.useRef(false);
   // For the single-cause-area flow, payment method selection is a distinct
   // step from submission (matches the pre-rewrite behavior) - the radio
   // just records a choice, and a separate Next button submits it.
@@ -127,9 +130,23 @@ export const DonorPane: React.FC<{
   // truthiness - a falsy-but-set apiError must still trigger the reset.
   React.useEffect(() => {
     if (typeof donation.apiError !== "undefined") {
+      submittingRef.current = false;
       setLoadingMethod(null);
     }
   }, [donation.apiError]);
+
+  // Coming back from an external payment page restores this page from the back/forward cache
+  // as it was when the donor left - with the payment button still spinning - so let them pay again
+  React.useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        submittingRef.current = false;
+        setLoadingMethod(null);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   // Locale-aware SSN/CPR validation (handles NO, SE and DK CPR/CVR incl. suspicious CPR warning)
   const { validateSsn, handleSsnChange, cprSuspicious } = useSsnValidation({
@@ -164,8 +181,14 @@ export const DonorPane: React.FC<{
     // handleSubmit(), react-hook-form never marks the form as submitted and so never
     // re-validates on change - a donor who submitted with a bad email once would be
     // left with permanently disabled payment buttons even after fixing it.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     const isValid = await trigger();
-    if (!isValid) return;
+    if (!isValid) {
+      submittingRef.current = false;
+      return;
+    }
 
     setLoadingMethod(methodId);
     const paymentMethod = mapPaymentMethod(methodId);
@@ -524,6 +547,7 @@ export const DonorPane: React.FC<{
                 {paymentMethods.map((method) => (
                   <PaymentButton
                     key={method._id}
+                    aria-busy={loadingMethod === method._id || undefined}
                     onClick={(e) => {
                       e.preventDefault();
                       handlePayment(method._id);

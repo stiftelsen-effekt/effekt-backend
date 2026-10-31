@@ -1,4 +1,4 @@
-import { all, takeLatest } from "redux-saga/effects";
+import { all, takeLatest, takeLeading } from "redux-saga/effects";
 import {
   draftAgreementAction,
   draftAvtaleGiroAction,
@@ -16,14 +16,17 @@ import { fetchReferrals, submitReferral } from "./referrals/saga";
 import { fetchCauseAreasAction } from "./layout/actions";
 import { fetchCauseAreas } from "./layout/saga";
 
+// Registering a donation and drafting an agreement use takeLeading: a repeat dispatch while one
+// is in flight is ignored. takeLatest would cancel the saga but not its HTTP request, so a double
+// click registered the donation twice.
 export function* watchAll() {
   yield all([
     takeLatest(fetchCauseAreasAction.started.type, fetchCauseAreas),
     takeLatest(fetchReferralsAction.started.type, fetchReferrals),
-    takeLatest(registerDonationAction.started.type, registerDonation),
+    takeLeading(registerDonationAction.started.type, registerDonation),
     takeLatest(submitReferralAction.started.type, submitReferral),
-    takeLatest(registerBankPendingAction.started.type, registerBankPending),
-    takeLatest(draftAgreementAction.started.type, draftVippsAgreement),
-    takeLatest(draftAvtaleGiroAction.started.type, draftAvtaleGiro),
+    takeLeading(registerBankPendingAction.started.type, registerBankPending),
+    takeLeading(draftAgreementAction.started.type, draftVippsAgreement),
+    takeLeading(draftAvtaleGiroAction.started.type, draftAvtaleGiro),
   ]);
 }
