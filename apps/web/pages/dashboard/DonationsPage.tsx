@@ -171,7 +171,7 @@ export const DonationsPage = withStaticProps(
     error: organizationsError,
   } = useAllOrganizations();
 
-  const { data: causeAreas, loading: causeAreasLoading } = useCauseAreas();
+  const { data: causeAreas, loading: causeAreasLoading, error: causeAreasError } = useCauseAreas();
 
   const {
     data: taxUnits,
@@ -184,8 +184,19 @@ export const DonationsPage = withStaticProps(
   const organizationsLoaded = Array.isArray(organizations);
   const causeAreasLoaded = Array.isArray(causeAreas);
   const taxUnitsLoaded = Array.isArray(taxUnits);
-  const resolvedDistributions = shouldFetchDistributions ? distributions : [];
+  // Without distributions the donations are still listed; their details fall back to the impact
+  const resolvedDistributions =
+    shouldFetchDistributions && !distributionsError ? distributions : [];
   const distributionsLoaded = Array.isArray(resolvedDistributions);
+  // Errors are not retried (see the profile layout's SWRConfig), so a failed query would otherwise
+  // leave the spinner up for good
+  const loadFailed = !!(
+    aggregatedError ||
+    donationsError ||
+    organizationsError ||
+    causeAreasError ||
+    taxUnitsError
+  );
   const noDonationData = donationsLoaded && aggregatedDonationsLoaded && donations.length === 0;
 
   /**
@@ -208,6 +219,27 @@ export const DonationsPage = withStaticProps(
     organizationsloading ||
     causeAreasLoading ||
     taxUnitsLoading;
+
+  if (loadFailed)
+    return (
+      <>
+        <Head>
+          <title>
+            {settings.title} | {page.title}
+          </title>
+          <link rel="icon" href="/favicon.ico" />
+        </Head>
+
+        <MainHeader hideOnScroll={false}>
+          <Navbar {...navbarData} />
+        </MainHeader>
+
+        <PageContent>
+          <h3 className={style.header}>{page.title}</h3>
+          <ErrorMessage />
+        </PageContent>
+      </>
+    );
 
   if (!dataAvailable || loading)
     return (
