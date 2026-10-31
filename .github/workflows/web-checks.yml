@@ -57,8 +57,9 @@ jobs:
       # Only the web package's dependencies (not the backend's or the admin's).
       - name: Install dependencies
         # Same as the Vercel projects' install command: the web build compiles the tRPC types
-        # with the API package's dependencies (docs/web-trpc.md). Keep the two in sync.
-        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+        # with the API package's dependencies (docs/web-trpc.md). Keep the two in sync. The
+        # Sanity studio (effekt-studio) is extra here: the Vercel build installs it itself.
+        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend --filter effekt-studio
         env:
           # Cypress runs in web-e2e.yml; this job doesn't need its binary.
           CYPRESS_INSTALL_BINARY: "0"
@@ -98,3 +99,6 @@ jobs:
             echo "::error::Failed:$failed"
             exit 1
           fi
+      - name: Studio typecheck and test
+        working-directory: apps/web/studio
+        run: pnpm typecheck && pnpm test
