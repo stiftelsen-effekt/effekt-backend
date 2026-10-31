@@ -11,6 +11,7 @@ import { InfoText } from "../PaymentPane.style";
 import { ANONYMOUS_DONOR } from "../../../../config/anonymous-donor";
 import { CompleteButton, CompleteButtonWrapper } from "../Bank/BankPane.style";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
+import { currencyForLocale } from "../../../../utils/currency";
 
 export const DKBankPane: React.FC<{
   config: DkBankPaymentMethod;
@@ -40,12 +41,7 @@ export const DKBankPane: React.FC<{
   ).totalAmount;
 
   const [hasCompletedTransaction, setHasCompletedTransaction] = useState(false);
-  let currency = "NOK";
-  if (config.locale === "sv") {
-    currency = "SEK";
-  } else if (config.locale === "dk") {
-    currency = "DKK";
-  }
+  const currency = currencyForLocale(config.locale);
 
   useEffect(() => {
     if (hasCompletedTransaction && totalAmount && donation.kid) {

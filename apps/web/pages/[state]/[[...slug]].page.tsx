@@ -402,13 +402,22 @@ export async function getStaticPaths() {
     getFundraiserPagePaths(routerContext.fundraisersPath),
     getDonationsPageSubpaths(),
     getTaxPageSubPaths(),
-  ]).then(([genericPagePaths, articlePaths, donationsPageSubpaths, taxPageSubPaths]) => [
-    ...genericPagePaths,
-    ...articlePaths,
-    ...donationsPageSubpaths,
-    ...taxPageSubPaths,
-    ...(Object.values(routerContext).filter((path) => path !== null) as string[][]),
-  ]);
+  ]).then(
+    ([
+      genericPagePaths,
+      articlePaths,
+      fundraiserPagePaths,
+      donationsPageSubpaths,
+      taxPageSubPaths,
+    ]) => [
+      ...genericPagePaths,
+      ...articlePaths,
+      ...fundraiserPagePaths,
+      ...donationsPageSubpaths,
+      ...taxPageSubPaths,
+      ...(Object.values(routerContext).filter((path) => path !== null) as string[][]),
+    ],
+  );
 
   const consentStates: ConsentState[] = ["accepted", "rejected", "undecided"];
 

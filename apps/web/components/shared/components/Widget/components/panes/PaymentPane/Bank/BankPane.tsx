@@ -11,6 +11,7 @@ import AnimateHeight from "react-animate-height";
 import { CompleteButton, CompleteButtonWrapper } from "./BankPane.style";
 import { usePlausible } from "next-plausible";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
+import { currencyForLocale } from "../../../../utils/currency";
 
 export const BankPane: React.FC<{
   config: BankPaymentMethod;
@@ -38,12 +39,7 @@ export const BankPane: React.FC<{
   );
   const totalSumIncludingTip = breakdown.totalAmount;
 
-  let currency = "NOK";
-  if (config.locale === "sv") {
-    currency = "SEK";
-  } else if (config.locale === "dk") {
-    currency = "DKK";
-  }
+  const currency = currencyForLocale(config.locale);
 
   useEffect(() => {
     if (hasCompletedTransaction && totalSumIncludingTip && donation.kid) {

@@ -40,6 +40,7 @@ import {
 import { paymentMethodConfigurations } from "../../../config/methods";
 import { useSsnValidation } from "./useSsnValidation";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
+import { currencyForLocale } from "../../../utils/currency";
 
 // Capitalizes each first letter of all first, middle and last names
 const capitalizeNames = (string: string) => {
@@ -229,7 +230,7 @@ export const DonorPane: React.FC<{
               // @ts-ignore
               window.fbq("track", "Lead", {
                 value: ltv,
-                currency: "NOK",
+                currency: currencyForLocale(locale),
               });
             });
           }
@@ -250,7 +251,7 @@ export const DonorPane: React.FC<{
             // @ts-ignore
             window.fbq("track", "Lead", {
               value: totalSumIncludingTip,
-              currency: "NOK",
+              currency: currencyForLocale(locale),
             });
           }
         }
