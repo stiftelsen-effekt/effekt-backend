@@ -104,8 +104,6 @@ const query = groq`
 }
 `;
 
-let cachedNavbarResult: NavBarQueryResult | null = null;
-
 export const Navbar = withStaticProps(
   async ({
     dashboard,
@@ -116,14 +114,8 @@ export const Navbar = withStaticProps(
     draftMode: boolean;
     useDashboardLogo?: boolean;
   }) => {
-    let result;
-
-    if (cachedNavbarResult) {
-      result = cachedNavbarResult;
-    } else {
-      result = await getClient(draftMode ? token : undefined).fetch<NavBarQueryResult>(query);
-      cachedNavbarResult = result;
-    }
+    // Fetched once per build by the client's build cache (lib/sanity.client.ts)
+    const result = await getClient(draftMode ? token : undefined).fetch<NavBarQueryResult>(query);
 
     return {
       dashboard,
