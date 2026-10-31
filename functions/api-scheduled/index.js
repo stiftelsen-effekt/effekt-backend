@@ -84,7 +84,7 @@ exports.default = async (req, res) => {
         res
           .status(400)
           .send(
-            "Missing query parameter {type}, or invalid value (avtalegiro, avtalegiroretry, ocr, vippsrecurring, followup are allowed values)",
+            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, auth0check, followup, mailchimp are allowed values)",
           );
     }
     return;

@@ -13,6 +13,17 @@ const getMailersendSecurityRecipients = () => {
   return mailersendSecurityRecipientsEnv.split(",");
 };
 
+const DEFAULT_DB_CONNECTION_LIMIT = 10;
+
+const parseDbConnectionLimit = (value) => {
+  if (value === undefined || value === "") return DEFAULT_DB_CONNECTION_LIMIT;
+  const limit = Number(value);
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new Error(`DB_CONNECTION_LIMIT must be a positive integer, got "${value}"`);
+  }
+  return limit;
+};
+
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
@@ -41,6 +52,9 @@ module.exports = {
   db_username: process.env.DB_USER,
   db_password: process.env.DB_PASS,
   db_name: process.env.DB_NAME,
+  //Size of the main mysql2 pool, per instance. Instances x this must stay below the Cloud SQL
+  //max_connections (shared by every service on the instance)
+  db_connection_limit: parseDbConnectionLimit(process.env.DB_CONNECTION_LIMIT),
 
   //MCP server: dedicated read-only user scoped to the anonymized analysis DB.
   //Kept separate from the db_* credentials above (which can write to production).
