@@ -54,13 +54,6 @@ export type SEOMeta = {
   noIndex?: boolean;
 };
 
-export type FacebookDonationRegistration = {
-  email: string;
-  paymentID: string;
-  name: string;
-  ssn: string;
-};
-
 export type ImpactCharity = {
   id: number; // Not necessarily the same as the id in the database
   charity_name: string;

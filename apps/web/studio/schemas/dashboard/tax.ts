@@ -15,12 +15,7 @@ export default defineType({
       name: "features",
       title: "Features",
       type: "array",
-      of: [
-        { type: "metareceipt" },
-        { type: "abouttaxdeductions" },
-        { type: "taxunits" },
-        { type: "taxstatements" },
-      ],
+      of: [{ type: "abouttaxdeductions" }, { type: "taxunits" }, { type: "taxstatements" }],
       // Don't allow more than one of each type
       validation: (Rule) =>
         Rule.custom((features: any) => {

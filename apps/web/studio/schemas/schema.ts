@@ -47,7 +47,6 @@ import aggregateestimatedimpact from "./types/aggregateestimatedimpact";
 import donationstableconfiguration from "./types/donationstableconfiguration";
 import dashboard from "./dashboard";
 import taxunits from "./dashboard/tax/taxunits";
-import metareceipt from "./dashboard/tax/metareceipt";
 import taxdeduction from "./dashboard/tax/taxdeduction";
 import taxstatements from "./dashboard/tax/taxstatements";
 import donationstabledetailsconfiguration from "./types/donationstabledetailsconfiguration";
@@ -165,7 +164,6 @@ export const types = [
   agreementlistconfiguration,
   agreementlistdetailsconfiguration,
   taxunits,
-  metareceipt,
   taxdeduction,
   taxstatements,
   giftcardteaser,
