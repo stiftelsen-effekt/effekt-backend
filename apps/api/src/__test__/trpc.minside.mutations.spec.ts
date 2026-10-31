@@ -358,6 +358,18 @@ describe("tRPC minside mutations", () => {
       expect(archive.called).to.be.false;
     });
 
+    it("does not move the donations to the unit being deleted", async () => {
+      await expectTrpcError(
+        profileDonor().minside.deleteTaxUnit({
+          donorId: DONOR,
+          taxUnitId: 3,
+          transferTaxUnitId: 3,
+        }),
+        "BAD_REQUEST",
+      );
+      expect(archive.called).to.be.false;
+    });
+
     it("maps the service's NOT_FOUND (another donor's unit)", async () => {
       archive.rejects(
         new donorService.DonorServiceError("NOT_FOUND", "No tax unit found with ID 4"),
