@@ -163,7 +163,6 @@ async function applyAdjustment(adjustment: AgreementInflationAdjustment): Promis
     return true;
   }
 
-  // AutoGiro is not adjusted (see getAllInflationEligibleAgreements); none were ever proposed
   console.error(
     `Unsupported agreement type for inflation adjustment: ${adjustment.agreement_type}`,
   );

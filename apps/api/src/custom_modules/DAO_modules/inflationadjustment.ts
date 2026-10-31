@@ -6,7 +6,7 @@ import { Agreement_inflation_adjustments, Prisma } from "@prisma/client";
 export interface AgreementInflationAdjustment {
   ID: number;
   agreement_ID: string;
-  agreement_type: "avtaleGiro" | "autoGiro" | "vipps";
+  agreement_type: "avtaleGiro" | "vipps";
   /** In øre */
   current_amount: number;
   /** In øre */
@@ -21,7 +21,7 @@ export interface AgreementInflationAdjustment {
 
 export interface CreateAdjustmentInput {
   agreementId: string | number;
-  agreementType: "avtaleGiro" | "autoGiro" | "vipps";
+  agreementType: "avtaleGiro" | "vipps";
   currentAmount: number;
   proposedAmount: number;
   inflationPercentage: number;
@@ -145,7 +145,7 @@ const mapDbAgreementToJs = (
   return {
     ID: agreement.ID,
     agreement_ID: agreement.agreement_ID,
-    agreement_type: agreement.agreement_type as "avtaleGiro" | "autoGiro" | "vipps",
+    agreement_type: agreement.agreement_type as "avtaleGiro" | "vipps",
     current_amount: agreement.current_amount / 100,
     proposed_amount: agreement.proposed_amount / 100,
     inflation_percentage: agreement.inflation_percentage as unknown as Prisma.Decimal,

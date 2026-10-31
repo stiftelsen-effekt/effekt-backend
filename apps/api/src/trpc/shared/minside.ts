@@ -180,19 +180,6 @@ export const avtaleGiroAgreementsOutput = z.array(
   }),
 );
 
-/** GET /donors/:id/recurring/autogiro */
-export const autoGiroAgreementsOutput = z.array(
-  z.object({
-    ID: z.number().int(),
-    active: z.boolean(),
-    amount: decimal,
-    KID: z.string(),
-    payment_date: z.number().int(),
-    created: isoDateTime.nullable(),
-    cancelled: isoDateTime.nullable(),
-  }),
-);
-
 /**
  * GET /donors/:id/taxreports: one report per year, from the previous year down to 2022, computed
  * by the backend with the Norwegian (default) or Swedish deduction rules. No Danish REST route.
@@ -368,5 +355,4 @@ export type Donations = z.output<typeof donationsOutput>;
 export type Distributions = z.output<typeof distributionsOutput>;
 export type VippsAgreements = z.output<typeof vippsAgreementsOutput>;
 export type AvtaleGiroAgreements = z.output<typeof avtaleGiroAgreementsOutput>;
-export type AutoGiroAgreements = z.output<typeof autoGiroAgreementsOutput>;
 export type TaxReports = z.output<typeof taxReportsOutput>;

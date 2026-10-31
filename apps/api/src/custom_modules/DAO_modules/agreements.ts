@@ -2,13 +2,12 @@ import { DAO } from "../DAO";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 
 /**
- * Recurring agreements across providers (Vipps and AvtaleGiro in NO, AutoGiro in SE) in one
+ * Recurring agreements across providers (Vipps and AvtaleGiro) in one
  * list, built as a UNION ALL of the provider tables with a shared projection.
  *
  * Amounts are in whole currency units. The stored units differ:
  * - Vipps_agreements.amount: whole NOK (the Vipps API gets øre, see vipps.draftAgreement)
  * - Avtalegiro_agreements.amount: øre
- * - AutoGiro_agreements.amount: whole SEK (the shipment file gets öre, see autogiro.ts)
  *
  * Statuses are normalised (see agreementStatuses), the provider's own value is kept in
  * `providerStatus`:
@@ -22,16 +21,12 @@ import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDa
  * | avtalegiro | active = 1                                             | active  |
  * | avtalegiro | active = 0, cancelled set                              | stopped |
  * | avtalegiro | active = 0, not cancelled (awaiting bank confirmation) | pending |
- * | autogiro   | active = 1                                             | active  |
- * | autogiro   | cancelled set, or mandate CANCELLED/REJECTED           | stopped |
- * | autogiro   | active = 0, mandate DRAFTED (mandate never submitted)  | draft   |
- * | autogiro   | active = 0, mandate NEW/PENDING/ACTIVE                 | pending |
  */
 
-export const agreementProviders = ["vipps", "avtalegiro", "autogiro"] as const;
+export const agreementProviders = ["vipps", "avtalegiro"] as const;
 export type AgreementProvider = (typeof agreementProviders)[number];
 
-export const agreementStatuses = ["active", "paused", "pending", "draft", "stopped"] as const;
+export const agreementStatuses = ["active", "paused", "pending", "stopped"] as const;
 export type AgreementStatus = (typeof agreementStatuses)[number];
 
 export const agreementSortColumns = [
@@ -149,34 +144,6 @@ const providerQueries: Record<AgreementProvider, string> = {
     FROM Avtalegiro_agreements AG
     INNER JOIN Distributions D ON D.KID = AG.KID
     INNER JOIN Donors ON Donors.ID = D.Donor_ID`,
-
-  autogiro: `
-    SELECT
-      ${str("'autogiro'")} AS provider,
-      ${str("AG.ID")} AS id,
-      ${str("AG.KID")} AS KID,
-      D.Donor_ID AS donorId,
-      ${str("Donors.full_name")} AS donorName,
-      ${str("Donors.email")} AS donorEmail,
-      CAST(AG.amount AS DECIMAL(16, 2)) AS amount,
-      AG.payment_date AS chargeDay,
-      ${str(`CASE
-        WHEN AG.active = 1 THEN 'active'
-        WHEN AG.cancelled IS NOT NULL OR M.status IN ('CANCELLED', 'REJECTED') THEN 'stopped'
-        WHEN M.status = 'DRAFTED' THEN 'draft'
-        ELSE 'pending'
-      END`)} AS status,
-      ${str(
-        "CONCAT(IF(AG.active = 1, 'active', 'inactive'), ', mandate ', COALESCE(M.status, 'missing'))",
-      )} AS providerStatus,
-      AG.created AS createdDb,
-      AG.last_updated AS lastUpdatedDb,
-      CAST(AG.cancelled AS DATETIME) AS cancelled,
-      ${str("NULL")} AS pausedUntil
-    FROM AutoGiro_agreements AG
-    INNER JOIN Distributions D ON D.KID = AG.KID
-    INNER JOIN Donors ON Donors.ID = D.Donor_ID
-    LEFT JOIN AutoGiro_mandates M ON M.ID = AG.mandateID`,
 };
 
 /** ORDER BY expressions per sort column. Ids are text; shorter ids first so numbers sort numerically */

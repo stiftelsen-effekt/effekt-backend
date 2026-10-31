@@ -5,6 +5,4 @@ export default {
   BANK: paymentMethods.bank,
   PAYPAL: paymentMethods.paypal,
   AVTALEGIRO: paymentMethods.avtalegiro,
-  SWISH: paymentMethods.swish,
-  AUTOGIRO: paymentMethods.autoGiro,
 };

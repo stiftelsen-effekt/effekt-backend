@@ -12,11 +12,7 @@ import { getImpactEstimatesForDonationByOrg, OrganizationImpactEstimate } from "
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 import { RequestLocale } from "../middleware/locale";
 import { SanitySecurityNoticeVariables } from "../routes/mail";
-import {
-  Agreement_inflation_adjustments,
-  AutoGiro_agreements,
-  Avtalegiro_agreements,
-} from "@prisma/client";
+import { Agreement_inflation_adjustments, Avtalegiro_agreements } from "@prisma/client";
 import { agreementType } from "./inflationadjustment";
 import { VippsAgreement } from "./DAO_modules/vipps";
 import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
@@ -322,83 +318,6 @@ const getReceiptTaxInformation = async (donation, distribution: Distribution) =>
 
   return taxInformation;
 };
-
-/**
- * Sends a donation reciept
- * @param {number} agreementKid
- * @param {string} reciever Reciever email
- */
-export async function sendAutoGiroRegistered(agreementKid, reciever: string | null = null) {
-  try {
-    var agreement = await DAO.autogiroagreements.getAgreementByKID(agreementKid);
-    var donor = await DAO.donors.getByKID(agreementKid);
-    if (!donor!.email) {
-      console.error("No email provided for agreement with KID " + agreementKid);
-      return false;
-    }
-  } catch (ex) {
-    console.error("Failed to send mail donation reciept, could not get donation by ID");
-    console.error(ex);
-    return false;
-  }
-
-  try {
-    var distribution = await DAO.distributions.getSplitByKID(agreement!.KID);
-  } catch (ex) {
-    console.error("Failed to send mail donation reciept, could not get donation split by KID");
-    console.error(ex);
-    return false;
-  }
-
-  const split = distribution.causeAreas.reduce<DistributionCauseAreaOrganization[]>(
-    (acc, causeArea) => {
-      causeArea.organizations.forEach((org) => {
-        acc.push({
-          id: org.id,
-          name: org.name,
-          percentageShare: (
-            (parseFloat(org.percentageShare) / 100) *
-            (parseFloat(causeArea.percentageShare) / 100) *
-            100
-          ).toString(),
-        });
-      });
-      return acc;
-    },
-    [],
-  );
-
-  const organizations = formatOrganizationsFromSplit(split, agreement!.amount);
-
-  const mailResult = await sendTemplate({
-    to: reciever || donor!.email,
-    templateId: config.mailersend_autogiro_registered_template_id,
-    personalization: {
-      donorName: donor!.name,
-      donationKID: agreement!.KID,
-      paymentMethod: decideUIPaymentMethod("AutoGiro"),
-      donationTotalSum: formatCurrency(agreement!.amount) + " kr",
-      organizations,
-    },
-  });
-
-  /**
-   * HTTP 202 is the status code for accepted
-   * If the mail was not accepted, log the error and return false
-   * If the mail was accepted, return true
-   * Accepted means that the mail was sent to the mail server, not that it was delivered
-   * It is scheduled for delivery
-   */
-  if (mailResult === false) {
-    return false;
-  } else if (mailResult.statusCode !== 202) {
-    console.error("Failed to send autogiro registered reciept");
-    console.error(mailResult);
-    return mailResult.statusCode;
-  } else {
-    return true;
-  }
-}
 
 function decideUIPaymentMethod(donationMethod) {
   if (donationMethod.toUpperCase() == "BANK U/KID") {
@@ -886,7 +805,7 @@ export async function sendAgreementInflationAdjustment(
   adjustment: Agreement_inflation_adjustments,
 ) {
   try {
-    let agreement: Avtalegiro_agreements | VippsAgreement | AutoGiro_agreements;
+    let agreement: Avtalegiro_agreements | VippsAgreement;
     let agreementCreated: DateTime;
     if (adjustment.agreement_type === agreementType.avtaleGiro) {
       let agreementId = parseInt(adjustment.agreement_ID);
@@ -900,12 +819,6 @@ export async function sendAgreementInflationAdjustment(
       if (!vippsagreement) throw new Error("Agreement not found");
       agreement = vippsagreement;
       agreementCreated = DateTime.fromJSDate(agreement.timestamp_created as unknown as Date);
-    } else if (adjustment.agreement_type === agreementType.autoGiro) {
-      let agreementId = parseInt(adjustment.agreement_ID);
-      let autogiroAgreement = await DAO.autogiroagreements.getAgreementById(agreementId);
-      if (!autogiroAgreement) throw new Error("Agreement not found");
-      agreement = autogiroAgreement;
-      agreementCreated = DateTime.fromJSDate(agreement.created!);
     } else {
       throw new Error("Unknown agreement type");
     }

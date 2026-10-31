@@ -151,7 +151,6 @@ describe("Preview environment guard", function () {
         "MailerSend",
         "Mailchimp",
         "Giro SFTP",
-        "Swish certificate",
         "Auth0 M2M",
         "Auth0 MCP",
         "Survey export",

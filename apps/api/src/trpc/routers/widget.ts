@@ -3,22 +3,17 @@ import { DAO } from "../../custom_modules/DAO";
 import { getAllCauseAreasWithOrganizations } from "../../custom_modules/configService";
 import { registerPendingDonation } from "../../custom_modules/pendingDonationRegistration";
 import { draftAvtaleGiroAgreement } from "../../custom_modules/avtalegiro";
-import { setDraftedAutoGiroPaymentDate } from "../../custom_modules/autogiro";
-import { getSwishOrder } from "../../custom_modules/swish";
 import { registerDonationSchema } from "../../schemas/publicRequests";
 import { registrationFor, verifyRegistrationToken } from "../../custom_modules/registrationToken";
 import { sendBankPendingOnce } from "../../custom_modules/bankPendingMail";
 import methods from "../../enums/methods";
 import { publicProcedure, router } from "../trpc";
 import {
-  widgetAutoGiroDraftPaymentDateInput,
   widgetBankPendingInput,
   widgetCauseAreasOutput,
   widgetDraftAvtaleGiroInput,
   widgetDraftVippsAgreementInput,
   widgetDraftVippsAgreementOutput,
-  widgetSwishOrderStatusInput,
-  widgetSwishOrderStatusOutput,
   widgetReferralTypesOutput,
   widgetRegisterDonationOutput,
   widgetSubmitReferralInput,
@@ -51,7 +46,7 @@ export const widgetRouter = router({
     .query(() => DAO.referrals.getTypes()),
 
   /**
-   * POST /donations/register: registers a pending donation and, for one-off Vipps and Swish
+   * POST /donations/register: registers a pending donation and, for one-off Vipps
    * donations, starts the payment. Same validation (registerDonationSchema) and the same code
    * (registerPendingDonation) as the REST route.
    */
@@ -169,31 +164,4 @@ export const widgetRouter = router({
     }
     return true;
   }),
-
-  /** GET /swish/orders/:id/status: the widget polls this while the donor pays in Swish */
-  swishOrderStatus: publicProcedure
-    .input(widgetSwishOrderStatusInput)
-    .output(widgetSwishOrderStatusOutput)
-    .query(async ({ input }) => {
-      const order = await getSwishOrder(Number(input.orderId));
-      if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "Swish order not found" });
-      return { status: order.status };
-    }),
-
-  /** PUT /autogiro/:KID/drafted/paymentdate: the payment date of a not yet signed AutoGiro agreement */
-  setAutoGiroDraftPaymentDate: publicProcedure
-    .input(widgetAutoGiroDraftPaymentDateInput)
-    .mutation(async ({ input }) => {
-      if (!registrationFor(input.registrationToken, input.KID, [methods.AUTOGIRO])) {
-        throw invalidRegistration();
-      }
-      const result = await setDraftedAutoGiroPaymentDate(input.KID, input.paymentDate);
-      if (!result.ok) {
-        throw new TRPCError({
-          code: result.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
-          message: result.message,
-        });
-      }
-      return true;
-    }),
 });

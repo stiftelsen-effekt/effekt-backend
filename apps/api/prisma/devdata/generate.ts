@@ -76,9 +76,6 @@ export const GENERATED_TABLES = [
   "Avtalegiro_agreements",
   "Vipps_agreements",
   "Vipps_agreement_charges",
-  "AutoGiro_mandates",
-  "AutoGiro_agreements",
-  "AutoGiro_shipments",
   "Donations",
   "Payment_intent",
   "Vipps_orders",
@@ -1748,50 +1745,6 @@ class Simulation {
         Donation_ID: item.registered ? item.donationId : null,
       });
     }
-
-    this.autoGiro();
-  }
-
-  /** The admin is Norway-only: a couple of Swedish agreements keep these tables non-empty */
-  private autoGiro() {
-    const day = this.start;
-    const rng = this.rng("autogiro");
-    for (let i = 0; i < 2; i++) {
-      const id = i + 1;
-      const KID = `${String(id).padStart(6, "0")}${String(70_000_000 + id)}`;
-      const created = timestamp(day, 12 * 3600);
-      this.add("AutoGiro_mandates", {
-        ID: id,
-        status: "ACTIVE",
-        last_updated: created,
-        created,
-        bank_account: `8327${String(rng.int(10_000_000, 99_999_999))}`,
-        special_information: null,
-        name_and_address: "Exempel Exempelsson",
-        postal_code: "11122",
-        postal_label: "Stockholm",
-        KID,
-      });
-      this.add("AutoGiro_agreements", {
-        ID: id,
-        mandateID: id,
-        KID,
-        amount: 20_000 * id,
-        payment_date: 25,
-        notice: 0,
-        active: 1,
-        last_updated: created,
-        created,
-        cancelled: null,
-      });
-    }
-    this.add("AutoGiro_shipments", {
-      ID: 1,
-      num_charges: 0,
-      sent_date: timestamp(day, 12 * 3600),
-      last_updated: timestamp(day, 12 * 3600),
-      created: timestamp(day, 12 * 3600),
-    });
   }
 }
 

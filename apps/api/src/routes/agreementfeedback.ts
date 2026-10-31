@@ -29,20 +29,16 @@ agreementfeedbackRouter.post(
       const { reasonId, agreementId, agreementType, otherComment } = req.body as {
         reasonId: number;
         agreementId: string;
-        agreementType: "Vipps" | "AvtaleGiro" | "AutoGiro";
+        agreementType: "Vipps" | "AvtaleGiro";
         otherComment?: string;
       };
 
       let avtaleGiroAgreementId: number | null = null;
-      let autogiroAgreementId: number | null = null;
       let vippsAgreementId: string | null = null;
 
       switch (agreementType) {
         case "AvtaleGiro":
           avtaleGiroAgreementId = parseInt(agreementId);
-          break;
-        case "AutoGiro":
-          autogiroAgreementId = parseInt(agreementId);
           break;
         case "Vipps":
           vippsAgreementId = agreementId;
@@ -81,7 +77,6 @@ agreementfeedbackRouter.post(
         recordId = await DAO.agreementfeedback.addStoppedAgreementReasonRecord(
           reasonId,
           avtaleGiroAgreementId,
-          autogiroAgreementId,
           vippsAgreementId,
           otherComment || null,
         );
@@ -90,7 +85,6 @@ agreementfeedbackRouter.post(
           recordId,
           reasonId,
           avtaleGiroAgreementId,
-          autogiroAgreementId,
           vippsAgreementId,
           otherComment || null,
         );

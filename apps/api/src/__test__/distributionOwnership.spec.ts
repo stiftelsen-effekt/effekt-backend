@@ -4,7 +4,6 @@ import { expect } from "chai";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import { replaceAvtaleGiroDistribution } from "../custom_modules/avtalegiro";
-import { replaceAutoGiroDistribution } from "../custom_modules/autogiro";
 import { updateAgreementDistribution } from "../custom_modules/vippsService";
 import {
   assertDistributionOwnedBy,
@@ -36,7 +35,6 @@ const taxUnits: Record<number, { id: number; donorId: number; archived: string |
 
 describe("distribution ownership", () => {
   let replaceAvtaleGiroStub: sinon.SinonStub;
-  let replaceAutoGiroStub: sinon.SinonStub;
   let addDistributionStub: sinon.SinonStub;
 
   beforeAll(() => {
@@ -45,9 +43,6 @@ describe("distribution ownership", () => {
       .stub(DAO.distributions, "getSplitByKID")
       .resolves({ kid: "1234567", donorId: OWNER, taxUnitId: 70, causeAreas } as any);
     replaceAvtaleGiroStub = sinon.stub(DAO.avtalegiroagreements, "replaceDistribution").resolves();
-    replaceAutoGiroStub = sinon
-      .stub(DAO.autogiroagreements, "replaceAgreementDistribution")
-      .resolves();
     sinon.stub(donationHelpers, "createAvtaleGiroKID").resolves("99999999");
     sinon.stub(donationHelpers, "createKID").resolves("88888888");
     sinon.stub(DAO.vipps, "getAgreement").resolves({ ID: "agr_1", donorID: OWNER } as any);
@@ -90,24 +85,18 @@ describe("distribution ownership", () => {
     }
   });
 
-  describe("AvtaleGiro and AutoGiro services", () => {
+  describe("AvtaleGiro service", () => {
     for (const [name, input] of [
       ["another donor", { donorId: OTHER, taxUnitId: 80 }],
       ["the owner with another donor's tax unit", { donorId: OWNER, taxUnitId: 80 }],
     ] as const) {
       it(`refuse ${name} without writing`, async () => {
         let avtaleGiroError: unknown;
-        let autoGiroError: unknown;
         await replaceAvtaleGiroDistribution("1234567", { ...input, causeAreas } as any).catch(
           (ex) => (avtaleGiroError = ex),
         );
-        await replaceAutoGiroDistribution("1234567", { ...input, causeAreas } as any).catch(
-          (ex) => (autoGiroError = ex),
-        );
         expect(avtaleGiroError).to.be.instanceOf(DistributionOwnershipError);
-        expect(autoGiroError).to.be.instanceOf(DistributionOwnershipError);
         expect(replaceAvtaleGiroStub.called).to.be.false;
-        expect(replaceAutoGiroStub.called).to.be.false;
       });
     }
 

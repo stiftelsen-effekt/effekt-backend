@@ -69,12 +69,7 @@ export function toAgreementFilter(filters: AgreementListFilters): AgreementApiFi
   ) as AgreementApiFilter;
 }
 
-/**
- * The API also knows AutoGiro and its "draft" status, but this admin only ever asks for Vipps and
- * AvtaleGiro (`toAgreementFilter`), so neither comes back.
- */
-export const toListStatus = (status: AgreementListApiRow["status"]): AgreementStatus =>
-  status === "draft" ? "pending" : status;
+export const toListStatus = (status: AgreementListApiRow["status"]): AgreementStatus => status;
 
 /** A row of agreements.list as the shared AgreementRow. */
 export function fromListRow(row: AgreementListApiRow): AgreementRow {

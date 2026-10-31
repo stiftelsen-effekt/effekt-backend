@@ -45,9 +45,6 @@ export const FORBIDDEN_PREVIEW_SETTINGS: Record<string, string> = {
   NETS_SFTP_PRIVATE_KEY_LOCATION: "Giro SFTP",
   NETS_SFTP_PRIVATE_KEY_PASSPHRASE: "Giro SFTP",
   NETS_CUSTOMER_ID: "Giro customer ID",
-  // Swish (production certificate switches to the live Swish API)
-  SWISH_CERT: "Swish certificate",
-  SWISH_CERT_KEY: "Swish certificate",
   // Auth0: M2M management client, MCP OAuth client, webhooks, and the tenant itself
   AUTH0_CLIENT_ID: "Auth0 M2M",
   AUTH0_CLIENT_SECRET: "Auth0 M2M",

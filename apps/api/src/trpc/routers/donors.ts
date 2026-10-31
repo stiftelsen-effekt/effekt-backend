@@ -266,9 +266,6 @@ const recurringRouter = router({
       notice: Boolean(agreement.notice),
     })),
   ),
-  autogiro: adminProcedure
-    .input(donorIdInput)
-    .query(({ input }) => DAO.autogiroagreements.getAgreementsByDonorId(input.donorId)),
   vipps: adminProcedure
     .input(donorIdInput)
     .query(({ input }) => DAO.vipps.getAgreementsByDonorId(input.donorId)),

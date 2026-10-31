@@ -470,7 +470,6 @@ describe("tRPC donors router", () => {
         answer: "Podcast",
       };
       const avtalegiro = [{ ID: 1, amount: "500", active: 1, notice: 0 }];
-      const autogiro = [{ ID: 2 }];
       const vipps = [{ ID: "abc" }];
 
       sinon.stub(DAO.donations, "getByDonorId").resolves(donations as any);
@@ -479,7 +478,6 @@ describe("tRPC donors router", () => {
       sinon.stub(DAO.distributions, "getOrgSharesByKIDs").resolves(new Map());
       sinon.stub(DAO.referrals, "getDonorAnswers").resolves([referral]);
       sinon.stub(DAO.avtalegiroagreements, "getByDonorId").resolves(avtalegiro as any);
-      sinon.stub(DAO.autogiroagreements, "getAgreementsByDonorId").resolves(autogiro as any);
       sinon.stub(DAO.vipps, "getAgreementsByDonorId").resolves(vipps as any);
 
       const caller = admin();
@@ -495,7 +493,6 @@ describe("tRPC donors router", () => {
       expect(await caller.donors.recurring.avtalegiro({ donorId: 7 })).to.deep.equal([
         { ID: 1, amount: 500, active: true, notice: false },
       ]);
-      expect(await caller.donors.recurring.autogiro({ donorId: 7 })).to.deep.equal(autogiro);
       expect(await caller.donors.recurring.vipps({ donorId: 7 })).to.deep.equal(vipps);
     });
   });

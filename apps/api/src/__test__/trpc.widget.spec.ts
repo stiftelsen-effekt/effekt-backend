@@ -8,7 +8,7 @@ import sinon from "sinon";
 import { DAO } from "../custom_modules/DAO";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 import * as mail from "../custom_modules/mail";
-import * as swish from "../custom_modules/swish";
+import paymentMethods from "../enums/paymentMethods";
 import methods from "../enums/methods";
 import { mountTrpc } from "../trpc/express";
 import { appRouter } from "../trpc/router";
@@ -235,8 +235,6 @@ describe("tRPC widget router", () => {
         KID: "12345678",
         hasAnsweredReferral: false,
         paymentProviderUrl: "",
-        swishOrderID: null,
-        swishPaymentRequestToken: null,
       });
       expect(verifyRegistrationToken(registrationToken)).to.include({
         kid: "12345678",
@@ -285,22 +283,14 @@ describe("tRPC widget router", () => {
       expect(result.paymentProviderUrl).to.equal("https://vipps.example/pay");
     });
 
-    it("starts a one-off Swish payment and returns its order", async () => {
-      const initiateOrder = sinon
-        .stub(swish, "initiateOrder")
-        .resolves({ orderID: "swish-1", paymentRequestToken: "token-1" } as any);
-      const result = await anonymous().registerDonation({ ...widgetBody(), method: methods.SWISH });
-      expect(initiateOrder.calledOnceWith("12345678", { amount: 500 })).to.equal(true);
-      expect(result.swishOrderID).to.equal("swish-1");
-      expect(result.swishPaymentRequestToken).to.equal("token-1");
-    });
-
-    it("refuses recurring Swish donations like REST, before any donor is created", async () => {
-      await expectTrpcError(
-        anonymous().registerDonation({ ...widgetBody(), method: methods.SWISH, recurring: 1 }),
-        "BAD_REQUEST",
-        "Recurring donations not supported with Swish",
-      );
+    it("refuses the discontinued Swish and AutoGiro methods before any donor is created", async () => {
+      for (const method of [paymentMethods.swish, paymentMethods.autoGiro]) {
+        await expectTrpcError(
+          anonymous().registerDonation({ ...widgetBody(), method }),
+          "BAD_REQUEST",
+          "Payment method not supported",
+        );
+      }
       expect(getIDbyEmail.called).to.equal(false);
     });
 

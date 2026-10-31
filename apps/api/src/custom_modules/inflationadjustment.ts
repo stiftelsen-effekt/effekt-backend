@@ -5,7 +5,6 @@ import { sendAgreementInflationAdjustment } from "./mail";
 
 export enum agreementType {
   avtaleGiro = "avtaleGiro",
-  autoGiro = "autoGiro",
   vipps = "vipps",
 }
 
@@ -14,7 +13,7 @@ interface BaseAgreement {
   ID: number | string;
   amount: number;
   last_updated: Date;
-  type: "avtaleGiro" | "autoGiro" | "vipps";
+  type: "avtaleGiro" | "vipps";
 }
 
 interface AgreementWithInflationData extends BaseAgreement {
@@ -143,7 +142,6 @@ export async function getAllInflationEligibleAgreements() {
   // Process each type of agreement
   const eligibleAgreements = {
     avtaleGiro: [] as AgreementWithInflationData[],
-    autoGiro: [] as AgreementWithInflationData[],
     vipps: [] as AgreementWithInflationData[],
   };
 
@@ -165,8 +163,6 @@ export async function getAllInflationEligibleAgreements() {
     }
   }
 
-  // AutoGiro agreements (Sweden) are not adjusted: their amounts are whole SEK, and the
-  // adjustment uses Norwegian CPI and NOK thresholds
   // Process Vipps agreements
   for (const agreement of vippsAgreements) {
     if (agreement.donorID === ANON_DONOR_ID) continue; // Skip anonymous donors

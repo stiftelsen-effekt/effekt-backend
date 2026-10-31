@@ -1,8 +1,7 @@
 import { DAO } from "./DAO";
 import { donationHelpers } from "./donationHelpers";
-import { sendAutoGiroRegistered } from "./mail";
-import * as swish from "./swish";
 import methods from "../enums/methods";
+import paymentMethods from "../enums/paymentMethods";
 import { Distribution, DistributionInput } from "../schemas/types";
 import { MAX_REFERRAL_CODE_LENGTH, normalizeReferralCode } from "./referralCode";
 import type { RegisterDonationBody } from "../schemas/publicRequests";
@@ -23,8 +22,6 @@ export type PendingDonationRegistered = {
   /** Lets the widget's follow-up calls act on this registration (see registrationToken.ts) */
   registrationToken: string | null;
   paymentProviderUrl: string;
-  swishOrderID: string | null;
-  swishPaymentRequestToken: string | null;
 };
 
 export type PendingDonationResult =
@@ -53,33 +50,19 @@ function isValidWidgetSsn(ssn: string): boolean {
 /**
  * Registers a pending donation from the donation widget or the fundraiser widget: finds or
  * creates the donor (and tax unit), finds or creates the KID and distribution, starts the Vipps
- * or Swish payment for one-off donations, and records the payment intent and referral code.
+ * payment for one-off donations, and records the payment intent and referral code.
  * Shared by REST POST /donations/register and the tRPC widget.registerDonation, so both do
  * exactly the same thing. The body must already be parsed with registerDonationSchema.
  *
  * Returns `ok: false` for requests the API rejects (400); database and payment provider errors
  * are thrown.
  */
-/**
- * Swish takes amounts in SEK with at most two decimals, from 1 öre. Returns null for anything
- * else, so a Swish payment request is always for the amount the donor entered.
- */
-export function parseSwishAmount(amount: number | string): number | null {
-  const value = typeof amount === "string" ? Number(amount) : amount;
-  if (!Number.isFinite(value) || value < 0.01) return null;
-  const ore = Math.round(value * 100);
-  if (Math.abs(ore - value * 100) > 1e-6) return null;
-  return ore / 100;
-}
-
 export async function registerPendingDonation(
   parsedData: RegisterDonationBody,
 ): Promise<PendingDonationResult> {
-  let swishAmount: number | null = null;
-  if (parsedData.method === methods.SWISH) {
-    if (parsedData.recurring) return rejected("Recurring donations not supported with Swish");
-    swishAmount = parseSwishAmount(parsedData.amount);
-    if (swishAmount === null) return rejected("Invalid amount");
+  // Swish and AutoGiro (Sweden) are no longer offered; their ids remain for past donations
+  if (parsedData.method === paymentMethods.swish || parsedData.method === paymentMethods.autoGiro) {
+    return rejected("Payment method not supported");
   }
 
   if (parsedData.referralCode != null && parsedData.referralCode !== "") {
@@ -97,8 +80,6 @@ export async function registerPendingDonation(
     if (!isValidWidgetSsn(donor.ssn!)) return rejected("Invalid ssn");
   }
   let paymentProviderUrl = "";
-  let swishOrderID: string | null = null;
-  let swishPaymentRequestToken: string | null = null;
   let recurring = parsedData.recurring;
   const fundraiser = parsedData.fundraiser;
 
@@ -203,32 +184,6 @@ export async function registerPendingDonation(
       kid: donationObject.KID,
       fundraiserTransactionId: donationObject.fundraiserTransactionId ?? null,
     });
-  } else if (donationObject.method == methods.AUTOGIRO) {
-    if (fundraiser) {
-      return rejected("Fundraisers are not supported with AutoGiro");
-    }
-
-    donationObject.KID = await donationHelpers.createKID(8);
-    await DAO.distributions.add({
-      ...draftDistribution,
-      kid: donationObject.KID,
-    });
-
-    // Draft AutoGiro
-    await DAO.autogiroagreements.draftAgreement({
-      KID: donationObject.KID,
-      amount:
-        typeof donationObject.amount === "string"
-          ? parseFloat(donationObject.amount)
-          : donationObject.amount,
-      payment_date: 27,
-    });
-
-    try {
-      await sendAutoGiroRegistered(donationObject.KID, donor.email);
-    } catch (ex) {
-      console.error(`Failed to send AutoGiro registered email for KID ${donationObject.KID}`);
-    }
   } else {
     //Try to get existing KID if not a fundraiser
     // For fundraisers, we always create a new KID to store the message and fundraiser ID
@@ -279,14 +234,6 @@ export async function registerPendingDonation(
       }
       break;
     }
-    case methods.SWISH: {
-      if (recurring == false) {
-        const res = await swish.initiateOrder(donationObject.KID, { amount: swishAmount! });
-        swishOrderID = res.orderID;
-        swishPaymentRequestToken = res.paymentRequestToken;
-      }
-      break;
-    }
   }
 
   try {
@@ -324,8 +271,6 @@ export async function registerPendingDonation(
       hasAnsweredReferral: false,
       registrationToken,
       paymentProviderUrl,
-      swishOrderID,
-      swishPaymentRequestToken,
     },
   };
 }

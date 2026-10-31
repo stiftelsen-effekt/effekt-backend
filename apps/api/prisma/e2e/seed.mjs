@@ -2,7 +2,7 @@
  * Deterministic data for the full-stack e2e tests (compose.e2e.yml, apps/web/cypress/e2e/fullstack).
  *
  * Writes one donor with fixed ids, KIDs and dates: agreements of every type (Vipps active and
- * stopped, AvtaleGiro, AutoGiro), donations across several years and tax units. The generated
+ * stopped, AvtaleGiro), donations across several years and tax units. The generated
  * dev data (prisma/devdata) is date-relative and random, so tests assert against this donor only.
  *
  * Idempotent: deletes the donor's rows first, so the Cypress `resetE2EData` task can call it
@@ -67,6 +67,7 @@ const CLEANUP = [
   [
     "DELETE FROM Avtalegiro_agreements WHERE KID IN (SELECT KID FROM Distributions WHERE Donor_ID = ?)",
   ],
+  // AutoGiro rows are no longer seeded; the deletes clear them from databases seeded before
   [
     "DELETE FROM AutoGiro_agreements WHERE KID IN (SELECT KID FROM Distributions WHERE Donor_ID = ?)",
   ],
@@ -151,20 +152,6 @@ export async function seedE2E(conn) {
          (900001, ?, 50000, 15, 1, 1, '2024-04-01 10:00:00', '2024-04-01 10:00:00', NULL),
          (900002, ?, 30000, 5, 1, 1, '2024-06-01 10:00:00', '2024-06-01 10:00:00', NULL)`,
       [KIDS.avtalegiro, KIDS.avtalegiroToCancel],
-    );
-
-    await conn.query(
-      `INSERT INTO AutoGiro_mandates
-         (ID, status, created, last_updated, bank_account, name_and_address, postal_code, postal_label, KID)
-       VALUES (900001, 'ACTIVE', '2024-08-01 10:00:00', '2024-08-01 10:00:00', '832712345678',
-               'E2E Testgiver', '11122', 'Stockholm', ?)`,
-      [KIDS.autogiro],
-    );
-    await conn.query(
-      `INSERT INTO AutoGiro_agreements
-         (ID, mandateID, KID, amount, payment_date, notice, active, created, last_updated, cancelled)
-       VALUES (900001, 900001, ?, 200, 25, 0, 1, '2024-08-01 10:00:00', '2024-08-01 10:00:00', NULL)`,
-      [KIDS.autogiro],
     );
 
     for (const [id, sum, timestamp, KID, paymentId] of DONATIONS) {
