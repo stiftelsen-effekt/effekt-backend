@@ -10,6 +10,7 @@ import {
   submitReferralRequest,
   swishOrderStatusRequest,
   widgetApiFlavor,
+  widgetAsksForReferrals,
   widgetTrpc,
 } from "./widgetApi";
 
@@ -256,16 +257,31 @@ describe("widget API on the Danish site (REST)", () => {
     expect(await registerDonationRequest(donation)).toEqual({ ok: false, errorMessage: null });
   });
 
-  it("keeps the REST bank pending and referral requests", async () => {
+  it("shows the generic message when the error response isn't JSON", async () => {
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 500 }));
+    expect(await registerDonationRequest(donation)).toEqual({ ok: false, errorMessage: null });
+    fetchMock.mockResolvedValueOnce(
+      new Response("<html>Bad gateway</html>", {
+        status: 502,
+        headers: { "Content-Type": "text/html" },
+      }),
+    );
+    expect(await registerDonationRequest(donation)).toEqual({ ok: false, errorMessage: null });
+  });
+
+  it("keeps the REST bank pending request", async () => {
     fetchMock.mockImplementation(async () => json(200, { status: 200, content: "OK" }));
     await registerBankPendingRequest("12345678", 500, "");
     expect(call(0).url).toBe(`${API}/donations/bank/pending`);
     expect(call(0).init.body).toBe('data={"KID":"12345678", "sum":500}');
+  });
 
-    const answer = { referralID: 1, donorID: 42, active: true, session: "s" };
-    await submitReferralRequest(answer);
-    expect(call(1).url).toBe(`${API}/referrals/`);
-    expect(JSON.parse(String(call(1).init.body))).toEqual(answer);
+  it("doesn't ask for or send referral answers, which the Danish backend has no route for", async () => {
+    expect(widgetAsksForReferrals()).toBe(false);
+    await expect(
+      submitReferralRequest({ referralID: 1, active: true, session: "s" }),
+    ).rejects.toThrow("not recorded on this site");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("doesn't send the Norwegian and Swedish payment calls anywhere", async () => {

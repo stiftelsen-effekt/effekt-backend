@@ -170,7 +170,8 @@ routes, so the REST link leaves them unmapped and they fail without a request on
   (`/causeareas/all/`, `/referrals/types` on the Danish backend), and the three writes keep the
   original REST requests: the Danish `/donations/register` takes and answers a different shape
   (string donor ids, no KID for card payments, an empty 500 on errors), and the Danish backend has no
-  bank-pending or referral route.
+  bank-pending or referral route. The widget doesn't ask "how did you hear about us" there
+  (`widgetAsksForReferrals`), and a REST error body that isn't JSON gets the generic error message.
 - The fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`) registers gifts with
   `widget.registerDonation` too; on the Danish site it keeps its REST request, like the widget.
 - The batch guard covers every `widget.*` mutation: `publicMutations` is read from the router.
