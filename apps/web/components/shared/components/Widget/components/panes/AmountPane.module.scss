@@ -1,12 +1,10 @@
-import styled from "styled-components";
-
-export const InputList = styled.div`
+.inputList {
   display: flex;
   flex-direction: column;
   gap: 20px;
-`;
+}
 
-export const OrganizationInputWrapper = styled.div`
+.organizationInputWrapper {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -47,9 +45,9 @@ export const OrganizationInputWrapper = styled.div`
       font-size: 24px;
     }
   }
-`;
+}
 
-export const FormWrapper = styled.div`
+.formWrapper {
   display: flex;
   flex-direction: column;
 
@@ -69,9 +67,9 @@ export const FormWrapper = styled.div`
       border-bottom-right-radius: 10px;
     }
   }
-`;
+}
 
-export const TotalAmountWrapper = styled.div`
+.totalAmountWrapper {
   display: flex;
   flex-direction: row;
   margin-top: 10px;
@@ -83,15 +81,15 @@ export const TotalAmountWrapper = styled.div`
   border-radius: 10px;
   font-weight: 700;
   font-size: 20px;
-`;
+}
 
-export const TotalSumWrapper = styled.div`
+.totalSumWrapper {
   display: flex;
   width: 100%;
   flex-direction: column;
-`;
+}
 
-export const CauseAreaTitle = styled.div`
+.causeAreaTitle {
   font-size: 24px;
   margin: 0;
   display: flex;
@@ -103,31 +101,30 @@ export const CauseAreaTitle = styled.div`
     width: 30px;
     height: 30px;
   }
-`;
+}
 
-export const CauseAreaContext = styled.div`
+.causeAreaContext {
   font-size: 14px;
   line-height: 20px;
   margin-top: 5px;
   margin-bottom: 0px;
   margin-left: 40px;
-`;
+}
 
-export const CauseAreasWrapper = styled.div`
+.causeAreasWrapper {
   display: flex;
   flex-direction: column;
   gap: 20px;
   margin-top: 20px;
   justify-content: flex-start;
-  flex-direction: column;
-`;
+}
 
-export const RecurringSelectionWrapper = styled.div`
+.recurringSelectionWrapper {
   padding-top: 30px;
   padding-bottom: 30px;
-`;
+}
 
-export const SumWrapper = styled.div`
+.sumWrapper {
   display: flex;
   flex-direction: column;
   margin-top: 10px;
@@ -170,9 +167,9 @@ export const SumWrapper = styled.div`
       font-size: 30px;
     }
   }
-`;
+}
 
-export const SumButtonsWrapper = styled.div`
+.sumButtonsWrapper {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -206,9 +203,9 @@ export const SumButtonsWrapper = styled.div`
       font-size: 14px;
     }
   }
-`;
+}
 
-export const ActionBar = styled.div`
+.actionBar {
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -216,9 +213,9 @@ export const ActionBar = styled.div`
   align-self: flex-end;
   padding-top: 30px;
   padding-bottom: 30px;
-`;
+}
 
-export const OperationsPercentageInputWrapper = styled.div`
+.operationsPercentageInputWrapper {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -235,9 +232,9 @@ export const OperationsPercentageInputWrapper = styled.div`
     font-family: "EsKlarheitGrotesk", sans-serif;
     text-align: center;
   }
-`;
+}
 
-export const RolloutAccordion = styled.div`
+.rolloutAccordion {
   & > div:first-child {
     padding: 10px 0;
     display: flex;
@@ -250,4 +247,4 @@ export const RolloutAccordion = styled.div`
   & > div:last-child {
     font-size: 16px;
   }
-`;
+}

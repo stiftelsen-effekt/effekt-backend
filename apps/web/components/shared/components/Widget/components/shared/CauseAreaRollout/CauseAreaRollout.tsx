@@ -4,8 +4,8 @@ import { ChevronDown } from "react-feather";
 import { PortableText } from "@portabletext/react";
 import { CauseAreaDisplayConfig } from "../../../types/WidgetProps";
 import { Links } from "../../../../../../main/blocks/Links/Links";
-import { RolloutAccordion } from "../../panes/AmountPane.style";
 import { useIsMobile } from "../../../../../../../hooks/useIsMobile";
+import styles from "../../panes/AmountPane.module.scss";
 
 interface CauseAreaRolloutProps {
   causeAreaId: number;
@@ -20,7 +20,7 @@ export const CauseAreaRollout: React.FC<CauseAreaRolloutProps> = ({ causeAreaId,
   if (!rollout?.title) return null;
 
   return (
-    <RolloutAccordion>
+    <div className={styles.rolloutAccordion}>
       <div onClick={() => setOpen(!open)}>
         <span>{rollout.title}</span>
         <ChevronDown
@@ -37,6 +37,6 @@ export const CauseAreaRollout: React.FC<CauseAreaRolloutProps> = ({ causeAreaId,
           {rollout.links && <Links links={rollout.links} newtab={isMobile} />}
         </div>
       </AnimateHeight>
-    </RolloutAccordion>
+    </div>
   );
 };

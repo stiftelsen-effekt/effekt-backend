@@ -5,16 +5,6 @@ import { usePlausible } from "next-plausible";
 import AnimateHeight from "react-animate-height";
 import { ChevronDown } from "react-feather";
 import { PortableText } from "@portabletext/react";
-import {
-  FormWrapper,
-  CauseAreaTitle,
-  CauseAreaContext,
-  TotalSumWrapper,
-  SumWrapper,
-  SumButtonsWrapper,
-  RolloutAccordion,
-} from "../AmountPane.style";
-import { MultipleCauseAreaIcon } from "../SelectionPane.style";
 import { CauseArea } from "../../../types/CauseArea";
 import { ShareType } from "../../../types/Enums";
 import { setSmartDistributionTotal } from "../../../store/donation/actions";
@@ -24,6 +14,8 @@ import { State } from "../../../store/state";
 import { CauseAreaDisplayConfig, SmartDistributionContext } from "../../../types/WidgetProps";
 import { CauseAreaRollout } from "../../shared/CauseAreaRollout/CauseAreaRollout";
 import { Links } from "../../../../../../main/blocks/Links/Links";
+import styles from "../AmountPane.module.scss";
+import { MultipleCauseAreaIcon } from "../../shared/CauseAreaIcon/CauseAreaIcon";
 
 interface SmartDistributionFormProps {
   suggestedSums: Array<{ amount: number; subtext?: string }>;
@@ -75,17 +67,19 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
   };
 
   return (
-    <FormWrapper>
+    <div className={styles.formWrapper}>
       <div>
-        <CauseAreaTitle>
+        <div className={styles.causeAreaTitle}>
           <MultipleCauseAreaIcon />
           {smartDistributionContext.smart_distribution_title}
-        </CauseAreaTitle>
-        <CauseAreaContext>{getCauseAreaContext(-1, causeAreaDisplayConfig)}</CauseAreaContext>
+        </div>
+        <div className={styles.causeAreaContext}>
+          {getCauseAreaContext(-1, causeAreaDisplayConfig)}
+        </div>
       </div>
       <div>
-        <TotalSumWrapper>
-          <SumButtonsWrapper>
+        <div className={styles.totalSumWrapper}>
+          <div className={styles.sumButtonsWrapper}>
             {suggestedSums.map((suggested) => (
               <div key={suggested.amount}>
                 <EffektButton
@@ -98,8 +92,8 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
                 {suggested.subtext && <i>{suggested.subtext}</i>}
               </div>
             ))}
-          </SumButtonsWrapper>
-          <SumWrapper>
+          </div>
+          <div className={styles.sumWrapper}>
             <span>
               <NumericFormat
                 name="sum"
@@ -114,13 +108,13 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
                 onValueChange={handleTotalAmountChange}
               />
             </span>
-          </SumWrapper>
-        </TotalSumWrapper>
+          </div>
+        </div>
       </div>
       <div>
         {!hasSmartDistributionRollout &&
           smartDistributionContext.smart_distribution_description && (
-            <RolloutAccordion>
+            <div className={styles.rolloutAccordion}>
               <div onClick={() => setExplanationOpen(!explanationOpen)}>
                 <span>{smartDistributionContext.smart_distribution_label_text}</span>
                 <ChevronDown
@@ -139,11 +133,11 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
                   )}
                 </div>
               </AnimateHeight>
-            </RolloutAccordion>
+            </div>
           )}
         <CauseAreaRollout causeAreaId={-1} config={causeAreaDisplayConfig} />
       </div>
-    </FormWrapper>
+    </div>
   );
 };
 

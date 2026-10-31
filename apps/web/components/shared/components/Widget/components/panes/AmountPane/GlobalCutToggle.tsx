@@ -7,11 +7,11 @@ import {
   setGlobalOperationsPercentage,
   setOperationsPercentageModeByCauseArea,
 } from "../../../store/donation/actions";
-import { CheckBoxWrapper, HiddenCheckBox } from "../Forms.style";
 import { CustomCheckBox } from "../DonorPane/CustomCheckBox";
-import { OperationsPercentageInputWrapper } from "../AmountPane.style";
 import { OperationsConfig } from "../../../types/WidgetProps";
 import { splitOperationsLabelTemplate } from "../../../utils/operationsLabel";
+import styles from "../AmountPane.module.scss";
+import forms from "../Forms.module.scss";
 
 interface GlobalCutToggleProps {
   operationsConfig?: OperationsConfig;
@@ -72,8 +72,9 @@ export const GlobalCutToggle: React.FC<GlobalCutToggleProps> = ({ operationsConf
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <CheckBoxWrapper>
-          <HiddenCheckBox
+        <div className={forms.checkBoxWrapper}>
+          <input
+            className={forms.hiddenCheckBox}
             type="checkbox"
             checked={globalOperationsEnabled}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -82,8 +83,8 @@ export const GlobalCutToggle: React.FC<GlobalCutToggleProps> = ({ operationsConf
             data-cy={`global-cut-checkbox`}
           />
           <CustomCheckBox checked={globalOperationsEnabled} label="" />
-        </CheckBoxWrapper>
-        <OperationsPercentageInputWrapper>
+        </div>
+        <div className={styles.operationsPercentageInputWrapper}>
           {operationsLabelPrefix && <span>{operationsLabelPrefix}</span>}
           <span>
             <NumericFormat
@@ -103,7 +104,7 @@ export const GlobalCutToggle: React.FC<GlobalCutToggleProps> = ({ operationsConf
             />
           </span>
           {operationsLabelSuffix && <span>{operationsLabelSuffix}</span>}
-        </OperationsPercentageInputWrapper>
+        </div>
       </div>
     </div>
   );

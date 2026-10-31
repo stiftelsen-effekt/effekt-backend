@@ -740,9 +740,6 @@ importers:
       sass:
         specifier: ^1.106.1
         version: 1.106.1
-      styled-components:
-        specifier: 'catalog:'
-        version: 6.6.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       swr:
         specifier: ^2.5.1
         version: 2.5.1(react@19.3.1)

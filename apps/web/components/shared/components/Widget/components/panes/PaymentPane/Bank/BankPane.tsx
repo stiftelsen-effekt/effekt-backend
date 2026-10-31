@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { State } from "../../../../store/state";
-import { Pane, PaneContainer, PaneTitle } from "../../Panes.style";
-import { InfoText } from "../PaymentPane.style";
 import { PaymentInformation } from "./PaymentInformation";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import { BankPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
 import { ANONYMOUS_DONOR } from "../../../../config/anonymous-donor";
 import AnimateHeight from "react-animate-height";
-import { CompleteButton, CompleteButtonWrapper } from "./BankPane.style";
 import { usePlausible } from "next-plausible";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
 import { currencyForLocale } from "../../../../utils/currency";
+import panes from "../../Panes.module.scss";
+import payment from "../PaymentPane.module.scss";
 
 export const BankPane: React.FC<{
   config: BankPaymentMethod;
@@ -59,27 +58,28 @@ export const BankPane: React.FC<{
   }, [hasCompletedTransaction]);
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         <div>
           <AnimateHeight height={hasCompletedTransaction ? 0 : "auto"}>
-            <PaneTitle>{config.title}</PaneTitle>
+            <h2 className={panes.paneTitle}>{config.title}</h2>
             <PaymentInformation
               donation={donation}
               accountTitle={config.kontonr_title}
               kidTitle={config.kid_title}
               accountNr={config.kontonr}
             />
-            <InfoText>{config.explanatory_text}</InfoText>
+            <div className={payment.infoText}>{config.explanatory_text}</div>
 
             {donation.donor?.email !== ANONYMOUS_DONOR.email && donation.donor?.email && (
-              <InfoText>
+              <div className={payment.infoText}>
                 {config.explanatory_text_email_template.replaceAll("{email}", donation.donor.email)}
-              </InfoText>
+              </div>
             )}
 
-            <CompleteButtonWrapper>
-              <CompleteButton
+            <div className={payment.completeButtonWrapper}>
+              <button
+                className={payment.completeButton}
                 onClick={() => {
                   if (config.completed_redirect && config.completed_redirect.slug) {
                     window.open(config.completed_redirect.slug, "_parent");
@@ -89,12 +89,12 @@ export const BankPane: React.FC<{
                 }}
               >
                 {config.button_text}
-              </CompleteButton>
-            </CompleteButtonWrapper>
+              </button>
+            </div>
           </AnimateHeight>
           <AnimateHeight height={hasCompletedTransaction ? "auto" : 0}>
-            <PaneTitle>{config.completed_title}</PaneTitle>
-            <InfoText>{config.completed_text}</InfoText>
+            <h2 className={panes.paneTitle}>{config.completed_title}</h2>
+            <div className={payment.infoText}>{config.completed_text}</div>
           </AnimateHeight>
         </div>
 
@@ -106,7 +106,7 @@ export const BankPane: React.FC<{
             }}
           />
         )}
-      </PaneContainer>
-    </Pane>
+      </div>
+    </div>
   );
 };

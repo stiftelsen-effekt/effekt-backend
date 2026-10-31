@@ -1,7 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { State } from "../../../../store/state";
-import { Pane, PaneContainer, PaneTitle } from "../../Panes.style";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import {
   QuickPayCardPaymentMethod,
@@ -9,6 +8,7 @@ import {
   WidgetPane3ReferralsProps,
 } from "../../../../types/WidgetProps";
 import { EffektButton } from "../../../../../EffektButton/EffektButton";
+import panes from "../../Panes.module.scss";
 
 export const QuickPayPane: React.FC<{
   config: QuickPayCardPaymentMethod | QuickPayMobilePayPaymentMethod;
@@ -18,9 +18,9 @@ export const QuickPayPane: React.FC<{
   const { paymentProviderURL, recurring } = donation;
 
   return (
-    <Pane>
-      <PaneContainer>
-        <PaneTitle>QuickPay</PaneTitle>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
+        <h2 className={panes.paneTitle}>QuickPay</h2>
 
         <EffektButton
           onClick={() => {
@@ -40,7 +40,7 @@ export const QuickPayPane: React.FC<{
             }}
           />
         )}
-      </PaneContainer>
-    </Pane>
+      </div>
+    </div>
   );
 };

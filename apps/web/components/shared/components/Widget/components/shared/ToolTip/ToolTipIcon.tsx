@@ -1,37 +1,4 @@
-import styled from "styled-components";
-
-const TooltipIconButton = styled.button.attrs({
-  name: "Info om skattefradrag",
-  type: "button",
-})`
-  z-index: 4;
-  pointer-events: all;
-  background: transparent;
-  height: 100%;
-  vertical-align: middle;
-  padding: 0 10px;
-
-  &:hover {
-    cursor: pointer;
-    opacity: 0.8;
-  }
-
-  &:focus > div {
-    outline: 2px solid var(--primary);
-  }
-`;
-
-const TooltipInnerIcon = styled.div`
-  border: 1px solid var(--primary);
-  width: 2em;
-  height: 2em;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 50%;
-  font-size: 0.8em;
-  vertical-align: middle;
-`;
+import styles from "./ToolTip.module.scss";
 
 interface ToolIconProps {
   toggleTooltip: (state: boolean) => void;
@@ -39,7 +6,10 @@ interface ToolIconProps {
 }
 export function ToolTipIcon({ toggleTooltip, onClick }: ToolIconProps) {
   return (
-    <TooltipIconButton
+    <button
+      name="Info om skattefradrag"
+      type="button"
+      className={styles.iconButton}
       onPointerEnter={(e) => {
         if (e.pointerType === "mouse") {
           e.currentTarget.focus();
@@ -68,7 +38,7 @@ export function ToolTipIcon({ toggleTooltip, onClick }: ToolIconProps) {
         }
       }}
     >
-      <TooltipInnerIcon>?</TooltipInnerIcon>
-    </TooltipIconButton>
+      <div className={styles.innerIcon}>?</div>
+    </button>
   );
 }

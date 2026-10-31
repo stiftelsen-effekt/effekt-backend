@@ -52,9 +52,6 @@ const nextConfig: NextConfig = {
     inlineCss: true,
   },
   turbopack: {},
-  compiler: {
-    styledComponents: true,
-  },
   headers: async () => {
     return [
       {

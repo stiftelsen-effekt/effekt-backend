@@ -2,13 +2,8 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { State } from "../../../store/state";
 import { ShareType } from "../../../types/Enums";
-import {
-  DonationSummaryHeader,
-  DonationSummaryWrapper,
-  SummmaryOrganizationsList,
-  TotalTable,
-} from "./DonationSummary.style";
 import { calculateDonationBreakdown } from "../../../utils/donationCalculations";
+import styles from "./DonationSummary.module.scss";
 
 export interface DonationSummaryText {
   single_donation_text: string;
@@ -179,11 +174,11 @@ export const DonationSummary: React.FC<{ text: DonationSummaryText }> = ({ text 
   }
 
   return (
-    <DonationSummaryWrapper data-cy="donation-summary">
-      <DonationSummaryHeader data-cy="donation-type">
+    <div className={styles.wrapper} data-cy="donation-summary">
+      <div className={styles.header} data-cy="donation-type">
         {recurring ? text.monthly_donation_text : text.single_donation_text}
-      </DonationSummaryHeader>
-      <SummmaryOrganizationsList cellSpacing={0}>
+      </div>
+      <table className={styles.organizationsList} cellSpacing={0}>
         <tbody>
           {summaryItems.map((item) => (
             <React.Fragment key={item.id}>
@@ -226,16 +221,16 @@ export const DonationSummary: React.FC<{ text: DonationSummaryText }> = ({ text 
             </React.Fragment>
           ))}
         </tbody>
-      </SummmaryOrganizationsList>
+      </table>
 
-      <TotalTable>
+      <table className={styles.totalTable}>
         <tbody>
           <tr>
             <td data-cy="summary-total-label">{text.total_label}</td>
             <td data-cy="summary-total-amount">{sum.toLocaleString("no-NB")} kr</td>
           </tr>
         </tbody>
-      </TotalTable>
-    </DonationSummaryWrapper>
+      </table>
+    </div>
   );
 };

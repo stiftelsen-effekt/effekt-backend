@@ -4,13 +4,13 @@ import { setVippsAgreement } from "../../../../../store/donation/actions";
 import { State } from "../../../../../store/state";
 import { ToolTip } from "../../../../shared/ToolTip/ToolTip";
 import { CustomCheckBox } from "../../../DonorPane/CustomCheckBox";
-import { CheckBoxWrapper, HiddenCheckBox } from "../../../Forms.style";
-import { DateBoxWrapper, DateText, DateTextWrapper, Wrapper } from "./VippsDatePicker.style";
 import { formatDateText, getNextChargeDate, isIrregularChargeDay, showCheckBox } from "./dates";
 import { DatePicker } from "../../../../shared/DatePicker/DatePicker";
 import { DatePickerInputConfiguration } from "../../../../../../DatePicker/DatePickerInput";
 import { Dispatch } from "@reduxjs/toolkit";
 import { DonationActionTypes } from "../../../../../store/donation/types";
+import forms from "../../../Forms.module.scss";
+import payment from "../../PaymentPane.module.scss";
 
 const tooltipText =
   "Vi kan av tekniske grunner ikke melde trekk 1-3 dager i forveien, så første trekkdato utsettes med én måned. Du kan velge en senere dato eller krysse av for også å bli trukket i dag.";
@@ -39,10 +39,10 @@ export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }>
   }, [selectedChargeDay, initialCharge]);
 
   return (
-    <Wrapper>
-      <DateTextWrapper>
+    <div className={payment.datePickerWrapper}>
+      <div className={payment.dateTextWrapper}>
         <div>
-          <DateText>
+          <p className={payment.dateText}>
             {vippsAgreement.initialCharge &&
               `Første trekk blir i dag, deretter den ${
                 selectedChargeDay === 0 ? "siste" : `${selectedChargeDay}.`
@@ -53,12 +53,13 @@ export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }>
               : !vippsAgreement.initialCharge &&
                 nextChargeDate &&
                 `${formatDateText(nextChargeDate)} `}
-          </DateText>
+          </p>
           {isIrregularChargeDay(selectedChargeDay) && <ToolTip text={tooltipText} />}
         </div>
         {showCheckBox(selectedChargeDay) && (
-          <CheckBoxWrapper>
-            <HiddenCheckBox
+          <div className={forms.checkBoxWrapper}>
+            <input
+              className={forms.hiddenCheckBox}
               name="initialCharge"
               type="checkbox"
               onChange={() => {
@@ -73,10 +74,10 @@ export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }>
               }}
             />
             <CustomCheckBox label="Trekk meg for denne måneden også" checked={initialCharge} />
-          </CheckBoxWrapper>
+          </div>
         )}
-      </DateTextWrapper>
-      <DateBoxWrapper>
+      </div>
+      <div className={payment.dateBoxWrapper}>
         <DatePicker
           selected={vippsAgreement?.monthlyChargeDay}
           onClickOutside={() => {}}
@@ -88,7 +89,7 @@ export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }>
           }}
           configuration={config}
         />
-      </DateBoxWrapper>
-    </Wrapper>
+      </div>
+    </div>
   );
 };

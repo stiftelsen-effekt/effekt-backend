@@ -6,13 +6,7 @@ import { State } from "../../../store/state";
 import { clearApiError } from "../../../store/donation/actions";
 import { Dispatch } from "@reduxjs/toolkit";
 import { DonationActionTypes } from "../../../store/donation/types";
-import {
-  NotificationWrapper,
-  NotificationContent,
-  NotificationIcon,
-  NotificationMessage,
-  NotificationCloseButton,
-} from "./ApiErrorNotification.style";
+import styles from "./ApiErrorNotification.module.scss";
 
 export const ApiErrorNotification: React.FC<{ genericErrorMessage?: string }> = ({
   genericErrorMessage = "Something went wrong, please try again later.",
@@ -58,17 +52,21 @@ export const ApiErrorNotification: React.FC<{ genericErrorMessage?: string }> = 
 
   return (
     <AnimateHeight height={isVisible ? "auto" : 0} duration={300} animateOpacity>
-      <NotificationWrapper data-cy="api-error-notification">
-        <NotificationContent>
-          <NotificationIcon>
+      <div className={styles.wrapper} data-cy="api-error-notification">
+        <div className={styles.content}>
+          <div className={styles.icon}>
             <AlertCircle size={24} />
-          </NotificationIcon>
-          <NotificationMessage>{message || genericErrorMessage}</NotificationMessage>
-          <NotificationCloseButton onClick={handleClose} aria-label="Close notification">
+          </div>
+          <div className={styles.message}>{message || genericErrorMessage}</div>
+          <button
+            className={styles.closeButton}
+            onClick={handleClose}
+            aria-label="Close notification"
+          >
             <X size={24} />
-          </NotificationCloseButton>
-        </NotificationContent>
-      </NotificationWrapper>
+          </button>
+        </div>
+      </div>
     </AnimateHeight>
   );
 };

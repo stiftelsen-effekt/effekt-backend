@@ -1,4 +1,4 @@
-import { StyledToggle, StyledToggleCircle } from "./Toggle.style";
+import styles from "./Toggle.module.scss";
 
 export const Toggle: React.FC<{
   active: boolean;
@@ -6,15 +6,15 @@ export const Toggle: React.FC<{
   dataCy?: string;
 }> = ({ active, onChange, dataCy }) => {
   return (
-    <StyledToggle
+    <button
       onClick={(e) => {
         e.currentTarget.blur();
         onChange(!active);
       }}
-      active={active.toString()}
+      className={active ? `${styles.toggle} ${styles.toggleActive}` : styles.toggle}
       data-cy={dataCy}
     >
-      <StyledToggleCircle active={active.toString()} />
-    </StyledToggle>
+      <div className={active ? `${styles.circle} ${styles.circleActive}` : styles.circle} />
+    </button>
   );
 };

@@ -3,13 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { WidgetContext } from "../../../../../../main/layout/layout";
 import { prevPane } from "../../../store/layout/actions";
 import { State } from "../../../store/state";
-import {
-  ProgressContainer,
-  ProgressCircle,
-  ProgressLine,
-  HeaderContainer,
-  ActionButton,
-} from "./ProgressBar.style";
+import styles from "./ProgressBar.module.scss";
 import { Dispatch } from "@reduxjs/toolkit";
 import { LayoutActionTypes } from "../../../store/layout/types";
 
@@ -26,28 +20,38 @@ export const ProgressBar: React.FC<{ inline?: boolean; numberOfPanes?: number }>
 
   const points = [];
   for (let i = 0; i < numberOfPanes; i++) {
-    points.push(<ProgressCircle key={i} filled={(paneNumber >= i).toString()} />);
+    points.push(
+      <div
+        key={i}
+        className={paneNumber >= i ? `${styles.circle} ${styles.circleFilled}` : styles.circle}
+      />,
+    );
   }
 
   return (
-    <HeaderContainer>
-      <ActionButton
+    <div className={styles.header}>
+      <button
         data-cy="back-button"
         disabled={hideBackButton}
-        active={hideBackButton.toString()}
+        className={
+          hideBackButton
+            ? `${styles.actionButton} ${styles.actionButtonHidden}`
+            : styles.actionButton
+        }
         onClick={(e) => {
           dispatch(prevPane());
           e.currentTarget.blur();
         }}
       >
         ←
-      </ActionButton>
-      <ProgressContainer>
+      </button>
+      <div className={styles.progress}>
         {points.map((p) => p)}
-        <ProgressLine />
-      </ProgressContainer>
+        <div className={styles.line} />
+      </div>
       {!inline && (
-        <ActionButton
+        <button
+          className={styles.actionButton}
           data-cy="close-widget"
           onClick={(e) => {
             setWidgetContext({ ...widgetContext, open: false });
@@ -55,8 +59,8 @@ export const ProgressBar: React.FC<{ inline?: boolean; numberOfPanes?: number }>
           }}
         >
           ✕
-        </ActionButton>
+        </button>
       )}
-    </HeaderContainer>
+    </div>
   );
 };

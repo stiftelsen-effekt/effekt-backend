@@ -3,8 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { RadioButtonGroup } from "../../../../../RadioButton/RadioButtonGroup";
 import { setDueDay } from "../../../../store/donation/actions";
 import { State } from "../../../../store/state";
-import { Pane, PaneContainer, PaneTitle } from "../../Panes.style";
-import { DateText } from "../Vipps/VippsDatePicker/VippsDatePicker.style";
 import { AvtaleGiroDatePicker } from "./AvtaleGiroDatePicker/AvtaleGiroDatePicker";
 import {
   formatChargeDay,
@@ -15,6 +13,8 @@ import { Referrals } from "../../../shared/Referrals/Referrals";
 import { AvtaleGiroPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
 import { Dispatch } from "@reduxjs/toolkit";
 import { DonationActionTypes } from "../../../../store/donation/types";
+import panes from "../../Panes.module.scss";
+import payment from "../PaymentPane.module.scss";
 
 export const AvtaleGiroPane: React.FC<{
   config: AvtaleGiroPaymentMethod;
@@ -31,10 +31,10 @@ export const AvtaleGiroPane: React.FC<{
   }, [chooseChargeDay, dispatch]);
 
   return (
-    <Pane>
-      <PaneContainer>
+    <div className={panes.pane}>
+      <div className={panes.paneContainer}>
         <div>
-          <PaneTitle>{config.title}</PaneTitle>
+          <h2 className={panes.paneTitle}>{config.title}</h2>
           <div style={{ paddingTop: 20 }}>
             <RadioButtonGroup
               options={[
@@ -47,7 +47,7 @@ export const AvtaleGiroPane: React.FC<{
           </div>
           <div style={{ paddingTop: 40 }}>
             {chooseChargeDay === 0 && (
-              <DateText>{formatChargeDay(getEarliestPossibleChargeDate())}</DateText>
+              <p className={payment.dateText}>{formatChargeDay(getEarliestPossibleChargeDate())}</p>
             )}
             {chooseChargeDay === 1 && (
               <AvtaleGiroDatePicker configuration={config.date_selector_configuration} />
@@ -66,7 +66,7 @@ export const AvtaleGiroPane: React.FC<{
             }}
           />
         )}
-      </PaneContainer>
-    </Pane>
+      </div>
+    </div>
   );
 };

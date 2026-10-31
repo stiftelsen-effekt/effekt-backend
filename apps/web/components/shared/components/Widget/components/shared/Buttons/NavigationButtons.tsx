@@ -2,7 +2,8 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { LoadingButtonSpinner } from "../../../../Spinner/LoadingButtonSpinner";
 import { State } from "../../../store/state";
-import { StyledNextButton, StyledSubmitButton } from "./NavigationButtons.style";
+import { EffektButton } from "../../../../EffektButton/EffektButton";
+import styles from "./NavigationButtons.module.scss";
 
 /**
  * While a request is in flight the button shows a spinner and ignores clicks, so a second
@@ -28,9 +29,14 @@ export const NextButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>>
   const { loading, guardedOnClick } = useLoadingGuard(onClick);
 
   return (
-    <StyledNextButton {...props} onClick={guardedOnClick} aria-busy={loading || undefined}>
+    <EffektButton
+      {...props}
+      className={styles.button}
+      onClick={guardedOnClick}
+      aria-busy={loading || undefined}
+    >
       {loading ? <LoadingButtonSpinner /> : children}
-    </StyledNextButton>
+    </EffektButton>
   );
 };
 
@@ -42,8 +48,13 @@ export const SubmitButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement
   const { loading, guardedOnClick } = useLoadingGuard(onClick);
 
   return (
-    <StyledSubmitButton {...props} onClick={guardedOnClick} aria-busy={loading || undefined}>
+    <EffektButton
+      {...props}
+      className={styles.button}
+      onClick={guardedOnClick}
+      aria-busy={loading || undefined}
+    >
       {loading ? <LoadingButtonSpinner /> : children}
-    </StyledSubmitButton>
+    </EffektButton>
   );
 };

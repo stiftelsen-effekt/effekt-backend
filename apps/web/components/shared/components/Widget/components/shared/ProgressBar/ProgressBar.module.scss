@@ -1,7 +1,4 @@
-import styled from "styled-components";
-import Link from "next/link";
-
-export const HeaderContainer = styled.div`
+.header {
   display: flex;
   width: 100%;
   flex-direction: row;
@@ -9,9 +6,9 @@ export const HeaderContainer = styled.div`
   justify-content: space-between;
   padding: 30px 40px;
   padding-bottom: 10px;
-`;
+}
 
-export const ProgressContainer = styled.div`
+.progress {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -20,42 +17,32 @@ export const ProgressContainer = styled.div`
   width: 100%;
   position: relative;
   margin: 0 auto;
-`;
-
-interface ProgressCircleProps {
-  filled: string;
 }
 
-/** Typed */
-export const ProgressCircle = styled.div.withConfig({
-  shouldForwardProp: (prop) => !["filled"].includes(prop),
-})<ProgressCircleProps>`
+.circle {
   width: 20px;
   height: 20px;
   border: 1px solid var(--primary);
-  background: ${(props: ProgressCircleProps) =>
-    props.filled === "true" ? `var(--primary)` : `var(--secondary)`};
+  background: var(--secondary);
   border-radius: 50%;
   position: relative;
   z-index: 2;
-`;
+}
 
-export const ProgressLine = styled.div`
+.circleFilled {
+  background: var(--primary);
+}
+
+.line {
   width: 100%;
   position: absolute;
   top: calc(50% - 0.5px);
   left: 0;
   height: 1px;
   background: var(--primary);
-`;
-
-interface ActionButtonProps {
-  active?: string;
 }
 
-export const ActionButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => !["active"].includes(prop),
-})<ActionButtonProps>`
+.actionButton {
   font-size: 40px;
   line-height: 40px;
   padding: 8px;
@@ -63,10 +50,9 @@ export const ActionButton = styled.button.withConfig({
   color: var(--primary);
   border: none;
   transition: all 200ms ease-in-out;
-  transform: ${(props: ActionButtonProps) =>
-    props.active === "true" ? `translateX(-50%)` : `translateX(0)`};
-  opacity: ${(props: ActionButtonProps) => (props.active === "true" ? "0" : "1")};
-  cursor: ${(props: ActionButtonProps) => (props.active === "true" ? "auto" : "pointer")};
+  transform: translateX(0);
+  opacity: 1;
+  cursor: pointer;
   outline: none;
 
   &:focus {
@@ -77,13 +63,19 @@ export const ActionButton = styled.button.withConfig({
   &:active {
     outline: none;
   }
-`;
+}
 
-export const TooltipWrapper = styled.div<{
-  top: number;
-}>`
+/* The back button on the first pane */
+.actionButtonHidden {
+  transform: translateX(-50%);
+  opacity: 0;
+  cursor: auto;
+}
+
+/* The widget's tooltip (Widget.tsx) */
+.tooltipWrapper {
   position: absolute;
-  top: ${(props) => Math.round(props.top)}px;
+  top: 20px;
   margin-left: 30px;
   margin-right: 10px;
   right: 20px;
@@ -92,21 +84,20 @@ export const TooltipWrapper = styled.div<{
   border-radius: 10px;
   overflow: hidden;
   pointer-events: none;
-`;
+}
 
-export const TooltipContent = styled.div`
+.tooltipContent {
   background: var(--primary);
   color: var(--secondary);
   padding: 40px;
-  /* pointer-events: none; */
   width: 100%;
 
   @media (pointer: coarse) {
     padding-bottom: 20px;
   }
-`;
+}
 
-export const TooltipLink = styled(Link)`
+.tooltipLink {
   background: var(--primary);
   color: var(--secondary);
   padding: 20px 40px;
@@ -120,4 +111,4 @@ export const TooltipLink = styled(Link)`
   @media (pointer: fine) {
     display: none;
   }
-`;
+}
