@@ -57,7 +57,7 @@ class AvtalegiroAgreement {
 
     if (registrationType == "0") {
       /**
-       * We can ask nets to list ALL of the active agreements on the account
+       * We can ask Mastercard Payment Services to list ALL of the active agreements on the account
        * They will then get 0 as their registration type
        */
       this.totalReadout = true;

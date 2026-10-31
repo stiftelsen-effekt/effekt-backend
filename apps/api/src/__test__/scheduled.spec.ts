@@ -4,7 +4,7 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import sinon from "sinon";
 import express from "express";
 import { expect } from "chai";
-import * as nets from "../custom_modules/nets";
+import * as giroSftp from "../custom_modules/giroSftp";
 import request from "supertest";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import { donations } from "../custom_modules/DAO_modules/donations";
@@ -83,7 +83,7 @@ describe("POST /scheduled/avtalegiro", function () {
 
     loggingStub = sinon.stub(DAO.logging, "add").resolves();
 
-    sendFileStub = sinon.stub(nets, "sendFile");
+    sendFileStub = sinon.stub(giroSftp, "sendFile");
 
     const scheduledRoute = require("../routes/scheduled");
     server = express();

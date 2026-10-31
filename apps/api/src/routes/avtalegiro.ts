@@ -182,8 +182,9 @@ router.get("/recieved/", authMiddleware.isAdmin, async (req, res, next) => {
 });
 
 /**
- * Where Nets sends the donor back after signing (or not) the AvtaleGiro agreement. The
- * "agreement registered" email goes out the first time only, however often the URL is opened.
+ * Where Mastercard Payment Services sends the donor back after signing (or not) the AvtaleGiro
+ * agreement. The "agreement registered" email goes out the first time only, however often the URL
+ * is opened.
  */
 router.get("/:KID/redirect", async (req, res, next) => {
   try {

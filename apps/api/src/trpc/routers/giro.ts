@@ -223,11 +223,11 @@ const avtalegiroRouter = router({
    * GET /avtalegiro/expected?date=. Agreements expected to be charged on the date. Unlike REST
    * (øre in `amount`), the amount is in NOK like the other procedures.
    *
-   * For a past date the rows are the claims actually sent to Nets for that due date, with the
-   * claimed amounts, read from the claim file logged by the AvtaleGiro job (`amountSource`
-   * "claim"). Without a logged file (today and later, or before June 2021) the rows are the
-   * agreements due that day with their current amounts (`amountSource` "agreement"), which can
-   * differ from what was charged if an amount changed since.
+   * For a past date the rows are the claims actually sent to Mastercard Payment Services for that
+   * due date, with the claimed amounts, read from the claim file logged by the AvtaleGiro job
+   * (`amountSource` "claim"). Without a logged file (today and later, or before June 2021) the rows
+   * are the agreements due that day with their current amounts (`amountSource` "agreement"), which
+   * can differ from what was charged if an amount changed since.
    */
   expected: adminProcedure.input(forDate).query(async ({ input }) => {
     const claimed =

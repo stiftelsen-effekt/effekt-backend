@@ -24,6 +24,9 @@ const parseDbConnectionLimit = (value) => {
   return limit;
 };
 
+const giroSftpKeyLocation = () =>
+  process.env.GIRO_SFTP_PRIVATE_KEY_LOCATION || process.env.NETS_SFTP_PRIVATE_KEY_LOCATION;
+
 module.exports = {
   //Environment
   env: process.env.NODE_ENV || "development",
@@ -145,12 +148,15 @@ module.exports = {
     ...["89.46.83.0/24", "103.57.74.0/24", "77.81.6.112"],
   ],
 
-  nets_sftp_server: process.env.NETS_SFTP_SERVER,
-  nets_sftp_user: process.env.NETS_SFTP_USER,
-  nets_sftp_key: process.env.NETS_SFTP_PRIVATE_KEY_LOCATION
-    ? fs.readFileSync(process.env.NETS_SFTP_PRIVATE_KEY_LOCATION)
-    : process.env.NETS_SFTP_PRIVATE_KEY,
-  nets_sftp_key_passphrase: process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
+  // AvtaleGiro and OCR Giro files over SFTP with Mastercard Payment Services (formerly Nets). The
+  // GIRO_* names win; the old NETS_* names are still read, so deployments can switch at their pace.
+  giro_sftp_server: process.env.GIRO_SFTP_SERVER || process.env.NETS_SFTP_SERVER,
+  giro_sftp_user: process.env.GIRO_SFTP_USER || process.env.NETS_SFTP_USER,
+  giro_sftp_key: giroSftpKeyLocation()
+    ? fs.readFileSync(giroSftpKeyLocation())
+    : process.env.GIRO_SFTP_PRIVATE_KEY || process.env.NETS_SFTP_PRIVATE_KEY,
+  giro_sftp_key_passphrase:
+    process.env.GIRO_SFTP_PRIVATE_KEY_PASSPHRASE || process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
 
   facebook_sync_app_id: process.env.FACBEOOK_SYNC_APP_ID,
   facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
@@ -165,7 +171,8 @@ module.exports = {
 
   //Bank account for recieving donations
   bankAccount: process.env.BANK_ACCOUNT,
-  nets_customer_id: process.env.NETS_CUSTOMER_ID,
+  // Our AvtaleGiro customer ID (data sender) at Mastercard Payment Services
+  giro_customer_id: process.env.GIRO_CUSTOMER_ID || process.env.NETS_CUSTOMER_ID,
 
   autogiro_customer_number: process.env.AUTOGIRO_CUSTOMER_NUMBER,
   autogiro_bankgiro_number: process.env.AUTOGIRO_BANKGIRO_NUMBER,

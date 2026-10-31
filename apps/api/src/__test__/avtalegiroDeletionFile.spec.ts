@@ -26,7 +26,7 @@ describe("AvtaleGiro deletion file generation", () => {
     donorStub.withArgs("002556289731589").resolves({ name: "Maria Brækkelie" } as any);
     donorStub.withArgs("000638723319577").resolves({ name: "Kristian Jørgensen" } as any);
 
-    config.nets_customer_id = "00230456";
+    config.giro_customer_id = "00230456";
 
     const file: Buffer = await avtalegiro.generateAvtaleGiroDeletionFile(745, deletions);
     lines = file.toString("utf-8").split("\n");

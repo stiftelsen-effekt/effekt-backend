@@ -54,7 +54,7 @@ describe("AvtaleGiro file generation", () => {
       name: "Håkon Harnes",
     });
 
-    config.nets_customer_id = "00230456";
+    config.giro_customer_id = "00230456";
 
     getLines = () => {
       let lines = file.toString("utf-8").split("\n");

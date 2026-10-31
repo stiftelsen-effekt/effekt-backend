@@ -3,7 +3,7 @@ import workdays from "norwegian-workdays";
 import { AvtaleGiroAgreement } from "../DAO_modules/avtalegiroagreements";
 
 export enum AvtaleGiroChargeStatus {
-  /** Sent to Mastercard Payment Services (Nets) in a claims file */
+  /** Sent to Mastercard Payment Services in a claims file */
   CLAIMED = "CLAIMED",
   /** The payment for the claim has arrived in an OCR file */
   COMPLETED = "COMPLETED",

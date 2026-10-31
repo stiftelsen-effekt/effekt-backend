@@ -2,7 +2,7 @@ import { describe, it, afterEach } from "vitest";
 import { expect } from "chai";
 import sinon from "sinon";
 import * as sftp from "../custom_modules/sftp";
-import * as nets from "../custom_modules/nets";
+import * as giroSftp from "../custom_modules/giroSftp";
 import { ocrFileKey, selectOCRFilesToImport } from "../custom_modules/ocrFiles";
 
 const files = [
@@ -48,7 +48,7 @@ describe("selectOCRFilesToImport", () => {
   });
 });
 
-describe("nets SFTP helpers close their connection", () => {
+describe("giro SFTP helpers close their connection", () => {
   afterEach(() => sinon.restore());
 
   const fakeConnection = () => ({
@@ -66,7 +66,7 @@ describe("nets SFTP helpers close their connection", () => {
     const conn = fakeConnection();
     sinon.stub(sftp, "getConnection").resolves(conn as any);
     let listed: string[] = [];
-    const result = await nets.getOCRFiles((listing) => {
+    const result = await giroSftp.getOCRFiles((listing) => {
       listed = listing.map((f) => f.name);
       return listing;
     });
@@ -81,7 +81,7 @@ describe("nets SFTP helpers close their connection", () => {
     sinon.stub(sftp, "getConnection").resolves(conn as any);
     let caught: unknown;
     try {
-      await nets.getOCRFiles((listing) => listing);
+      await giroSftp.getOCRFiles((listing) => listing);
     } catch (ex) {
       caught = ex;
     }
@@ -95,7 +95,7 @@ describe("nets SFTP helpers close their connection", () => {
     conn.end.rejects(new Error("already closed"));
     sinon.stub(sftp, "getConnection").resolves(conn as any);
     const file = Buffer.from("claims");
-    expect(await nets.sendFile(file, "DIRREM")).to.equal(file);
+    expect(await giroSftp.sendFile(file, "DIRREM")).to.equal(file);
     expect(conn.put.calledOnce).to.equal(true);
   });
 });

@@ -152,8 +152,9 @@ export const widgetRouter = router({
 
   /**
    * POST /avtalegiro/draft: drafts an AvtaleGiro agreement for a KID from registerDonation, before
-   * the widget hands the donor over to Nets to sign it. The amount is in NOK. Only for a KID this
-   * client registered for AvtaleGiro (registrationToken) that has no agreement yet.
+   * the widget hands the donor over to Mastercard Payment Services to sign it. The amount is in
+   * NOK. Only for a KID this client registered for AvtaleGiro (registrationToken) that has no
+   * agreement yet.
    */
   draftAvtaleGiro: publicProcedure.input(widgetDraftAvtaleGiroInput).mutation(async ({ input }) => {
     const result = await draftAvtaleGiroAgreement(

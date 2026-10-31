@@ -1,7 +1,7 @@
 import { describe, it, beforeAll, afterAll, beforeEach } from "vitest";
 import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import * as nets from "../custom_modules/nets";
+import * as giroSftp from "../custom_modules/giroSftp";
 import * as sftp from "../custom_modules/sftp";
 import sinon from "sinon";
 import express from "express";
@@ -105,7 +105,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
     loggingStub = sinon.stub(DAO.logging, "add").resolves();
 
-    sendFileStub = sinon.stub(nets, "sendFile");
+    sendFileStub = sinon.stub(giroSftp, "sendFile");
 
     const scheduledRoute = require("../routes/scheduled");
     server = express();
