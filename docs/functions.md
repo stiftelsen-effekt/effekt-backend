@@ -9,6 +9,35 @@ It fetches an Auth0 client-credentials token and calls the matching `/scheduled/
 
 Recovered on 2026-10-23 from the deployed source (it was previously deployed from the console). Deploy with `./deploy.sh`.
 
+### AvtaleGiro retry (`avtalegiro_retry`)
+
+The claims job (`/scheduled/avtalegiro`, 10:00) uploads one claims file (`DIRREM<today>.<due date>.<shipment ID>`) per due date to the Mastercard Payment Services (MPS) SFTP `/Inbound` folder. MPS puts a receipt for each file in the same folder, named after the transmission number in the file's start record, which is our shipment ID padded to 7 digits:
+
+- `KV.GODKJENT.F0000651.D<date>.T<time>.K<customer unit>.html`: accepted
+- `KV.AVVIST.F0000651...`: rejected, MPS did not process the file
+
+If the upload fails, the claims job logs it in Import_logs as `AvtaleGiro - Upload failed` with the shipment ID.
+
+The retry (`/scheduled/avtalegiro/retry`, 11:00, 12:00 and 13:00) looks at today's shipments for each due date (code: `apps/api/src/custom_modules/avtalegiro/receipts.ts`):
+
+| Receipts for the date's shipments                                                 | What happens                                                                         | `path`     |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------- |
+| Any shipment accepted                                                             | Nothing                                                                              | `accepted` |
+| No shipment recorded (nothing was sent)                                           | Claims sent                                                                          | `not-sent` |
+| Every shipment rejected, or its upload failed and there is no receipt             | Shipments superseded, claims sent again                                              | `resend`   |
+| No receipt yet, or unclear receipts (another kind, or both accepted and rejected) | Nothing sent; alert mailed to teknisk@; response 409, so the scheduler job fails too | `alert`    |
+
+Every path except `accepted` is logged in Import_logs as `AvtaleGiro - Retry`; the response lists the path for each due date. Without a receipt MPS may just be slow, so the claims are not sent again: sending them again could charge donors twice.
+
+**After an alert**: check the shipment with MPS. If it was accepted, do nothing (the next run sees the receipt). If MPS confirms it was rejected or never received, send it again before the 14:00 cutoff with an admin token:
+
+```sh
+curl -X POST -H "Authorization: Bearer <admin token>" \
+  "https://data.gieffektivt.no/scheduled/avtalegiro/retry?date=<YYYY-MM-DD the shipment was sent>&resend=<shipment ID>[,<shipment ID>...]"
+```
+
+`resend` must name every not superseded shipment for the due date, and it never sends a shipment that has an accepted receipt.
+
 ## dmarc-report
 
 Reads DMARC aggregate reports sent to `dmarc@gieffektivt.no` (a Domeneshop mailbox, read over IMAP) and posts to Slack.
