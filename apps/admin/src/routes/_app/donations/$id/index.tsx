@@ -17,6 +17,7 @@ import { ResendReceiptDialog } from "@/features/donations/resend-receipt";
 import { formatAmount } from "@/features/donations/edit-model";
 import { notify } from "@/lib/notify";
 import { loadPage } from "@/lib/route-data";
+import { invalidateDonationQueries } from "@/features/donations/invalidate";
 import { useTRPC } from "@/lib/trpc";
 import { PaymentMethodName } from "@/features/donations/payment-method-name";
 
@@ -168,7 +169,7 @@ function DonationPage() {
             confirmText={String(d.id)}
             onConfirm={async () => {
               await remove.mutateAsync({ id: d.id });
-              await queryClient.invalidateQueries({ queryKey: trpc.donations.pathKey() });
+              await invalidateDonationQueries(queryClient, trpc, [d.donorId]);
               notify.success("Donation deleted", `#${d.id} · ${formatAmount(d.sum)}`);
               void navigate({ to: "/donations" });
             }}
