@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useAgreementFeedbackTypes } from "../../../../_queries";
 import {
   EffektButton,
@@ -48,7 +48,7 @@ export const StoppedAgreementFeedback = ({
   const { getAccessTokenSilently } = useAuth0();
 
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackSelection[]>([]);
-  const [otherComment] = useState<string | undefined>(undefined);
+  const [otherComment, setOtherComment] = useState("");
   const operationQueue = useRef<QueuedOperation[]>([]);
   const processingQueue = useRef<boolean>(false);
 
@@ -259,12 +259,12 @@ export const StoppedAgreementFeedback = ({
             .filter((d) => d.isOther)
             .map((feedbackType: { ID: number; name: string }) => {
               return (
-                <>
+                <Fragment key={feedbackType.ID}>
                   <label>{feedbackType.name}:</label>
                   <EffektTextInput
-                    key={feedbackType.ID}
                     value={otherComment}
                     onChange={(val) => {
+                      setOtherComment(val);
                       const existingSelection = selectedFeedback.find(
                         (f) => f.feedbackTypeId === feedbackType.ID,
                       );
@@ -288,7 +288,7 @@ export const StoppedAgreementFeedback = ({
                       }
                     }}
                   />
-                </>
+                </Fragment>
               );
             })}
         </div>

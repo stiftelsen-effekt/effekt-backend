@@ -3,6 +3,7 @@ import Draggable from "react-draggable";
 import { RefObject, useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import * as Plot from "@observablehq/plot";
+import { meanFromTrackClick } from "./meanFromTrackClick";
 
 /**
  * A slider that returns a mean and standard deviation value
@@ -83,17 +84,20 @@ export const EffektSliderStdv: React.FC<{
         className={styles.calculator__input__group__percentage_slider__track}
         data-cy="slider-track"
         onClick={(e) => {
-          // If the user clicks on the slider, we want to move the handle to the clicked position
+          // A click that ends a handle drag bubbles up here too; only clicks on the track itself
+          // should move the mean.
+          const target = e.target as Node;
+          if (
+            [handleMedianRef, handleStdvLeftRef, handleStdvRightRef].some((ref) =>
+              ref.current?.contains(target),
+            )
+          ) {
+            return;
+          }
+          // If the user clicks on the slider, we want to move the mean handle to the clicked position
           const rect = sliderRef.current?.getBoundingClientRect();
           if (rect) {
-            // The clicked position is computed but not used, so a click on the track does not move
-            // the handle (onChange gets the current value).
-            // oxlint-disable-next-line no-unused-vars -- kept to flag the unfinished click handling
-            const x = Math.min(Math.max(0, (e.clientX || 0) - rect.left), rect.width);
-            onChange({
-              mean: value.mean,
-              stdv: value.stdv,
-            });
+            onChange(meanFromTrackClick(e.clientX || 0, rect, min, max, value));
           }
         }}
       >

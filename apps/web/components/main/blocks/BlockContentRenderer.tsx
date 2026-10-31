@@ -312,7 +312,6 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
             return (
               <ResultsTeaser
                 key={block._key || block._id}
-                title={block.title}
                 sumSubtitle={block.sum_subtitle}
                 donorsSubtitle={block.donors_subtitle}
                 seeMoreButton={block.see_more_button}
@@ -528,7 +527,6 @@ export const SectionBlockContentRenderer: React.FC<{ blocks: any }> = ({ blocks 
             return (
               <MediaCoverageTeaser
                 key={block._key || block._id}
-                title={block.title}
                 coverage={block.coverage}
                 readMoreButton={block.read_more_button}
               />

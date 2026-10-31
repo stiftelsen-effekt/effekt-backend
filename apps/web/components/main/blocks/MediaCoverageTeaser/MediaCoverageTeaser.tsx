@@ -5,7 +5,6 @@ import { NavLink } from "../../../shared/components/Navbar/Navbar";
 import { Links } from "../Links/Links";
 
 export const MediaCoverageTeaser: React.FC<{
-  title: string;
   coverage: {
     links: {
       link: string;

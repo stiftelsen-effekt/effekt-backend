@@ -12,6 +12,7 @@ import styles from "./TaxUnitModal.module.scss";
 import { Check } from "react-feather";
 import { useTaxUnits } from "../../../../_queries";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { ErrorMessage } from "../ErrorMessage/ErrorMessage";
 import { useMainLocale } from "../../../../context/MainLocaleContext";
 import { useFailureToast } from "../../../shared/failureToast";
 import { TaxUnitTypes } from "./taxUnitTypes";
@@ -28,10 +29,11 @@ const TaxUnitEditModalStandard: React.FC<{
   const trpc = useTrpcClient(getAccessTokenSilently);
   const failureToast = useFailureToast();
 
-  const { data: existingUnits, loading: loadingUnits } = useTaxUnits(
-    user as User,
-    getAccessTokenSilently,
-  );
+  const {
+    data: existingUnits,
+    loading: loadingUnits,
+    error: errorLoadingUnits,
+  } = useTaxUnits(user as User, getAccessTokenSilently);
 
   const initialSsnDigits = initial.ssn.replace(/\D/g, "");
   const [name, setName] = useState(initial.name);
@@ -70,6 +72,11 @@ const TaxUnitEditModalStandard: React.FC<{
 
   if (loadingUnits) {
     return <Spinner />;
+  }
+
+  // The existing units back the duplicate check, so the form needs them
+  if (errorLoadingUnits) {
+    return <ErrorMessage />;
   }
 
   const ssnDigits = ssn.replace(/\D/g, "");

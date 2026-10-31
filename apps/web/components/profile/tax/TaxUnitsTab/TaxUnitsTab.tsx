@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useTaxUnits } from "../../../../_queries";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
 import { Spinner } from "../../../shared/components/Spinner/Spinner";
+import { ErrorMessage } from "../../shared/ErrorMessage/ErrorMessage";
 import { TaxUnitList } from "../../shared/lists/taxUnitList/TaxUnitList";
 import { TaxUnitMobileList } from "../../shared/lists/taxUnitList/TaxUnitMobileList";
 import { TaxUnitCreateModal } from "../../shared/TaxUnitModal/TaxUnitCreateModal";
@@ -38,7 +39,9 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
   return (
     <div className={styles.container}>
       <h4 className={styles.header}>{title}</h4>
-      {!loading && !error && data ? (
+      {error ? (
+        <ErrorMessage />
+      ) : !loading && data ? (
         data.filter((taxUnit) => taxUnit.archived === null).length > 0 ? (
           <>
             <div className={styles.desktopList}>
@@ -72,10 +75,13 @@ export const TaxUnitsTab: React.FC<TaxUnitsTabProps> = ({
         ) : (
           <div className={styles.noTaxUnits}>
             <p className={styles.noTaxUnitsText}>{emptyStateDescription}</p>
-            {/* oxlint-disable-next-line jsx-a11y/anchor-is-valid -- should be a button; that needs restyling */}
-            <a onClick={() => setCreateModalOpen(true)} className={styles.noTaxUnitsLink}>
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(true)}
+              className={styles.noTaxUnitsLink}
+            >
               {emptyStateLinkLabel}
-            </a>
+            </button>
           </div>
         )
       ) : (
