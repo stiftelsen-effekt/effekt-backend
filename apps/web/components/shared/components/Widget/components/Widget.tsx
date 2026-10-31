@@ -212,6 +212,7 @@ export const Widget = withStaticProps(
     setWidgetApiLocale(widget.locale);
     dispatch(fetchCauseAreasAction.started(undefined));
     if (widgetAsksForReferrals()) dispatch(fetchReferralsAction.started(undefined));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- initialises the store once per widget locale
   }, [dispatch, widget.locale]);
 
   usePrefilledDistribution({

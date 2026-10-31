@@ -94,6 +94,7 @@ export const PaymentMethodPane = React.forwardRef<HTMLDivElement, PaymentMethodP
     // Clear errors when tax deduction is unchecked
     useEffect(() => {
       if (!formData.taxDeduction) {
+        // oxlint-disable-next-line react/set-state-in-effect -- clears the errors when tax deduction is unchecked
         setSsnError(null);
         setCprSuspicious(false);
       }

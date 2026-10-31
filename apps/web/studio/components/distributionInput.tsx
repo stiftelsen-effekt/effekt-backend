@@ -59,6 +59,7 @@ export const DistributionInput = (props: ArrayOfObjectsInputProps) => {
 
   // Fetch all cause areas and organizations for displaying names
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- fetches cause areas and organizations on mount
     setLoading(true);
     fetch(`${api}/causeareas/all`)
       .then((response) => response.json())

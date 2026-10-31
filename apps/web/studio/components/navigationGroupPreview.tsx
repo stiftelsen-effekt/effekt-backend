@@ -70,6 +70,7 @@ export const NavigationGroupPreview = (props: PreviewProps) => {
     return () => {
       isMounted = false;
     };
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- slugs is rebuilt every render; the item slugs are the deps
   }, [
     item1slug,
     item2slug,

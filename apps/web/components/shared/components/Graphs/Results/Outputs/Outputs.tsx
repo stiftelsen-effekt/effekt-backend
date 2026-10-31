@@ -72,6 +72,7 @@ export const Outputs: React.FC<{
   );
 
   const maxOutputsInYear = useMemo(() => {
+    // oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: currentYear + 1 - startYear }).map((_, i) => startYear + i);
     const yearlyMaxes = years.map((year) =>

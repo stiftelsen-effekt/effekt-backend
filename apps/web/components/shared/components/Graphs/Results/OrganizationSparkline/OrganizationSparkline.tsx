@@ -39,7 +39,7 @@ export const OrganizationSparkline: React.FC<{
     return () => window.removeEventListener("resize", debouncedResizeGraph);
   }, [debouncedResizeGraph]);
 
-  const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const [currentYear] = useState(() => new Date().getFullYear());
 
   const allYears = useMemo(() => {
     return Array.from({ length: currentYear + 1 - startYear }, (x, i) => ({

@@ -273,6 +273,7 @@ export const CumulativeDonations: React.FC<{
   );
 
   const yearlyTotals = useMemo(
+    // oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended
     () => computeYearlyTotals(transformedDonations, getDOY(new Date())),
     [transformedDonations],
   );

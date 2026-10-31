@@ -35,6 +35,7 @@ export const VippsDatePicker: React.FC<{ config: DatePickerInputConfiguration }>
         initialCharge,
       }),
     );
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- adding vippsAgreement would loop, since the effect dispatches it
   }, [selectedChargeDay, initialCharge]);
 
   return (

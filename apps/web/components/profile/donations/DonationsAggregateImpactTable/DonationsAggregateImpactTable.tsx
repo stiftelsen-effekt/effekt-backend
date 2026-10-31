@@ -112,6 +112,7 @@ export const DonationsAggregateImpactTable: React.FC<{
     } else {
       setTimeout(() => setLoadedClass(""));
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs when the data arrives, not on every validation flag change
   }, [impactdata, evaluationdata]);
 
   let impact: AggregatedImpact = {};
@@ -161,8 +162,11 @@ export const DonationsAggregateImpactTable: React.FC<{
   }
 
   if (currentImpactCount != lastimpactCount || loading) {
+    // oxlint-disable-next-line react/refs -- measures the table's height while rendering to animate it; moving it to an effect needs restructuring
     const height = tableContainerRef.current?.clientHeight;
+    // oxlint-disable-next-line react/refs -- measures the table's height while rendering to animate it; moving it to an effect needs restructuring
     if (currentHeight != height && typeof height !== "undefined") {
+      // oxlint-disable-next-line react/refs -- measures the table's height while rendering to animate it; moving it to an effect needs restructuring
       setCurrentHeight(height);
     }
   } else {

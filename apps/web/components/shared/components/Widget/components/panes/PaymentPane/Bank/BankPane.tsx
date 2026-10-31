@@ -55,6 +55,7 @@ export const BankPane: React.FC<{
         },
       });
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- tracks the completed donation once
   }, [hasCompletedTransaction]);
 
   return (

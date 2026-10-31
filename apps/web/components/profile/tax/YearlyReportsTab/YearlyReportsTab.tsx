@@ -98,6 +98,7 @@ export const YearlyReportsTab: React.FC<{
           (donation: Donation) => new Date(donation.timestamp).getFullYear() === report.year,
         );
 
+        // oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended
         const currentYear = new Date().getFullYear();
 
         return (

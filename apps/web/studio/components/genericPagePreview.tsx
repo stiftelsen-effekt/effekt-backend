@@ -13,6 +13,7 @@ export const GenericPagePreview = (props: PreviewProps) => {
   const [pageViews, setPageViews] = useState<null | number>(null);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- loads the preview data
     setLoading(true);
     fetchPageViews([slug ?? ""])
       .then((views) => {

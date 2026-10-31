@@ -397,6 +397,7 @@ export const useWidgetScaleEffect = (
       setLastWidth(window.innerWidth);
       setLastHeight(window.innerHeight);
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- adding or removing deps changes how often the widget rescales
   }, [
     setScalingFactor,
     setScaledHeight,
@@ -422,6 +423,7 @@ export const useWidgetScaleEffect = (
   }, [debouncedScaleWidget, inline]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- scales the widget when it opens or its context changes
     scaleWidget();
   }, [widgetContext, scaleWidget]);
 

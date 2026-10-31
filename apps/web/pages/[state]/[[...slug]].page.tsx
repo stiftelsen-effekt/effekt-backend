@@ -70,6 +70,7 @@ const Page: React.FC<InferGetStaticPropsType<typeof getStaticProps>> = (props) =
   useEffect(() => {
     // nosemgrep: javascript.lang.security.audit.unsafe-dynamic-method.unsafe-dynamic-method -- pageType is set by getStaticProps, and the lookup is a fixed map of imports
     preloadDashboardPage[props.pageType as PageType]?.();
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- preloads once per page type
   }, [props.pageType]);
 
   if (props.draftMode) {

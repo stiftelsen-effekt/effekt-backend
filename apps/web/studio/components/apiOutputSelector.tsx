@@ -57,6 +57,7 @@ export default function ApiOutputSelector(props: ApiOutputSelectorProps) {
 
   useEffect(() => {
     // Auto-fetch on component mount
+    // oxlint-disable-next-line react/set-state-in-effect -- fetches the outputs on mount
     fetchOutputs();
   }, []);
 
