@@ -18,6 +18,7 @@ catalog:
   "@vitest/coverage-v8": 5.0.5
   cross-env: 10.1.0
   csv-parse: 7.0.3
+  dotenv: 18.0.9
   katex: 0.19.0
   luxon: 3.7.2
   norwegian-workdays: github:stiftelsen-effekt/norwegian-workdays#v1.1.0

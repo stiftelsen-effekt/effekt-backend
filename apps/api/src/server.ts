@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
-dotenv.config();
+// quiet: dotenv 17+ logs a line on load by default
+dotenv.config({ quiet: true });
 
 import * as config from "./config";
 import { DAO } from "./custom_modules/DAO";

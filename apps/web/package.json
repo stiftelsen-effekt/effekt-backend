@@ -90,7 +90,7 @@
     "cypress-dotenv": "^3.0.1",
     "cypress-fail-fast": "^8.2.0",
     "cypress-localstorage-commands": "^2.3.1",
-    "dotenv": "^18.0.8",
+    "dotenv": "catalog:",
     "oxlint": "catalog:",
     "typescript": "catalog:",
     "typescript-fsa": "^3.0.0",
