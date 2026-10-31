@@ -14,6 +14,8 @@
 x-from-host: &from-host
   image: node:24.22.1
   pull_policy: missing
+  # The image's WORKDIR, which seed-e2e relies on
+  working_dir: /app/apps/api
   # Read-only: nothing in these containers may change the runner's install. The commands' `pnpm
   # exec` is a stand-in (pnpm itself would reinstall the workspace into the mount).
   volumes:
