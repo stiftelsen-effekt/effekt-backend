@@ -776,7 +776,7 @@ describe("DAO Distributions", () => {
       queryStub.resolves([mockQueryResponse, []]);
 
       try {
-        const result = await DAO.distributions.getSplitByKID("000001333993788");
+        await DAO.distributions.getSplitByKID("000001333993788");
         throw new Error("Promise did not reject as expected");
       } catch (ex) {
         expect(ex.message).to.contain("multiple distributions");

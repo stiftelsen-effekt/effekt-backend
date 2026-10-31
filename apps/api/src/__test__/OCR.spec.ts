@@ -8,10 +8,6 @@ const sampleOCRfile = fs.readFileSync("src/__test__/data/ocr_test.ocr").toString
 const noTransactionOCRFile = fs
   .readFileSync("src/__test__/data/ocr_no_valid_records.ocr")
   .toString("utf8");
-const sampleOCRline =
-  "NY091330000000022011700000000000000000000000100000000000000000000012345678000000";
-const sampleOCRnextliner =
-  "NY091331000000800003233427974208710000000061119150623218380000000000000000000000";
 
 // Tests for Generate() in KID.js
 describe("OCR", function () {

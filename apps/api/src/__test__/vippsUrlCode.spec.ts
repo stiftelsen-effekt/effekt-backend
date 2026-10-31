@@ -16,7 +16,7 @@ describe("Vipps agreement url codes", () => {
 
     server = express();
     server.use("/vipps", require("../routes/vipps"));
-    server.use((err, req, res, next) => res.status(err.status ?? 500).end());
+    server.use((err, req, res, _next) => res.status(err.status ?? 500).end());
 
     sinon.stub(DAO.vipps, "getAgreementIdByUrlCode").resolves(false);
     // An unknown code must never reach the agreements table: `ID = false` matches every row

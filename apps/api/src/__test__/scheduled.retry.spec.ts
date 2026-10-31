@@ -47,7 +47,6 @@ describe("POST /scheduled/avtalegiro/retry", function () {
 
   let server;
 
-  let avtalegiroFileStub;
   let sendNotificationStub;
   let shipmentStub;
   let agreementsStub;
@@ -81,9 +80,7 @@ describe("POST /scheduled/avtalegiro/retry", function () {
       .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
       .resolves({} as any);
 
-    avtalegiroFileStub = sinon
-      .stub(avtalegiro, "generateAvtaleGiroFile")
-      .resolves(Buffer.from("", "utf-8"));
+    sinon.stub(avtalegiro, "generateAvtaleGiroFile").resolves(Buffer.from("", "utf-8"));
 
     sendNotificationStub = sinon.stub(mail, "sendAvtalegiroNotification").resolves(true);
 
