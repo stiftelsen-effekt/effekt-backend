@@ -29,3 +29,6 @@ steps:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  # Vitest runs one process per spec file, and every step here shares the machine: on the default
+  # 2 vCPUs the tests alone took ~400s.
+  machineType: E2_HIGHCPU_32

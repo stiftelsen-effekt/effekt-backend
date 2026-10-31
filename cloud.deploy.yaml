@@ -90,8 +90,10 @@ steps:
       - "managed"
       - "--allow-unauthenticated"
 
+  # Sweden migrates and deploys alongside Norway: separate databases, separate services
   - name: "gcr.io/cloud-builders/gcloud"
     id: "migrate-db-sweden"
+    waitFor: ["push-latest"]
     entrypoint: "bash"
     args:
       - "scripts/deploy/unless-skipped.sh"
@@ -135,3 +137,5 @@ substitutions:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  # The default machine has 2 vCPUs; the image build (pnpm install, tsc) is CPU-bound
+  machineType: E2_HIGHCPU_8
