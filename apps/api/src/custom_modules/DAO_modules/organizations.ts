@@ -140,17 +140,6 @@ async function updateById(organization: {
 }
 //endregion
 
-//region Delete
-/**
- * Deletes an organization by ID
- * @param {number} id The organization ID
- * @returns {Promise<void>}
- */
-async function deleteById(id: number) {
-  await DAO.query(`DELETE FROM Organizations WHERE ID = ?`, [id]);
-}
-//endregion
-
 //region Helpers
 /**
  * Used in array.map, used to map database rows to JS like naming
@@ -185,5 +174,4 @@ export const organizations = {
   getAll,
   add,
   updateById,
-  deleteById,
 };

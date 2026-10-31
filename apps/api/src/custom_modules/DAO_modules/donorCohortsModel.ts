@@ -8,8 +8,8 @@ import type { CohortRow, NewDonorRow, ReferralType } from "./donorCohorts";
 /** First cohort shown; earlier donors still count as earlier cohorts, never as new ones */
 export const FIRST_COHORT_YEAR = 2016;
 /** Named referral sources in the by-source series; the rest goes into "Other / unknown" */
-export const TOP_REFERRAL_SOURCES = 6;
-export const OTHER_SOURCE = { key: "other", label: "Other / unknown" } as const;
+const TOP_REFERRAL_SOURCES = 6;
+const OTHER_SOURCE = { key: "other", label: "Other / unknown" } as const;
 /** Referral type names that mean "other" already (Annet) */
 const OTHER_TYPE_NAMES = new Set(["annet", "other", "andet", "övrigt", "annat"]);
 

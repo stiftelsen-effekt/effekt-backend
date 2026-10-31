@@ -13,7 +13,7 @@ import { createAutoGiroShipment } from "../custom_modules/autogiro";
 import fetch from "node-fetch";
 import { initialpaymentmethod } from "../custom_modules/DAO_modules/initialpaymentmethod";
 import paymentMethods from "../enums/paymentMethods";
-import { AutoGiro_agreements, Payment_follow_up, Payment_intent } from "@prisma/client";
+import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { getAllInflationEligibleAgreements } from "../custom_modules/inflationadjustment";
 import { RequestLocale } from "../middleware/locale";
 import { enqueueInvalidTransactions } from "../custom_modules/reviewQueue";

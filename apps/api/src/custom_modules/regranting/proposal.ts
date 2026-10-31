@@ -1,5 +1,5 @@
 import type { Decimal } from "decimal.js";
-import { max0, sum, ZERO } from "./money";
+import { max0, ZERO } from "./money";
 import type { PayeeRef, RoundKind } from "./types";
 
 /**
@@ -170,7 +170,3 @@ export function proposeRound(input: ProposalInput): {
 
   return { positions: proposed, transfers: [...transfers.values()] };
 }
-
-/** Sum of a recipient's proposed amounts */
-export const proposedTotal = (positions: ProposedPosition[], organizationId: number) =>
-  sum(positions.filter((p) => p.organizationId === organizationId).map((p) => p.proposed));

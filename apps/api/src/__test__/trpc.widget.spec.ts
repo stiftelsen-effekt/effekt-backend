@@ -201,17 +201,14 @@ describe("tRPC widget router", () => {
     let getByID: sinon.SinonStub;
     let addTaxUnit: sinon.SinonStub;
     let getByDonorIdAndSsn: sinon.SinonStub;
-    let updateName: sinon.SinonStub;
     let updateNewsletter: sinon.SinonStub;
     let addDistribution: sinon.SinonStub;
     let addPaymentIntent: sinon.SinonStub;
-    let getDonorAnswered: sinon.SinonStub;
 
     beforeEach(() => {
       getIDbyEmail = sinon.stub(DAO.donors, "getIDbyEmail").resolves(null);
       addDonor = sinon.stub(DAO.donors, "add").resolves(42);
       getByID = sinon.stub(DAO.donors, "getByID").resolves(null);
-      updateName = sinon.stub(DAO.donors, "updateName").resolves();
       updateNewsletter = sinon.stub(DAO.donors, "updateNewsletter").resolves();
       addTaxUnit = sinon.stub(DAO.tax, "addTaxUnit").resolves(5);
       getByDonorIdAndSsn = sinon.stub(DAO.tax, "getByDonorIdAndSsn").resolves(null);
@@ -220,7 +217,6 @@ describe("tRPC widget router", () => {
       addDistribution = sinon.stub(DAO.distributions, "add").resolves();
       sinon.stub(donationHelpers, "createKID").resolves("12345678");
       addPaymentIntent = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent").resolves();
-      getDonorAnswered = sinon.stub(DAO.referrals, "getDonorAnswered").resolves(true);
       sinon.stub(DAO.donationReferralCodes, "add").resolves();
     });
 
@@ -328,7 +324,6 @@ describe("tRPC widget router", () => {
       const result = await anonymous().registerDonation(widgetBody());
       expect(result).to.not.have.property("donorID");
       expect(result.hasAnsweredReferral).to.equal(false);
-      expect(getDonorAnswered.called).to.equal(false);
     });
 
     it("leaves an existing donor's name, newsletter and tax units alone", async () => {
@@ -339,7 +334,6 @@ describe("tRPC widget router", () => {
 
       const result = await anonymous().registerDonation(body);
 
-      expect(updateName.called).to.equal(false);
       expect(updateNewsletter.called).to.equal(false);
       expect(addTaxUnit.called).to.equal(false);
       expect(addDonor.called).to.equal(false);

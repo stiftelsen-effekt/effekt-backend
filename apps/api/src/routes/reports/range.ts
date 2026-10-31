@@ -1,5 +1,4 @@
 import { DAO } from "../../custom_modules/DAO";
-import moment from "moment";
 
 const dateRangeHelper = require("../../custom_modules/dateRangeHelper");
 

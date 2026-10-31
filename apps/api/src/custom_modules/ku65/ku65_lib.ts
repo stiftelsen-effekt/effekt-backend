@@ -39,7 +39,7 @@ function pad2(value: number): string {
   return value.toString().padStart(2, "0");
 }
 
-export function formatLocalDateTime(date: Date): string {
+function formatLocalDateTime(date: Date): string {
   return [
     date.getFullYear().toString().padStart(4, "0"),
     "-",
@@ -85,7 +85,7 @@ export function isValidPersonnummer(value: string): boolean {
   return expected === checkDigit;
 }
 
-export function normalizeOrgNr(value: string): string {
+function normalizeOrgNr(value: string): string {
   const digits = value.replace(/\D/g, "");
   if (digits.length === 12) return digits;
   if (digits.length === 10) {
@@ -115,7 +115,7 @@ export function parseCsvFromString(raw: string): CsvRow[] {
   return rows;
 }
 
-export function escapeXml(value: string): string {
+function escapeXml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

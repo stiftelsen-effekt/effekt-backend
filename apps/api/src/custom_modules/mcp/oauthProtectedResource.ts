@@ -25,7 +25,7 @@ export function getAuth0Issuer(): string {
   return iss.endsWith("/") ? iss : `${iss}/`;
 }
 
-export function getResourceMetadataUrl(): string {
+function getResourceMetadataUrl(): string {
   const resource = getMcpResourceUrl();
   try {
     const url = new URL(resource);

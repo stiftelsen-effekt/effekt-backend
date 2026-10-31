@@ -38,7 +38,7 @@ export type IntentStatus = (typeof intentStatuses)[number];
 export const intentSortColumns = ["created", "amount", "donorName"] as const;
 export type IntentSortColumn = (typeof intentSortColumns)[number];
 
-export const DEFAULT_AWAITING_DAYS = 30;
+const DEFAULT_AWAITING_DAYS = 30;
 
 export type IntentFilter = {
   statuses?: IntentStatus[];

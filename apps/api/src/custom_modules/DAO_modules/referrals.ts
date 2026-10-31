@@ -1,4 +1,4 @@
-import { Donors, Referral_records, Referral_types } from "@prisma/client";
+import { Donors, Referral_types } from "@prisma/client";
 import { DAO } from "../DAO";
 import { dbClockColumn } from "../osloDays";
 
@@ -66,25 +66,6 @@ async function getAggregate() {
             GROUP BY Referral_records.ReferralID`);
 
   return aggregates;
-}
-
-/**
- * Checks if the donor has answered referral question before
- * @param {number} donorID
- */
-async function getDonorAnswered(donorID: Donors["ID"]) {
-  let [answersCount] = await DAO.query<{ count: number }[]>(
-    `
-        SELECT count(DonorID) as count
-            FROM Referral_records
-            
-            WHERE DonorID = ?
-    `,
-    [donorID],
-  );
-
-  if (answersCount[0].count > 0) return true;
-  else return false;
 }
 
 /**
@@ -325,7 +306,6 @@ export const referrals = {
   getTypes,
   getAllTypes,
   getAggregate,
-  getDonorAnswered,
   getDonorAnswers,
   addRecord,
   updateRecordComment,

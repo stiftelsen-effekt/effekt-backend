@@ -82,7 +82,7 @@ async function getManagementToken(): Promise<string> {
  * Looks up Auth0 users by email.
  * An email can map to more than one user (e.g. password + Google).
  */
-export async function getUsersByEmail(email: string): Promise<Auth0User[]> {
+async function getUsersByEmail(email: string): Promise<Auth0User[]> {
   const token = await getManagementToken();
 
   const response = await fetch(

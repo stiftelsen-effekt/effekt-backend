@@ -5,7 +5,7 @@ import { RequestHandler } from "express";
  * Constant-time string comparison. Both values are hashed first so that the comparison
  * does not leak the length of the expected value.
  */
-export function safeEqual(a: string, b: string): boolean {
+function safeEqual(a: string, b: string): boolean {
   const ha = crypto.createHash("sha256").update(a, "utf8").digest();
   const hb = crypto.createHash("sha256").update(b, "utf8").digest();
   return crypto.timingSafeEqual(ha, hb);

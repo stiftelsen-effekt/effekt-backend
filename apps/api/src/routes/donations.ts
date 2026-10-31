@@ -13,8 +13,6 @@ import {
   registerPendingDonation,
 } from "../custom_modules/pendingDonationRegistration";
 
-const config = require("../config");
-
 const router = express.Router();
 const urlEncodeParser = bodyParser.urlencoded({ extended: true });
 const cache = apicache.middleware;

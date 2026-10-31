@@ -2,23 +2,6 @@ import { Payment_follow_up, Payment_intent } from "@prisma/client";
 import { DAO, SqlResult } from "../DAO";
 import Decimal from "decimal.js";
 
-//region Get
-/**
- * Fetches a single payment intent by ID.
- */
-async function getPaymentIntent(paymentIntentId) {
-  const [paymentIntent] = await DAO.query<Payment_intent[]>(
-    `
-    SELECT *
-    FROM Payment_intent
-    WHERE Id = ?
-    `,
-    [paymentIntentId],
-  );
-
-  return mapPaymentIntent(paymentIntent[0]);
-}
-
 /**
  * Fetches all payment intents that were created in the last X days.
  * If a donor has multiple payment intents, only the most recent one is returned.
@@ -60,30 +43,6 @@ async function getFollowUpsForPaymentIntent(paymentIntentId) {
   );
 
   return followUps.map(mapPaymentFollowUp);
-}
-
-/**
- * Checks if a donation has been received for a payment intent.
- * @param {number} paymentIntentId - The ID of the payment intent.
- * @returns {Promise<boolean>} - Whether a donation has been received.
- */
-async function checkIfDonationReceived(paymentIntentId) {
-  const paymentIntent = await getPaymentIntent(paymentIntentId);
-  const paymentIntentDate = paymentIntent.timestamp;
-  const paymentKID = paymentIntent.KID_fordeling;
-
-  // To determine if the payment intent is paid, check if there have been any donations with the same KID since the date of the payment intent.
-  // We do not check for the exact amount or payment method, as the donation may have been made with a different amount or method.
-  // We don't want to pester the user with follow-ups if they have already made a donation.
-  const [donation] = await DAO.query(
-    `
-    SELECT * from Donations
-    WHERE timestamp_confirmed >= DATE(?) AND KID_fordeling = ?
-    `,
-    [paymentIntentDate, paymentKID],
-  );
-
-  return donation.length > 0;
 }
 
 //endregion
@@ -146,10 +105,8 @@ const mapPaymentFollowUp = (paymentFollowUp: SqlResult<Payment_follow_up>): Paym
 };
 
 export const initialpaymentmethod = {
-  getPaymentIntent,
   getPaymentIntentsFromLastMonth,
   getFollowUpsForPaymentIntent,
-  checkIfDonationReceived,
   addPaymentIntent,
   addPaymentFollowUp,
 };

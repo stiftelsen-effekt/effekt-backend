@@ -20,7 +20,7 @@ const SCHEMA = config.mcp_db_name || "EffektAnalysisDB";
 export const SERVER_INFO = { name: "effekt-analysis-mcp", version: "1.0.0" };
 
 // Newest first. We echo the client's version if we support it, else the newest.
-export const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
+const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const MAX_RESULT_ROWS = 1000;
 const MAX_RESULT_CHARS = 100_000;
@@ -135,7 +135,7 @@ function containsWord(haystackLower: string, word: string): boolean {
  * (with a LIMIT appended if absent). Throws QueryRejected with a helpful message
  * on any violation.
  */
-export function validateSelectQuery(rawQuery: string): string {
+function validateSelectQuery(rawQuery: string): string {
   if (typeof rawQuery !== "string" || rawQuery.trim().length === 0) {
     throw new QueryRejected("Query must be a non-empty string.");
   }

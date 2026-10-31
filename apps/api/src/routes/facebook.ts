@@ -1,12 +1,9 @@
 import paymentMethods from "../enums/paymentMethods";
 import { DAO } from "../custom_modules/DAO";
-
-import e from "express";
 import express from "express";
 const router = express.Router();
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 import permissions from "../enums/authorizationPermissions";
-import { fetchToken } from "../custom_modules/facebook";
 import { donationHelpers } from "../custom_modules/donationHelpers";
 
 function throwError(message) {

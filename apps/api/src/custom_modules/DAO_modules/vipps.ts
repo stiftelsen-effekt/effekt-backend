@@ -3,7 +3,7 @@ import { DAO } from "../DAO";
 import sqlString from "sqlstring";
 import { dbClockColumn, instantRangeClauses, type InstantRange } from "../osloDays";
 import type { ResultSetHeader } from "mysql2";
-import { Vipps_agreements, Vipps_order_transaction_statuses, Vipps_orders } from "@prisma/client";
+import { Vipps_orders } from "@prisma/client";
 
 // Valid states for Vipps recurring charges
 const chargeStatuses = [
@@ -156,25 +156,6 @@ async function getOrder(orderID) {
 
   if (res.length === 0) return false;
   else return res[0];
-}
-
-/** Fetches vipps transaction statuses for a given orderID
- * @param {string} orderId
- * @return {Vipps_order_transaction_statuses[] | false} Array of transaction statuses ordered descendingly by timestamp, false if no statuses found
- * */
-async function getOrderTransactionStatusHistory(orderId) {
-  let [res] = await DAO.query<Vipps_order_transaction_statuses[]>(
-    `
-        SELECT * FROM Vipps_order_transaction_statuses
-            WHERE
-                orderID = ?
-            ORDER BY timestamp DESC
-        `,
-    [orderId],
-  );
-
-  if (res.length === 0) return false;
-  else return res;
 }
 
 /**
@@ -916,47 +897,6 @@ async function getChargeSumHistogram(): Promise<VippsSumHistogramBucket[]> {
   return results;
 }
 
-/**
- * A list of all missing charges for the last 2 months
- * Calculated by looking at agreements where there is no charge corresponding to the monthly_charge_day
- * @returns {Array<Object>} Returns an array of missing charges
- */
-async function getMissingCharges() {
-  let [results] = await DAO.query<
-    {
-      agreementID: string;
-      KID: string;
-      amount: number;
-      monthly_charge_day: number;
-      missing_charge_date: string;
-      timestamp_created: string;
-      full_name: string;
-      vipps_recurring_donations_last_2months: number;
-    }[]
-  >(`
-        SELECT 
-          MI.*, 
-          D.full_name,
-          (
-              SELECT COUNT(*)
-              FROM Donations d
-              WHERE d.Donor_ID = D.ID
-              AND d.Payment_ID = 7
-              AND d.timestamp_confirmed >= DATE_SUB(CURRENT_DATE, INTERVAL 2 MONTH)
-          ) as vipps_recurring_donations_last_2months
-          
-          FROM EffektDonasjonDB.v_Missing_vipps_charges as MI
-          INNER JOIN Distributions as DIST
-            ON MI.KID = DIST.KID
-          INNER JOIN Donors as D
-            ON DIST.Donor_ID = D.ID
-        
-          WHERE D.ID != 1464
-        `);
-
-  return results;
-}
-
 async function getMatchingRules(): Promise<
   {
     id: number;
@@ -1320,44 +1260,6 @@ async function updateAgreementKID(agreementId, KID) {
 }
 
 /**
- * Updates the pause date of an agreement
- * @param {string} agreementId The agreement ID
- * @param {string} pausedUntilDate The date when the pause ends
- * @return {boolean} Success
- */
-async function updateAgreementPauseDate(agreementId, pausedUntilDate) {
-  try {
-    DAO.query(`UPDATE Vipps_agreements SET paused_until_date = ? WHERE ID = ?`, [
-      pausedUntilDate,
-      agreementId,
-    ]);
-
-    return true;
-  } catch (ex) {
-    return false;
-  }
-}
-
-/**
- * Updates the forced charge date of an agreement
- * @param {string} agreementId The agreement ID
- * @param {string} forceChargeDate The date of the forced charge
- * @return {boolean} Success
- */
-async function updateAgreementForcedCharge(agreementId, forceChargeDate) {
-  try {
-    DAO.query(`UPDATE Vipps_agreements SET force_charge_date = ? WHERE ID = ?`, [
-      forceChargeDate,
-      agreementId,
-    ]);
-
-    return true;
-  } catch (ex) {
-    return false;
-  }
-}
-
-/**
  * Updated status of a charge
  * @param {string} agreementID agreementID
  * @param {string} chargeID chargeID
@@ -1432,7 +1334,6 @@ export const vipps = {
   getLatestToken,
   getOrder,
   getRecentOrder,
-  getOrderTransactionStatusHistory,
   getAgreement,
   getAgreements,
   getAgreementsByDonorId,
@@ -1444,7 +1345,6 @@ export const vipps = {
   getChargeSumHistogram,
   getActiveAgreements,
   getAgreementReport,
-  getMissingCharges,
   getMatchingRules,
   addToken,
   addOrder,
@@ -1457,8 +1357,6 @@ export const vipps = {
   updateAgreementStatus,
   updateAgreementChargeDay,
   updateAgreementKID,
-  updateAgreementPauseDate,
-  updateAgreementForcedCharge,
   updateChargeStatus,
   updateAgreementCancellationDate,
   deleteMatchingRule,

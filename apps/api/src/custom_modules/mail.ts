@@ -1,5 +1,4 @@
 import { DAO } from "./DAO";
-import { EmailTaxUnitReport } from "./DAO_modules/tax";
 
 const config = require("../config.js");
 import moment from "moment";
@@ -8,12 +7,8 @@ import { DateTime } from "luxon";
 import { AvtaleGiroAgreement } from "./DAO_modules/avtalegiroagreements";
 import { EmailParams, MailerSend, Recipient, Sender } from "mailersend";
 import { APIResponse } from "mailersend/lib/services/request.service";
-import { Distribution, DistributionCauseAreaOrganization, Donor } from "../schemas/types";
-import {
-  getImpactEstimatesForDonation,
-  getImpactEstimatesForDonationByOrg,
-  OrganizationImpactEstimate,
-} from "./impact";
+import { Distribution, DistributionCauseAreaOrganization } from "../schemas/types";
+import { getImpactEstimatesForDonationByOrg, OrganizationImpactEstimate } from "./impact";
 import { norwegianTaxDeductionLimits } from "./taxdeductions";
 import { RequestLocale } from "../middleware/locale";
 import { SanitySecurityNoticeVariables } from "../routes/mail";
@@ -25,35 +20,6 @@ import {
 import { agreementType } from "./inflationadjustment";
 import { VippsAgreement } from "./DAO_modules/vipps";
 import { isUserRegisteredInAuth0, getProfilePageLink } from "./auth0";
-
-/**
- * @typedef VippsAgreement
- * @property {string} ID
- * @property {number} donorID
- * @property {string} KID
- * @property {number} amount
- * @property {string} status
- * @property {number} monthly_charge_day
- */
-// Formatting functions
-
-function formatDateText(date) {
-  const months = [
-    "januar",
-    "februar",
-    "mars",
-    "april",
-    "mai",
-    "juni",
-    "juli",
-    "august",
-    "september",
-    "oktober",
-    "november",
-    "desember",
-  ];
-  return `${date.getDate()}. ${months[date.getMonth()]} ${date.getFullYear()}`;
-}
 
 export function formatCurrency(currencyString) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: 2 }).format(currencyString);
@@ -160,7 +126,7 @@ export async function sendDonationReceipt(donationID, reciever: string | null = 
  * @param {Donation} donation
  * @param {string} reciever Reciever email
  */
-export async function sendFirstDonationReceipt(donation, reciever: string | null = null) {
+async function sendFirstDonationReceipt(donation, reciever: string | null = null) {
   try {
     var distribution = await DAO.distributions.getSplitByKID(donation.KID);
   } catch (ex) {
@@ -1270,10 +1236,6 @@ const getOrganizationOverallPercentage = (percentage: string, causeAreaPercentag
     (parseFloat(percentage) / 100) * (parseFloat(causeAreaPercentage) / 100) * 100,
   );
 };
-
-function formatDate(date) {
-  return moment(date).format("DD.MM.YYYY");
-}
 
 function formatTimestamp(date) {
   const timestamp = moment(date).format("HH:mm - DD.MM.YYYY");
