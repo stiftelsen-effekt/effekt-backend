@@ -187,7 +187,7 @@ describe("tRPC reports router", () => {
       await expectTrpcError(
         admin().uploads.ocr(uploadForm("bank/sampleReport.CSV")),
         "BAD_REQUEST",
-        /Not a Nets OCR file/,
+        /Not an OCR Giro file/,
       );
       await expectTrpcError(
         admin().uploads.ocr(uploadForm("ocr_no_valid_records.ocr")),

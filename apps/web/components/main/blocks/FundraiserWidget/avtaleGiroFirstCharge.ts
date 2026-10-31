@@ -3,11 +3,11 @@ import { addWorkingDays } from "norwegian-workdays";
 /**
  * Banking days from signing until the first due date we can still claim.
  *
- * Nets reports a new agreement in the next banking day's OCR file, which is when we activate it
- * (true for ~97% of agreements since 2025). The claims job picks it up on the following banking
- * day, and claims due dates that are 4 banking days ahead (getDueDates in effekt-backend). That is
- * 5 banking days; the sixth allows for agreements that take an extra day to activate, since a
- * missed claim pushes the first charge a whole month.
+ * Mastercard Payment Services reports a new agreement in the next banking day's OCR file, which is
+ * when we activate it (true for ~97% of agreements since 2025). The claims job picks it up on the
+ * following banking day, and claims due dates that are 4 banking days ahead (getDueDates in
+ * effekt-backend). That is 5 banking days; the sixth allows for agreements that take an extra day
+ * to activate, since a missed claim pushes the first charge a whole month.
  */
 const AVTALEGIRO_FIRST_CHARGE_WORKING_DAYS = 6;
 

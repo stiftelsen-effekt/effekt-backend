@@ -72,8 +72,8 @@ every night ───────────► .github/workflows/preview-janit
    commit and seed time, and who you are. Click _You are …_ to switch person. Two-person flows
    need this: a regranting round must be approved by someone other than its creator, so create
    it as Finance and approve it as Approver.
-4. Everything is fake. Names, emails and account numbers are generated. Nothing is sent:
-   no emails, Vipps or Swish payments, bank (Nets) files, Mailchimp or Facebook syncs.
+4. Everything is fake. Names, emails and account numbers are generated. Nothing is sent: no emails,
+   Vipps or Swish payments, bank (Mastercard Payment Services) files, Mailchimp or Facebook syncs.
 5. Every push resets the database. Don't build up state you need across pushes.
 6. The first request after a quiet period takes a few seconds (the preview scales to zero).
 
@@ -163,10 +163,10 @@ password or data.
   - the database is the previews instance: `CLOUD_SQL_CONNECTION_NAME` ends in
     `:effekt-previews` (required on Cloud Run), no `DB_HOST` / `DB_URL` naming `effekt-db`, no
     public IP as `DB_HOST`;
-  - no production secret or integration is configured: Vipps, MailerSend, Mailchimp, Nets SFTP,
-    Swish certificates, Auth0 (M2M client, MCP client, log stream / register webhooks, the
-    tenant itself), the analysis MCP database, survey export, Facebook sync, Tidbyt, site
-    revalidation, Redis (the full list is `FORBIDDEN_PREVIEW_SETTINGS`);
+  - no production secret or integration is configured: Vipps, MailerSend, Mailchimp, Mastercard
+    Payment Services SFTP, Swish certificates, Auth0 (M2M client, MCP client, log stream / register
+    webhooks, the tenant itself), the analysis MCP database, survey export, Facebook sync, Tidbyt,
+    site revalidation, Redis (the full list is `FORBIDDEN_PREVIEW_SETTINGS`);
   - `NODE_ENV` isn't `production` (previews run `NODE_ENV=preview`: Vipps test API, no Swish
     certificates, no stack traces in responses);
   - `K_SERVICE` / `CLOUD_RUN_JOB`, if set, start with `effekt-preview-`.

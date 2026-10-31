@@ -80,7 +80,7 @@ const draftAvtaleGiro = async (
     throw new Error("Drafting AvtaleGiro failed", { cause: err });
   }
 
-  // Hand the donor over to Nets to sign the agreement in their bank
+  // Hand the donor over to Mastercard Payment Services to sign the agreement in their bank
   const form = document.createElement("form");
   form.action = AVTALEGIRO_FORM_URL;
   form.method = "post";
@@ -178,8 +178,8 @@ export function useRegisterDonation({
   const flavor = apiFlavorFor(mainLocale);
   const trpc = publicTrpcFor(mainLocale);
 
-  // Back from Vipps, Nets or a card page restores this page from the back/forward cache with the
-  // button still spinning; let the donor try again
+  // Back from Vipps, Mastercard Payment Services or a card page restores this page from the
+  // back/forward cache with the button still spinning; let the donor try again
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {

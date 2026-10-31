@@ -7,6 +7,23 @@ const isAnalysisDbUnavailable = (err: unknown) =>
   ANALYSIS_DB_UNAVAILABLE.has((err as { code?: string } | null)?.code ?? "");
 
 /**
+ * Runs a read of EffektAnalysisDB, answering `fallback` when the database user can't read it. The
+ * Swedish API's user has no access to EffektAnalysisDB (Sweden is being phased out, so it won't
+ * get any): its results routes answer "no figures" instead of failing. Other errors still throw.
+ */
+const fromAnalysisDb = async <T>(what: string, read: () => Promise<T>, fallback: T): Promise<T> => {
+  try {
+    return await read();
+  } catch (err) {
+    if (isAnalysisDbUnavailable(err)) {
+      console.warn(`${what} unavailable: ${(err as Error).message}`);
+      return fallback;
+    }
+    throw err;
+  }
+};
+
+/**
  * The overall number of donors and all time donations to recommended organizations, from the
  * EffektAnalysisDB.Only_rec_orgs_Donations table the nightly analysis fills
  */
@@ -40,36 +57,39 @@ const getHeadlineFigures = async () => {
 };
 
 export const results = {
-  getDailyDonations: async () => {
-    const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.v_Daily_donations");
-    return res;
-  },
-  getReferralSums: async () => {
-    const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.OP_ref_data");
-    return res;
-  },
-  getMonthlyDonationsPerOrg: async () => {
-    const [res] = await DAO.query<{ Org: string; DonationMonth: string; TotalDonations: string }[]>(
-      "SELECT * FROM EffektAnalysisDB.v_Monthly_donations_per_org",
-    );
-    return res;
-  },
+  getDailyDonations: () =>
+    fromAnalysisDb(
+      "Daily donations",
+      async () => {
+        const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.v_Daily_donations");
+        return res;
+      },
+      [],
+    ),
+  getReferralSums: () =>
+    fromAnalysisDb(
+      "Referral sums",
+      async () => {
+        const [res] = await DAO.query("SELECT * FROM EffektAnalysisDB.OP_ref_data");
+        return res;
+      },
+      [],
+    ),
+  getMonthlyDonationsPerOrg: () =>
+    fromAnalysisDb(
+      "Monthly donations per organization",
+      async () => {
+        const [res] = await DAO.query<
+          { Org: string; DonationMonth: string; TotalDonations: string }[]
+        >("SELECT * FROM EffektAnalysisDB.v_Monthly_donations_per_org");
+        return res;
+      },
+      [],
+    ),
   /**
    * Get the overall number of donors and all time donations to recommended organizations
    */
-  getHeadlineFigures: async () => {
-    try {
-      return await getHeadlineFigures();
-    } catch (err) {
-      // The Swedish API's database user has no access to EffektAnalysisDB (Sweden is being phased
-      // out, so it won't get any): answer "no figures" instead of failing the results teaser.
-      if (isAnalysisDbUnavailable(err)) {
-        console.warn(`Results headline unavailable: ${(err as Error).message}`);
-        return null;
-      }
-      throw err;
-    }
-  },
+  getHeadlineFigures: () => fromAnalysisDb("Results headline", getHeadlineFigures, null),
   /*
    * Get the number of donors all time
    */

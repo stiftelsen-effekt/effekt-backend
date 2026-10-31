@@ -103,6 +103,25 @@ async function getUntrackedShipmentIDs(generatedOn: DateTime): Promise<number[]>
   return rows.map((row) => row.ID);
 }
 
+/** Import_logs label for a claims file that failed to upload, read by getFailedUploadShipmentIDs */
+export const AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL = "AvtaleGiro - Upload failed";
+
+/**
+ * Gets the shipments, of those given, whose upload to MPS failed (logged by the claims job)
+ */
+async function getFailedUploadShipmentIDs(shipmentIDs: number[]): Promise<number[]> {
+  if (shipmentIDs.length === 0) return [];
+
+  const [rows] = await DAO.query<{ shipmentID: number }[]>(
+    `SELECT DISTINCT CAST(JSON_EXTRACT(result, '$.shipmentID') AS UNSIGNED) AS shipmentID
+      FROM Import_logs
+      WHERE label = ? AND CAST(JSON_EXTRACT(result, '$.shipmentID') AS UNSIGNED) IN (?)`,
+    [AVTALEGIRO_UPLOAD_FAILED_LOG_LABEL, shipmentIDs],
+  );
+
+  return rows.map((row) => Number(row.shipmentID));
+}
+
 /**
  * Marks the claims in shipments as superseded, before a retry sends them again
  */
@@ -521,6 +540,7 @@ export const avtalegirocharges = {
   getClaimedKIDsForMonth,
   getShipmentIDsForDueDate,
   getUntrackedShipmentIDs,
+  getFailedUploadShipmentIDs,
   supersedeShipments,
   getOpenChargesByKID,
   markCompleted,

@@ -9,9 +9,11 @@ describe("dev data: pledges", { timeout: 20000 }, function () {
   const end = toDay("2026-10-27");
   let data: Dataset;
 
+  // Generating the dataset takes about a second alone, but several times that when the whole suite
+  // runs in parallel: give the hook the same budget as the tests (the default hook timeout is 5 s)
   beforeAll(() => {
     data = generate({ seed: "effekt-dev", start, end, scale: 0.3 });
-  });
+  }, 20000);
 
   const open = () => data.Pledges.filter((p) => p.Received_date === null);
   const received = () => data.Pledges.filter((p) => p.Received_date !== null);
