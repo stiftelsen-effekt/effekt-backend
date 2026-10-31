@@ -62,7 +62,7 @@ export async function checkIfAcceptedReciept(shipmentID: number) {
   let paddedShipmentID = shipmentID.toString().padStart(7, "0");
 
   const filteredFiles = files.filter(
-    (file) => file.name.match(`KV\.GODKJENT\.F${paddedShipmentID}`) !== null,
+    (file) => file.name.match(`KV.GODKJENT.F${paddedShipmentID}`) !== null,
   );
 
   if (filteredFiles.length == 0) return false;

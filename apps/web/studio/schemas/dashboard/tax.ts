@@ -20,7 +20,7 @@ export default defineType({
       validation: (Rule) =>
         Rule.custom((features: any) => {
           const types = features.map((feature: { _type: string }) => feature._type);
-          const uniqueTypes = [...Array.from(new Set(types))];
+          const uniqueTypes = Array.from(new Set(types));
           if (uniqueTypes.length !== types.length) {
             return "You currently have more than one instance of the same feature";
           }

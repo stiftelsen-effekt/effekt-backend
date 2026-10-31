@@ -12,5 +12,5 @@ module.exports = function (app) {
 };
 
 function padRight(str, len) {
-  return len > str.length ? str + new Array(len - str.length + 1).join(" ") : str;
+  return len > str.length ? str.padEnd(len, " ") : str;
 }

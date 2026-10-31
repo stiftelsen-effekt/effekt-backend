@@ -75,7 +75,7 @@ const buildTransactionFromArray = (dataRow) => {
     amount: dataRow[fieldMapping.Amount],
     amountEUR: dataRow[fieldMapping.AmountEUR],
     amountNOK: parseFloat(
-      dataRow[fieldMapping.AmountNOK].replace(/\,/g, "").replace(/\ /g, "").replace(/kr/g, ""),
+      dataRow[fieldMapping.AmountNOK].replace(/,/g, "").replace(/ /g, "").replace(/kr/g, ""),
     ),
     nets: dataRow[fieldMapping.Nets],
     people: dataRow[fieldMapping.People],

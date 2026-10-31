@@ -1313,7 +1313,7 @@ const computeYearlyMaxes = (don: CumulativeBinnedDonation[], height: number) => 
 
   const firstYear = don[0].year;
   const lastYear = don[don.length - 1].year;
-  const allYears = Array.from(new Array(lastYear - firstYear + 1)).map((el, i) => firstYear + i);
+  const allYears = Array.from({ length: lastYear - firstYear + 1 }).map((el, i) => firstYear + i);
   // Exclude the focus (latest visible) year — that series uses Plot.selectLast end chrome instead.
   // Using calendar year here duplicated labels when the upper handle ended earlier than today.
 

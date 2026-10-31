@@ -89,6 +89,9 @@ export const DiscountRateComparison: React.FC<{ min: number; max: number }> = ({
         debouncedStartSimulation();
       }
     }
+    // This was likely meant as the effect cleanup, but returning it would terminate the worker
+    // on every re-run while workerRef still holds it, so no new simulations would run.
+    // oxlint-disable-next-line no-unused-expressions -- the worker is never terminated; fixing it needs a separate unmount effect
     () => workerRef.current?.terminate();
   }, [discountRate, workerRef, drawGraph, graphRef, debouncedStartSimulation]);
 

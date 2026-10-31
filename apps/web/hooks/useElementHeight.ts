@@ -44,7 +44,9 @@ export const useMultipleElementHeights = <T extends HTMLElement>(
   elementRefs: RefObject<T>[],
 ): number[] => {
   // Initialize heights array with zeros matching the length of refs array
-  const [heights, setHeights] = useState<number[]>(() => new Array(elementRefs.length).fill(0));
+  const [heights, setHeights] = useState<number[]>(() =>
+    Array.from({ length: elementRefs.length }, () => 0),
+  );
 
   // Main effect to set up observers and measure heights
   useEffect(() => {
@@ -114,7 +116,7 @@ export const useMultipleElementHeights = <T extends HTMLElement>(
   // Handle array length changes by adjusting state during render
   // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
   if (heights.length !== elementRefs.length) {
-    const newHeights = new Array(elementRefs.length).fill(0);
+    const newHeights = Array.from({ length: elementRefs.length }, () => 0);
     // Preserve existing height values when possible
     heights.forEach((height, i) => {
       if (i < elementRefs.length) {

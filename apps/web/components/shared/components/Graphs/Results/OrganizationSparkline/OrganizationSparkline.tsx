@@ -42,7 +42,7 @@ export const OrganizationSparkline: React.FC<{
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   const allYears = useMemo(() => {
-    return Array.from(new Array(currentYear + 1 - startYear), (x, i) => ({
+    return Array.from({ length: currentYear + 1 - startYear }, (x, i) => ({
       period: new Date(startYear + i, 0, 1),
       y: 0,
     }));
@@ -92,7 +92,7 @@ export const OrganizationSparkline: React.FC<{
       if (graphRef.current && innerGraph.current) {
         // Create thresholds based on visible years
         const years = isMobile ? allYears : visibleYears;
-        const thresholds = [...years.map((y) => y.period)];
+        const thresholds = years.map((y) => y.period);
 
         // Always add the next year for the last threshold
         if (years.length > 0) {
@@ -240,7 +240,7 @@ export const OrganizationSparkline: React.FC<{
           };
         }
 
-        const range = (plotConfig.color?.range as any).slice();
+        const range = (plotConfig.color?.range as any)?.slice();
 
         if (range) {
           ((plotConfig.color as any).range as any[]).forEach(
@@ -346,7 +346,7 @@ export const OrganizationSparklineLegend: React.FC<{
         },
       };
 
-      const range = (plotConfig.color?.range as any).slice();
+      const range = (plotConfig.color?.range as any)?.slice();
 
       if (range) {
         ((plotConfig.color as any).range as any[]).forEach(

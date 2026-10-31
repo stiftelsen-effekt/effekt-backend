@@ -164,8 +164,8 @@ DAO.connect(() => {
   //Rate limiting
   app.use(
     rateLimit({
-      windowMs: 60 * 1000, // 1 minute
-      max: 1000, //limit each IP to 50 requests per minute
+      windowMs: 60 * 1000, // 1 minute
+      max: 1000, //limit each IP to 50 requests per minute
       validate: {
         trustProxy: false,
       },
