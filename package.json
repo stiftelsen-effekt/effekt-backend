@@ -7,12 +7,23 @@
     "node": "24.x"
   },
   "scripts": {
-    "test": "pnpm --filter stiftelsen-effekt-backend test",
-    "typecheck": "pnpm --filter stiftelsen-effekt-backend typecheck",
-    "build": "pnpm --filter stiftelsen-effekt-backend build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm build:types && pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "build:types": "pnpm --filter stiftelsen-effekt-backend build:types",
     "dev": "pnpm --filter stiftelsen-effekt-backend dev",
     "start": "pnpm --filter stiftelsen-effekt-backend start",
+    "api:dev": "pnpm --filter stiftelsen-effekt-backend dev",
+    "api:build": "pnpm --filter stiftelsen-effekt-backend build",
+    "api:typecheck": "pnpm --filter stiftelsen-effekt-backend typecheck",
+    "api:test": "pnpm --filter stiftelsen-effekt-backend test",
+    "admin:dev": "pnpm --filter effekt-admin-v2 dev",
+    "admin:build": "pnpm --filter effekt-admin-v2 build",
+    "admin:typecheck": "pnpm --filter effekt-admin-v2 typecheck",
+    "admin:test": "pnpm --filter effekt-admin-v2 test",
     "dev:env:up": "docker compose -f compose.dev.yml up -d --build --wait",
     "dev:env:down": "docker compose -f compose.dev.yml down",
     "dev:env:reset": "docker compose -f compose.dev.yml down -v && pnpm dev:env:up",
@@ -22,8 +33,6 @@
     "e2e:fullstack": "bash scripts/e2e-fullstack.sh",
     "e2e:env:up": "docker compose -f compose.dev.yml -f compose.e2e.yml build migrate && docker compose -f compose.dev.yml -f compose.e2e.yml up -d --wait",
     "e2e:env:down": "docker compose -f compose.dev.yml -f compose.e2e.yml down -v --remove-orphans",
-    "format:check": "prettier --check .",
-    "format": "prettier --write .",
     "web:dev": "pnpm --filter main-site dev",
     "web:build": "pnpm --filter main-site build",
     "web:typecheck": "pnpm --filter main-site typecheck",
@@ -39,7 +48,7 @@
   "devDependencies": {
     "husky": "^8.0.3",
     "lint-staged": "^17.6.0",
-    "prettier": "3.9.10"
+    "prettier": "catalog:"
   },
   "lint-staged": {
     "*": "prettier --write --ignore-unknown",

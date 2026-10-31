@@ -60,8 +60,9 @@ pnpm web:dev       # the website on :3000 (copy apps/web/.env.example to .env.lo
 
 The admin opens already signed in, and nothing local touches Auth0 or production.
 `pnpm -s dev:token` prints an API token, `pnpm dev:env:down` stops the stack and
-`pnpm dev:env:reset` starts over with fresh data. Run the tests with `pnpm test` (API),
-`pnpm web:test` and `pnpm --dir apps/admin test`.
+`pnpm dev:env:reset` starts over with fresh data. `pnpm lint`, `pnpm typecheck` and `pnpm test`
+check every package; `pnpm api:test`, `pnpm web:test` and `pnpm admin:test` check one
+([docs/tooling.md](docs/tooling.md)).
 
 ## How we work
 
@@ -88,6 +89,7 @@ Everything lives in [`docs/`](docs).
 | [regranting-downstream.md](docs/regranting-downstream.md) | Downstream regrants                                |
 | [timestamps.md](docs/timestamps.md)                       | Timestamps and the database clock                  |
 | [functions.md](docs/functions.md)                         | The Cloud Functions                                |
+| [tooling.md](docs/tooling.md)                             | Scripts, versions and tools across the workspace   |
 | [API routers](apps/api/src/trpc/routers)                  | The API's tRPC routers (the API's reference)       |
 
 Plans and records of finished work: [overhaul-plan.md](docs/overhaul-plan.md) (the admin and tRPC
