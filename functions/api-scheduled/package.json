@@ -2,8 +2,8 @@
   "name": "api-scheduled",
   "version": "1.0.0",
   "dependencies": {
-    "@google-cloud/functions-framework": "^5.0.5",
-    "node-fetch": "^2.6.1"
+    "@google-cloud/functions-framework": "catalog:",
+    "node-fetch": "catalog:"
   },
   "private": true,
   "engines": {
