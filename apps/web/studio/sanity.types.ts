@@ -1467,31 +1467,6 @@ export type Abouttaxdeductions = {
   slug?: Slug;
 };
 
-export type Metareceipt = {
-  _type: "metareceipt";
-  title?: string;
-  facebook_description?: Array<{
-    children?: Array<{
-      marks?: Array<string>;
-      text?: string;
-      _type: "span";
-      _key: string;
-    }>;
-    style?: "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "blockquote";
-    listItem?: "bullet" | "number";
-    markDefs?: Array<{
-      href?: string;
-      _type: "link";
-      _key: string;
-    }>;
-    level?: number;
-    _type: "block";
-    _key: string;
-  }>;
-  facebook_description_links?: Links;
-  slug?: Slug;
-};
-
 export type Taxunits = {
   _type: "taxunits";
   title?: string;
@@ -3786,9 +3761,6 @@ export type Tax = {
   _rev: string;
   title?: string;
   features?: Array<
-    | ({
-        _key: string;
-      } & Metareceipt)
     | ({
         _key: string;
       } & Abouttaxdeductions)
@@ -6876,7 +6848,6 @@ export type AllSanitySchemaTypes =
   | AggregateestimatedimpactReference
   | Taxstatements
   | Abouttaxdeductions
-  | Metareceipt
   | Taxunits
   | DateselectorconfigReference
   | Agreementlistdetailsconfiguration
@@ -22369,9 +22340,6 @@ export type FetchAgreementsPageResult = {
             } & Abouttaxdeductions)
           | ({
               _key: string;
-            } & Metareceipt)
-          | ({
-              _key: string;
             } & Taxstatements)
           | ({
               _key: string;
@@ -27561,9 +27529,6 @@ export type FetchDonationsPageResult = {
             } & Abouttaxdeductions)
           | ({
               _key: string;
-            } & Metareceipt)
-          | ({
-              _key: string;
             } & Taxstatements)
           | ({
               _key: string;
@@ -32379,9 +32344,6 @@ export type FetchProfilePageResult = {
             } & Abouttaxdeductions)
           | ({
               _key: string;
-            } & Metareceipt)
-          | ({
-              _key: string;
             } & Taxstatements)
           | ({
               _key: string;
@@ -33097,31 +33059,6 @@ export type FetchTaxPageResult = {
                 }
             > | null;
           } | null;
-          slug?: Slug;
-        }
-      | {
-          _key: string;
-          _type: "metareceipt";
-          title?: string;
-          facebook_description?: Array<{
-            children?: Array<{
-              marks?: Array<string>;
-              text?: string;
-              _type: "span";
-              _key: string;
-            }>;
-            style?: "blockquote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "normal";
-            listItem?: "bullet" | "number";
-            markDefs?: Array<{
-              href?: string;
-              _type: "link";
-              _key: string;
-            }>;
-            level?: number;
-            _type: "block";
-            _key: string;
-          }>;
-          facebook_description_links?: Links;
           slug?: Slug;
         }
       | {

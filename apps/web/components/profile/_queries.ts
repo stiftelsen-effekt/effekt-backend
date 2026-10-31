@@ -4,7 +4,7 @@ import { mutate } from "swr";
 import type { TrpcClient } from "../../lib/trpc/client";
 import { getUserId } from "../../lib/user";
 import { minsideKeys } from "../../_queries";
-import { Donor, FacebookDonationRegistration, TaxUnit } from "../../models";
+import { Donor, TaxUnit } from "../../models";
 
 /** Saves the donor's name and newsletter choice (tRPC minside.updateProfile). Null on failure. */
 export const saveDonor = async (data: Donor, user: User, trpc: TrpcClient) => {
@@ -17,33 +17,6 @@ export const saveDonor = async (data: Donor, user: User, trpc: TrpcClient) => {
     return data;
   } catch (e) {
     return null;
-  }
-};
-
-export const registerFacebookDonation = async (
-  data: FacebookDonationRegistration,
-  token: string,
-) => {
-  const api = process.env.NEXT_PUBLIC_EFFEKT_API || "http://localhost:5050";
-
-  try {
-    const response = await fetch(`${api}/facebook/register/payment`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "same-origin",
-      body: JSON.stringify(data),
-    });
-
-    if (response.status !== 200) {
-      return false;
-    } else {
-      return true;
-    }
-  } catch (e) {
-    return false;
   }
 };
 

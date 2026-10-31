@@ -32,7 +32,7 @@ Mutations (the web helpers take the client from `useTrpcClient`):
 | `minside.cancelAvtaleGiroAgreement`        | `POST /avtalegiro/:KID/status` (`active: 0`)                | none                                  |
 
 Amounts are whole kroner (the procedures convert to øre). Still on REST:
-the stopped-agreement feedback (`/agreementfeedback`), the Facebook payment registration and the
+the stopped-agreement feedback (`/agreementfeedback`) and the
 Danish agreement routes (`useDKAgreements`, `updateDKAgreement`, `cancelDKAgreement`).
 
 SWR keys are in `minsideKeys` (`_queries.ts`); revalidate with `mutate(minsideKeys.taxUnits(id))`.

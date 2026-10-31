@@ -1,13 +1,10 @@
 import { groq } from "next-sanity";
 import Head from "next/head";
-import { useContext } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { linksContentQuery } from "../../_queries";
 import { LinksProps } from "../../components/main/blocks/Links/Links";
 import { PageContent } from "../../components/profile/layout/PageContent/PageContent";
-import { DonorContext } from "../../components/profile/layout/donorProvider";
 import { ErrorMessage } from "../../components/profile/shared/ErrorMessage/ErrorMessage";
-import { FacebookTab } from "../../components/profile/tax/FacebookTab/FacebookTab";
 import { TaxDeductionsTab } from "../../components/profile/tax/TaxDeductionsTab/TaxDeductionsTab";
 import { AggregatedImpactTableConfiguration } from "../../components/profile/donations/DonationsAggregateImpactTable/DonationsAggregateImpactTable";
 import TaxMenu from "../../components/profile/tax/TaxMenu/TaxMenu";
@@ -70,8 +67,6 @@ export const TaxPage = withStaticProps(
     page.features?.find((f) => f._type === "taxunits") ||
     null;
 
-  const { donor } = useContext(DonorContext);
-
   if (!page.features) return <ErrorMessage>No features defined for tax page</ErrorMessage>;
 
   const taxUnitLabels =
@@ -106,17 +101,6 @@ export const TaxPage = withStaticProps(
   } else if (menuChoice?._type == "taxstatements") {
     pageContent = (
       <YearlyReportsTab aggregatedImpactConfiguration={menuChoice.aggregate_estimated_impact} />
-    );
-  } else if (menuChoice?._type == "metareceipt") {
-    if (!donor) return <ErrorMessage>Missing donor</ErrorMessage>;
-    pageContent = (
-      <FacebookTab
-        donor={donor}
-        description={menuChoice.facebook_description || []}
-        links={
-          menuChoice.facebook_description_links ? menuChoice.facebook_description_links.links : []
-        }
-      />
     );
   } else if (menuChoice?._type == "abouttaxdeductions") {
     pageContent = (
@@ -201,15 +185,7 @@ export type TaxStatementsData = TaxFeatureProps & {
   aggregate_estimated_impact: AggregatedImpactTableConfiguration;
 };
 
-export type MetaReceiptData = TaxFeatureProps & {
-  _type: "metareceipt";
-  facebook_description?: any[];
-  facebook_description_links?: {
-    links: any[];
-  };
-};
-
-export type TaxPageFeature = TaxUnitsData | TaxDeductionData | TaxStatementsData | MetaReceiptData;
+export type TaxPageFeature = TaxUnitsData | TaxDeductionData | TaxStatementsData;
 
 const fetchTaxPage = groq`
 {
