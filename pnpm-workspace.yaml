@@ -30,7 +30,6 @@ catalog:
   react: 19.3.1
   react-dom: 19.3.1
   react-feather: 2.0.10
-  react-hook-form: 7.91.0
   styled-components: 6.6.0
   # The API (ts-node, Vitest's spec transform) and the website (next build, the tRPC type
   # build) use TypeScript's JavaScript API, which TypeScript 7 doesn't have yet. Packages that

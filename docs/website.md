@@ -35,6 +35,8 @@ pnpm web:dev            # from the repo root; http://localhost:3000
   requests and what follows them (register, draft an agreement, load the cause areas) are async
   functions in `store/flows.ts`; registering and drafting ignore a second call while one is in
   flight. The API calls themselves are in `store/widgetApi.ts` (see [web-trpc.md](web-trpc.md)).
+  The donor pane's form is controlled React state; its validation and the donor it registers
+  are plain functions in `panes/DonorPane/donorForm.ts`.
 - **Min Side data**: the API is called with the user's Auth0 access token. Calls are moving from REST
   (`components/profile/_queries.ts`, `hooks/useApi.ts`) to tRPC; see [web-trpc.md](web-trpc.md). The
   donor id the API uses is the token claim `https://gieffektivt.no/user-id`, not the Auth0 user id.

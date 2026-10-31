@@ -60,7 +60,6 @@
     "react-dom": "catalog:",
     "react-draggable": "^4.7.2",
     "react-feather": "catalog:",
-    "react-hook-form": "catalog:",
     "react-hook-inview": "^4.6.0",
     "react-number-format": "^5.4.5",
     "react-toastify": "^11.1.0",

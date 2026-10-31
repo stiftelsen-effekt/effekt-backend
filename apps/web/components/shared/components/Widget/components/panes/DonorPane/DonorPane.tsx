@@ -1,18 +1,24 @@
 import { usePlausible } from "next-plausible";
 import Link from "next/link";
 import React, { useContext } from "react";
-import { useForm } from "react-hook-form";
 import { useWidgetSelector, useWidgetStore } from "../../../store/store";
 import { registerDonation } from "../../../store/flows";
 import { DonorContext } from "../../../../../../profile/layout/donorContext";
-import { ANONYMOUS_DONOR } from "../../../config/anonymous-donor";
 import {
   selectPaymentMethod,
   submitDonorInfo,
   setReferralCode,
   setDonorFormDraft,
 } from "../../../store/actions";
-import { DonorFormDraft, State } from "../../../store/state";
+import { State } from "../../../store/state";
+import {
+  DonorFormErrors,
+  DonorFormField,
+  DonorFormValues,
+  donorFromForm,
+  initialDonorFormValues,
+  validateDonorForm,
+} from "./donorForm";
 import { PaymentMethod } from "../../../types/Enums";
 import { WidgetPane2Props, WidgetProps } from "../../../types/WidgetProps";
 import { ErrorField } from "../../shared/Error/ErrorField";
@@ -35,11 +41,6 @@ import navigationButtons from "../../shared/Buttons/NavigationButtons.module.scs
 import summary from "../../shared/DonationSummary/DonationSummary.module.scss";
 import { Spinner } from "../../../../Spinner/Spinner";
 
-// Capitalizes each first letter of all first, middle and last names
-const capitalizeNames = (string: string) => {
-  return string.replace(/(^\w|\s\w)/g, (m: string) => m.toUpperCase());
-};
-
 export const DonorPane: React.FC<{
   locale: "en" | "no" | "sv" | "et" | "dk";
   text: WidgetPane2Props;
@@ -49,7 +50,6 @@ export const DonorPane: React.FC<{
 }> = ({ locale, text, summaryText, paymentMethods, isSingleCauseArea = false }) => {
   const store = useWidgetStore();
   const { dispatch } = store;
-  const donor = useWidgetSelector((state: State) => state.donation.donor);
   const donation = useWidgetSelector((state: State) => state.donation);
   const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
   const { donor: initialDonor } = useContext(DonorContext);
@@ -71,41 +71,28 @@ export const DonorPane: React.FC<{
   );
   const totalSumIncludingTip = breakdown.totalAmount;
 
-  const {
-    register,
-    watch,
-    trigger,
-    setValue,
-    getValues,
-    formState: { errors },
-    clearErrors,
-  } = useForm<DonorFormDraft>({
-    // The carousel unmounts this pane when the donor navigates away, so start from what
-    // they entered last time instead of the empty form
-    defaultValues: donation.donorFormDraft ?? {
-      isAnonymous: donor?.email === ANONYMOUS_DONOR.email,
-      name: donor.name === ANONYMOUS_DONOR.name ? "" : initialDonor?.name || donor.name || "",
-      email: donor.email === ANONYMOUS_DONOR.email ? "" : initialDonor?.email || donor.email || "",
-      ssn: donor.ssn === ANONYMOUS_DONOR.ssn ? "" : donor.ssn || "",
-      taxDeduction: donor.taxDeduction,
-      newsletter: donor.newsletter,
-      method: donation.method,
-      privacyPolicy: false,
-      referralCode: donation.referralCode || "",
-    },
-  });
+  // The carousel unmounts this pane when the donor navigates away: start from what they
+  // entered last time, and keep it in the store when the pane goes
+  const [values, setValues] = React.useState(() => initialDonorFormValues(donation, initialDonor));
+  const [errors, setErrors] = React.useState<DonorFormErrors>({});
+  const setValue = <K extends keyof DonorFormValues>(field: K, value: DonorFormValues[K]) =>
+    setValues((current) => ({ ...current, [field]: value }));
+  const clearErrors = (fields: DonorFormField[]) =>
+    setErrors((current) => {
+      const next = { ...current };
+      fields.forEach((field) => delete next[field]);
+      return next;
+    });
 
+  const latestValues = React.useRef(values);
   React.useEffect(() => {
-    return () => {
-      dispatch(setDonorFormDraft(getValues()));
-    };
-  }, [dispatch, getValues]);
+    latestValues.current = values;
+  }, [values]);
+  React.useEffect(() => () => dispatch(setDonorFormDraft(latestValues.current)), [dispatch]);
 
   const plausible = usePlausible();
 
-  const taxDeductionChecked = watch("taxDeduction");
-  const newsletterChecked = watch("newsletter");
-  const isAnonymous = watch("isAnonymous");
+  const { taxDeduction: taxDeductionChecked, newsletter: newsletterChecked, isAnonymous } = values;
   const [loadingMethod, setLoadingMethod] = React.useState<string | null>(null);
   // Set synchronously on the first click, before validation awaits, so a double click (or a
   // click on a second payment method) can't register the donation twice
@@ -123,6 +110,7 @@ export const DonorPane: React.FC<{
   React.useEffect(() => {
     if (typeof donation.apiError !== "undefined") {
       submittingRef.current = false;
+      // oxlint-disable-next-line react/set-state-in-effect -- follows the registration's outcome in the store, and resets the ref too
       setLoadingMethod(null);
     }
   }, [donation.apiError]);
@@ -141,7 +129,7 @@ export const DonorPane: React.FC<{
   }, []);
 
   // Locale-aware SSN/CPR validation (handles NO, SE and DK CPR/CVR incl. suspicious CPR warning)
-  const { validateSsn, handleSsnChange, cprSuspicious } = useSsnValidation({
+  const { validateSsn, formatSsnInput, cprSuspicious } = useSsnValidation({
     locale,
     taxDeductionChecked,
   });
@@ -149,13 +137,13 @@ export const DonorPane: React.FC<{
   // Query-param referral codes are applied after cause areas load, which can be
   // after this form's first render — keep the input in sync when the store updates.
   // A restored draft already holds the donor's own referral code, so do not overwrite it
-  const hasSyncedReferralCode = React.useRef(donation.donorFormDraft !== undefined);
-  React.useEffect(() => {
-    if (donation.referralCode && !hasSyncedReferralCode.current) {
-      setValue("referralCode", donation.referralCode);
-      hasSyncedReferralCode.current = true;
-    }
-  }, [donation.referralCode, setValue]);
+  const [hasSyncedReferralCode, setHasSyncedReferralCode] = React.useState(
+    donation.donorFormDraft !== undefined,
+  );
+  if (donation.referralCode && !hasSyncedReferralCode) {
+    setHasSyncedReferralCode(true);
+    setValue("referralCode", donation.referralCode);
+  }
 
   const mapPaymentMethod = (method: string): PaymentMethod => {
     const mapped = paymentMethodMap[method];
@@ -163,21 +151,19 @@ export const DonorPane: React.FC<{
     return mapped;
   };
 
-  const handlePayment = async (methodId: string) => {
-    // trigger() runs and populates validation for every registered field -
-    // handlePayment fires directly from a button click rather than a form
-    // submit, so react-hook-form never validates on its own otherwise.
-    //
-    // This is the only thing gating submission. The payment controls are deliberately
-    // never disabled based on `errors`: because we validate via trigger() rather than
-    // handleSubmit(), react-hook-form never marks the form as submitted and so never
-    // re-validates on change - a donor who submitted with a bad email once would be
-    // left with permanently disabled payment buttons even after fixing it.
+  const handlePayment = (methodId: string) => {
+    // Validation runs here only, when the donor picks a payment method, and is the only thing
+    // that keeps them from paying: the payment buttons are never disabled because of it.
     if (submittingRef.current) return;
     submittingRef.current = true;
 
-    const isValid = await trigger();
-    if (!isValid) {
+    const validationErrors = validateDonorForm(values, {
+      nameField: !!text.show_name_field,
+      privacyPolicyCheckbox: !!text.privacy_policy_link && !!text.require_privacy_policy_checkbox,
+      validSsn: validateSsn,
+    });
+    setErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
       submittingRef.current = false;
       return;
     }
@@ -185,9 +171,7 @@ export const DonorPane: React.FC<{
     setLoadingMethod(methodId);
     const paymentMethod = mapPaymentMethod(methodId);
 
-    // Get current form data
-    // oxlint-disable-next-line react/incompatible-library -- the component reads watch() during render, so the React Compiler must keep skipping it
-    const formData = watch();
+    const formData = values;
 
     // Submit donor info and payment method
     if (!formData.isAnonymous) {
@@ -246,19 +230,7 @@ export const DonorPane: React.FC<{
       }
     }
 
-    dispatch(
-      submitDonorInfo(
-        formData.isAnonymous
-          ? ANONYMOUS_DONOR
-          : {
-              name: text.show_name_field ? capitalizeNames(formData.name.trim()) : "",
-              email: formData.email.trim().toLowerCase(),
-              taxDeduction: formData.taxDeduction,
-              ssn: formData.taxDeduction ? formData.ssn.toString().trim() : "",
-              newsletter: formData.newsletter,
-            },
-      ),
-    );
+    dispatch(submitDonorInfo(donorFromForm(formData, !!text.show_name_field)));
 
     if (text.show_referral_code_field) {
       dispatch(setReferralCode(formData.referralCode));
@@ -299,12 +271,13 @@ export const DonorPane: React.FC<{
                         e.preventDefault();
                       }
                     }}
-                    {...register("isAnonymous", {
-                      onChange: () => {
-                        clearErrors(["name", "email", "ssn"]);
-                        (document.activeElement as HTMLElement).blur();
-                      },
-                    })}
+                    name="isAnonymous"
+                    checked={isAnonymous}
+                    onChange={(e) => {
+                      setValue("isAnonymous", e.target.checked);
+                      clearErrors(["name", "email", "ssn"]);
+                      (document.activeElement as HTMLElement).blur();
+                    }}
                   />
                   <CustomCheckBox label={text.anon_button_text} checked={isAnonymous} />
                   <ToolTip text={text.anon_button_text_tooltip} />
@@ -319,12 +292,9 @@ export const DonorPane: React.FC<{
                     data-cy="name-input"
                     type="text"
                     placeholder={text.name_placeholder}
-                    {...register("name", {
-                      validate: (val, formValues) => {
-                        if (formValues.isAnonymous) return true;
-                        return val.trim().length > 3;
-                      },
-                    })}
+                    name="name"
+                    value={values.name}
+                    onChange={(e) => setValue("name", e.target.value)}
                   />
                   {errors.name && <ErrorField text={text.name_invalid_error_text} />}
                 </div>
@@ -334,13 +304,9 @@ export const DonorPane: React.FC<{
                   data-cy="email-input"
                   type="email"
                   placeholder={text.email_placeholder}
-                  {...register("email", {
-                    validate: (val, formValues) => {
-                      if (formValues.isAnonymous) return true;
-                      const trimmed = val.trim();
-                      return /@/.test(trimmed);
-                    },
-                  })}
+                  name="email"
+                  value={values.email}
+                  onChange={(e) => setValue("email", e.target.value)}
                 />
                 {errors.email && <ErrorField text={text.email_invalid_error_text} />}
               </div>
@@ -351,7 +317,9 @@ export const DonorPane: React.FC<{
                     type="text"
                     autoComplete="off"
                     placeholder={text.referral_code_placeholder}
-                    {...register("referralCode")}
+                    name="referralCode"
+                    value={values.referralCode}
+                    onChange={(e) => setValue("referralCode", e.target.value)}
                   />
                 </div>
               )}
@@ -368,12 +336,13 @@ export const DonorPane: React.FC<{
                           e.preventDefault();
                         }
                       }}
-                      {...register("taxDeduction", {
-                        onChange() {
-                          if (!taxDeductionChecked) clearErrors(["ssn"]);
-                          (document.activeElement as HTMLElement).blur();
-                        },
-                      })}
+                      name="taxDeduction"
+                      checked={taxDeductionChecked}
+                      onChange={(e) => {
+                        setValue("taxDeduction", e.target.checked);
+                        if (!taxDeductionChecked) clearErrors(["ssn"]);
+                        (document.activeElement as HTMLElement).blur();
+                      }}
                     />
                     <CustomCheckBox
                       label={text.tax_deduction_selector_text}
@@ -394,12 +363,10 @@ export const DonorPane: React.FC<{
                         inputMode="numeric"
                         autoComplete="off"
                         placeholder={text.tax_deduction_ssn_placeholder}
-                        {...register("ssn", {
-                          required: false,
-                          onChange: handleSsnChange,
-                          validate: (val, formValues) =>
-                            validateSsn(val.toString(), formValues.isAnonymous),
-                        })}
+                        name="ssn"
+                        value={values.ssn}
+                        // A Danish CPR/CVR number is kept and sent as shown (010101-1234)
+                        onChange={(e) => setValue("ssn", formatSsnInput(e.target.value))}
                       />
                       {errors.ssn && (
                         <ErrorField text={text.tax_deduction_ssn_invalid_error_text} />
@@ -422,11 +389,12 @@ export const DonorPane: React.FC<{
                         e.preventDefault();
                       }
                     }}
-                    {...register("newsletter", {
-                      onChange() {
-                        (document.activeElement as HTMLElement).blur();
-                      },
-                    })}
+                    name="newsletter"
+                    checked={newsletterChecked}
+                    onChange={(e) => {
+                      setValue("newsletter", e.target.checked);
+                      (document.activeElement as HTMLElement).blur();
+                    }}
                   />
                   <CustomCheckBox
                     label={text.newsletter_selector_text}
@@ -449,16 +417,16 @@ export const DonorPane: React.FC<{
                                   e.preventDefault();
                                 }
                               }}
-                              {...register("privacyPolicy", {
-                                required: true,
-                                onChange() {
-                                  (document.activeElement as HTMLElement).blur();
-                                },
-                              })}
+                              name="privacyPolicy"
+                              checked={values.privacyPolicy}
+                              onChange={(e) => {
+                                setValue("privacyPolicy", e.target.checked);
+                                (document.activeElement as HTMLElement).blur();
+                              }}
                             />
                             <CustomCheckBox
                               label={text.privacy_policy_text}
-                              checked={watch("privacyPolicy")}
+                              checked={values.privacyPolicy}
                             />
                           </div>
                           <Link
