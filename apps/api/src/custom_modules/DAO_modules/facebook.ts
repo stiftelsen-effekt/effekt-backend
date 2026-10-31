@@ -1,22 +1,10 @@
 import { DAO } from "../DAO";
-import paymentMethodIDs from "../../enums/paymentMethods";
 
 export type RegisteredFacebookDonation = {
   donorID: number;
   paymentID: string;
   taxUnitID: number;
 };
-
-//region Get
-
-async function getAllFacebookDonations() {
-  let [results] = await DAO.query(`
-            SELECT PaymentExternal_ID, sum_confirmed, timestamp_confirmed
-            FROM Donations
-            WHERE Payment_ID = ${paymentMethodIDs.facebook}`);
-
-  return results;
-}
 
 async function getAllFacebookCampaignIDs() {
   let [results] = await DAO.query(`
@@ -182,7 +170,6 @@ async function removeAllFacebookReports() {
 //endregion
 
 export const facebook = {
-  getAllFacebookDonations,
   registerPaymentFB,
   getAllFacebookCampaignIDs,
   registerFacebookCampaign,

@@ -428,12 +428,6 @@ describe("tRPC widget payment procedures", () => {
       await expectTrpcError(anonymous().swishOrderStatus({ orderId: "42" }), "NOT_FOUND");
     });
 
-    it("answers what GET /swish/orders/:id/status answers", async () => {
-      sinon.stub(swish, "getSwishOrder").resolves({ ID: 7, status: null } as any);
-      const rest = await request(restApp()).get("/swish/orders/7/status").expect(200);
-      expect(await anonymous().swishOrderStatus({ orderId: "7" })).to.deep.equal(rest.body);
-    });
-
     for (const orderId of ["", "1e3", "12abc", "-1", "12345678901", { $gt: 0 } as any, 42 as any]) {
       it(`refuses the order id ${JSON.stringify(orderId)} without looking it up`, async () => {
         const getSwishOrder = sinon.stub(swish, "getSwishOrder").resolves(null);

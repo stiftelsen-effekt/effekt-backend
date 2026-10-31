@@ -2,7 +2,7 @@ import { DAO } from "../custom_modules/DAO";
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
 
 import express from "express";
-import { createXMLReportToTaxAuthorities, setTaxUnitOnDistribution } from "../custom_modules/tax";
+import { createXMLReportToTaxAuthorities } from "../custom_modules/tax";
 import { buildKu65Report } from "../custom_modules/ku65";
 const router = express.Router();
 
@@ -40,21 +40,6 @@ router.put("/:id", authMiddleware.isAdmin, async (req, res, next) => {
         content: "Not found",
       });
     }
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-router.put("/donations/assign", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const distributionsToAssign = await DAO.donors.getKIDsWithOneTaxUnit(2023);
-
-    for (const distribution of distributionsToAssign) {
-      console.log(`Assigning ${distribution.KID} to ${distribution.Tax_unit_ID}`);
-      await setTaxUnitOnDistribution(distribution.KID, distribution.Tax_unit_ID);
-    }
-
-    return res.json({ status: 200 });
   } catch (ex) {
     next(ex);
   }

@@ -606,46 +606,6 @@ router.get(
   },
 );
 
-router.get(
-  "/:id/summary/",
-  authMiddleware.auth(permissions.read_donations),
-  (req, res, next) => {
-    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
-  },
-  async (req, res, next) => {
-    try {
-      var summary = await DAO.donations.getSummary(req.params.id);
-
-      res.json({
-        status: 200,
-        content: summary,
-      });
-    } catch (ex) {
-      next(ex);
-    }
-  },
-);
-
-router.get(
-  "/:id/history/",
-  authMiddleware.auth(permissions.read_donations),
-  (req, res, next) => {
-    checkAdminOrTheDonor(parseInt(req.params.id), req, res, next);
-  },
-  async (req, res, next) => {
-    try {
-      var history = await DAO.donations.getHistory(req.params.id);
-
-      res.json({
-        status: 200,
-        content: history,
-      });
-    } catch (ex) {
-      next(ex);
-    }
-  },
-);
-
 // A route for getting all the donations to EA funds for a given donor ID
 router.get(
   "/:id/funds/donations/",
