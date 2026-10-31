@@ -22,8 +22,8 @@ Runs as `sa-dmarc-report`, which can only read the `dmarc-mailbox-password` and 
 
 Deploy with `./deploy.sh`. Test with `npm test`.
 
-## minside-redirect
+## The old Min Side redirect (not a function)
 
-Redirects `minside.gieffektivt.no/<urlcode>` to `https://data.gieffektivt.no/vipps/agreement/minside/<urlcode>`.
+`minside.gieffektivt.no/<urlcode>` is redirected to `https://data.gieffektivt.no/vipps/agreement/minside/<urlcode>`
+by the load balancer itself (URL map `min-side-redirect`), with no backend behind it.
 Vipps agreements store their `merchantAgreementUrl` on the old Min Side host, so existing agreements keep working.
-Deploy with `./deploy.sh`. Test with `npm test`.

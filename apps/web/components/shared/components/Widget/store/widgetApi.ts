@@ -14,7 +14,8 @@ import type { RegisterDonationResponse } from "./donation/actions";
  * backend's public tRPC procedures (widget.*). The Danish backend (giveffektivt/donation-platform)
  * only speaks REST: the two reads go through the REST link (lib/trpc/restLink.ts), and the writes
  * keep the widget's original REST requests, since the Danish register route takes and answers a
- * different shape and has no bank-pending or referral route. See docs/web-trpc.md.
+ * different shape and has no bank-pending route. It has no route for referral answers either, so the
+ * widget doesn't ask for them there (widgetAsksForReferrals). See docs/web-trpc.md.
  *
  * Which backend is set from the widget's site locale when the widget mounts (Widget.tsx), like
  * Min Side's apiFlavorFor. The store is created before that, once per page load.
@@ -32,12 +33,30 @@ export const setWidgetApiLocale = (locale: Parameters<typeof apiFlavorFor>[0]) =
 
 export const widgetApiFlavor = () => flavor;
 
+/**
+ * Whether the backend records "how did you hear about us" answers. The Danish backend lists the
+ * referral types but has no route to submit an answer, so the widget doesn't ask there.
+ */
+export const widgetAsksForReferrals = () => flavor !== "rest";
+
 export const widgetTrpc = (): TrpcClient => (client ??= createPublicTrpcClient({ flavor }));
 
 /** Only for tests */
 export const resetWidgetApi = () => {
   flavor = "trpc";
   client = null;
+};
+
+/**
+ * The body of a REST response, or null when it isn't JSON - a gateway or platform error page, or
+ * an empty body - so the donor gets the generic error message rather than a JSON parse error.
+ */
+const restJson = async <T>(response: Response): Promise<T | null> => {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
 };
 
 /** The server answered with an error (as opposed to a network failure or timeout) */
@@ -71,13 +90,13 @@ export const registerDonationRequest = async (data: object): Promise<RegisterDon
       body: JSON.stringify(data),
       signal,
     });
-    const result: IServerResponse<RegisterDonationResponse> = await request.json();
-    if (result.status !== 200) {
+    const result = await restJson<IServerResponse<RegisterDonationResponse>>(request);
+    if (!request.ok || result?.status !== 200) {
       // Check if result.content is an object with message property
       let errorMessage = null;
-      if (typeof (result as any).message === "string") {
+      if (typeof (result as any)?.message === "string") {
         errorMessage = (result as any).message;
-      } else if (typeof result.content === "string") {
+      } else if (typeof result?.content === "string") {
         errorMessage = result.content;
       }
       return { ok: false, errorMessage };
@@ -109,8 +128,10 @@ export const registerBankPendingRequest = async (
       },
       body: `data={"KID":"${KID}", "sum":${sum}}`,
     });
-    const result: IServerResponse<never> = await request.json();
-    if (result.status !== 200) throw new Error(result.content as string);
+    const result = await restJson<IServerResponse<never>>(request);
+    if (!request.ok || result?.status !== 200) {
+      throw new Error((result?.content as string) ?? `HTTP ${request.status}`);
+    }
     return;
   }
   await widgetTrpc().widget.registerBankPending.mutate({ KID, sum, registrationToken });
@@ -118,33 +139,20 @@ export const registerBankPendingRequest = async (
 
 export type ReferralAnswer = {
   referralID: number;
-  /** Our backend: from registerDonation, the answer is stored for that registration's donor */
+  /** From registerDonation: the answer is stored for that registration's donor */
   registrationToken?: string;
-  /** The Danish backend: the donor id its registration returned */
-  donorID?: number | string;
   active: boolean;
   comment?: string;
   session: string;
 };
 
-/** Records or removes the donor's "how did you hear about us" answer. Throws on failure. */
-export const submitReferralRequest = async ({
-  registrationToken,
-  donorID,
-  ...answer
-}: ReferralAnswer) => {
-  if (flavor === "rest") {
-    const request = await fetch(`${API_URL}/referrals/`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...answer, donorID }),
-    });
-    const result: IServerResponse<boolean> = await request.json();
-    if (result.status !== 200) throw new Error(result.content as string);
-    return;
+/**
+ * Records or removes the donor's "how did you hear about us" answer. Throws on failure, and on the
+ * Danish site, whose backend has no route for it (see widgetAsksForReferrals).
+ */
+export const submitReferralRequest = async ({ registrationToken, ...answer }: ReferralAnswer) => {
+  if (!widgetAsksForReferrals()) {
+    throw new Error("Referral answers are not recorded on this site");
   }
   await widgetTrpc().widget.submitReferral.mutate({
     ...answer,

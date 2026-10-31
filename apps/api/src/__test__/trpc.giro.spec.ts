@@ -630,6 +630,12 @@ describe("tRPC giro router", () => {
     });
 
     it("creates a shipment the same way as POST /scheduled/autogiro", async () => {
+      // The shipment is created on one connection that holds a lock and a transaction
+      const connection = {
+        query: sinon.stub().resolves([[{ acquired: 1 }]]),
+        release: sinon.stub(),
+      };
+      sinon.stub(DAO, "startTransaction").resolves(connection as any);
       sinon.stub(DAO.autogiroagreements, "getAgreementsToCharge").resolves([]);
       sinon.stub(DAO.autogiroagreements, "getMandatesByStatus").withArgs("NEW").resolves([]);
       sinon.stub(DAO.autogiroagreements, "getAmendmentCandidates").resolves([]);

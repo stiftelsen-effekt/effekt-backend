@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
 import {
@@ -17,14 +17,48 @@ import {
 import { ReferralActionTypes } from "../../../store/referrals/types";
 import { Action } from "typescript-fsa";
 import { Dispatch } from "@reduxjs/toolkit";
+import { widgetAsksForReferrals } from "../../../store/widgetApi";
+
+// The "other" answer is saved once the donor pauses typing, not on every keystroke
+const OTHER_TEXT_DEBOUNCE_MS = 600;
+
+const OTHER_REFERRAL_ID = 10;
 
 export const Referrals: React.FC<{ text: WidgetPane3ReferralsProps }> = ({ text }) => {
   const dispatch = useDispatch<Dispatch<ReferralActionTypes | Action<ReferralData>>>();
-  const OTHER_REFERRAL_ID = 10;
 
   const referrals = useSelector((state: State) => state.referrals.referrals);
   const selectedReferrals = useSelector((state: State) => state.referrals.selectedReferrals);
   const otherText = useSelector((state: State) => state.referrals.otherText);
+
+  const pendingOtherText = useRef<{ timer: ReturnType<typeof setTimeout>; text: string } | null>(
+    null,
+  );
+  const submitOtherText = React.useCallback(
+    (value: string) => {
+      dispatch(
+        submitReferralAction.started(
+          value.trim() !== ""
+            ? { referralID: OTHER_REFERRAL_ID, active: true, comment: value }
+            : { referralID: OTHER_REFERRAL_ID, active: false },
+        ),
+      );
+    },
+    [dispatch],
+  );
+  // Save what the donor typed if they leave before the debounce fires
+  useEffect(
+    () => () => {
+      if (pendingOtherText.current) {
+        clearTimeout(pendingOtherText.current.timer);
+        submitOtherText(pendingOtherText.current.text);
+      }
+    },
+    [submitOtherText],
+  );
+
+  // The Danish backend has nowhere to record the answer
+  if (!widgetAsksForReferrals()) return null;
 
   return (
     <div>
@@ -85,23 +119,16 @@ export const Referrals: React.FC<{ text: WidgetPane3ReferralsProps }> = ({ text 
         placeholder={text.other_referral_input_placeholder}
         value={otherText}
         onChange={(e) => {
-          dispatch(setOtherText(e.currentTarget.value));
-          if (e.currentTarget.value.trim() !== "") {
-            dispatch(
-              submitReferralAction.started({
-                referralID: OTHER_REFERRAL_ID,
-                active: true,
-                comment: e.currentTarget.value,
-              }),
-            );
-          } else {
-            dispatch(
-              submitReferralAction.started({
-                referralID: OTHER_REFERRAL_ID,
-                active: false,
-              }),
-            );
-          }
+          const value = e.currentTarget.value;
+          dispatch(setOtherText(value));
+          if (pendingOtherText.current) clearTimeout(pendingOtherText.current.timer);
+          pendingOtherText.current = {
+            text: value,
+            timer: setTimeout(() => {
+              pendingOtherText.current = null;
+              submitOtherText(value);
+            }, OTHER_TEXT_DEBOUNCE_MS),
+          };
         }}
       />
     </div>

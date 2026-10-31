@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Edit2 } from "react-feather";
 import { TaxUnit } from "../../../../../models";
-import { thousandize } from "../../../../../util/formatting";
+import { getFormattingLocale, thousandize } from "../../../../../util/formatting";
+import { useMainLocale } from "../../../../../context/MainLocaleContext";
+
 import { TaxUnitEditModal } from "../../TaxUnitModal/TaxUnitEditModal";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
@@ -12,6 +14,9 @@ export const DKTaxUnitList: React.FC<{
   sumTaxDeductionsLabel: string;
   sumTaxBenefitLabel: string;
 }> = ({ taxUnits, sumDonationsLabel, sumTaxDeductionsLabel, sumTaxBenefitLabel }) => {
+  const formattingLocale = getFormattingLocale(useMainLocale());
+  const formatKroner = (amount: number) =>
+    thousandize(Math.round(amount), formattingLocale) + " kr";
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedTaxUnit, setSelectedTaxUnit] = useState<TaxUnit | null>(null);
 
@@ -61,9 +66,9 @@ export const DKTaxUnitList: React.FC<{
       defaultExpanded: false,
       cells: [
         { value: deductions.year.toString() },
-        { value: thousandize(Math.round(deductions.sumDonations)) + " kr" },
-        { value: thousandize(Math.round(deductions.deduction)) + " kr" },
-        { value: thousandize(Math.round(deductions.benefit)) + " kr" },
+        { value: formatKroner(deductions.sumDonations) },
+        { value: formatKroner(deductions.deduction) },
+        { value: formatKroner(deductions.benefit) },
       ],
       element: unit,
     };
@@ -82,16 +87,12 @@ export const DKTaxUnitList: React.FC<{
     defaultExpanded: false,
     cells: [
       { value: "Totalt" },
-      { value: thousandize(countDonations) + " kr" },
+      { value: formatKroner(countDonations) },
       {
-        value:
-          thousandize(Math.round(filteredDeductions.reduce((acc, cur) => acc + cur.deduction, 0))) +
-          " kr",
+        value: formatKroner(filteredDeductions.reduce((acc, cur) => acc + cur.deduction, 0)),
       },
       {
-        value:
-          thousandize(Math.round(filteredDeductions.reduce((acc, cur) => acc + cur.benefit, 0))) +
-          " kr",
+        value: formatKroner(filteredDeductions.reduce((acc, cur) => acc + cur.benefit, 0)),
       },
     ],
     element: unit,

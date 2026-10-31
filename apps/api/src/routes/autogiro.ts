@@ -199,9 +199,9 @@ router.put(
     };
 
     try {
-      // Validate distribution
+      // Validate everything before changing anything
       let validatedDistribution: DistributionInput | null = null;
-      if (distribution !== null) {
+      if (distribution != null) {
         try {
           validatedDistribution = validateDistribution(distribution as DistributionInput);
         } catch (ex) {
@@ -212,31 +212,38 @@ router.put(
         }
       }
 
-      // Validate and update amount
-      if (amount !== null && amount !== undefined) {
-        if (typeof amount !== "number" || amount <= 0) {
-          return res.status(400).json({
-            status: 400,
-            content: "Invalid amount: must be a positive number",
-          });
-        }
-        await DAO.autogiroagreements.setAgreementAmountByKID(KID, amount);
+      const hasAmount = amount !== null && amount !== undefined;
+      if (hasAmount && (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0)) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid amount: must be a positive number",
+        });
       }
 
-      // Validate and update payment date
-      if (paymentDate !== null && paymentDate !== undefined) {
-        if (!Number.isInteger(paymentDate) || paymentDate < 0 || paymentDate > 28) {
-          return res.status(400).json({
-            status: 400,
-            content: "Invalid payment date: must be an integer between 0 and 28",
-          });
-        }
-        await DAO.autogiroagreements.setAgreementPaymentDateByKID(KID, paymentDate);
+      const hasPaymentDate = paymentDate !== null && paymentDate !== undefined;
+      if (
+        hasPaymentDate &&
+        (!Number.isInteger(paymentDate) ||
+          (paymentDate as number) < 0 ||
+          (paymentDate as number) > 28)
+      ) {
+        return res.status(400).json({
+          status: 400,
+          content: "Invalid payment date: must be an integer between 0 and 28",
+        });
       }
 
-      // Update distribution
+      // The distribution first: it checks ownership and runs in its own transaction
       if (validatedDistribution) {
         await replaceAutoGiroDistribution(KID, validatedDistribution);
+      }
+
+      // Amount and payment date in one statement
+      if (hasAmount || hasPaymentDate) {
+        await DAO.autogiroagreements.setAgreementAmountAndPaymentDateByKID(KID, {
+          amount: hasAmount ? (amount as number) : null,
+          paymentDate: hasPaymentDate ? (paymentDate as number) : null,
+        });
       }
 
       res.json({
@@ -282,9 +289,8 @@ router.post("/:KID/paymentdate", authMiddleware.isAdmin, async (req, res, next) 
 
 router.post("/:KID/amount", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    const amount = req.body.amount / 100; /* Amount is sent as øre but stored as kroner */
-
-    if (typeof amount !== "number") {
+    const amountOre = req.body?.amount;
+    if (typeof amountOre !== "number" || !Number.isFinite(amountOre) || amountOre <= 0) {
       return res.status(400).json({
         status: 400,
         content: "Invalid amount",
@@ -300,7 +306,8 @@ router.post("/:KID/amount", authMiddleware.isAdmin, async (req, res, next) => {
       });
     }
 
-    await DAO.autogiroagreements.setAgreementAmountByKID(req.params.KID, amount);
+    /* Amount is sent as øre but stored as kroner */
+    await DAO.autogiroagreements.setAgreementAmountByKID(req.params.KID, amountOre / 100);
 
     res.json({
       status: 200,

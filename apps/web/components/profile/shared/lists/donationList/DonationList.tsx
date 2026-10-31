@@ -2,7 +2,14 @@ import { PortableText } from "@portabletext/react";
 import { Distribution, Donation, TaxUnit } from "../../../../../models";
 import { Organization } from "../../../../shared/components/Widget/types/Organization";
 import { CauseArea } from "../../../../shared/components/Widget/types/CauseArea";
-import { onlyDate, thousandize } from "../../../../../util/formatting";
+import {
+  FormattingLocale,
+  getFormattingLocale,
+  onlyDate,
+  thousandize,
+} from "../../../../../util/formatting";
+import { useMainLocale } from "../../../../../context/MainLocaleContext";
+
 import { ErrorMessage } from "../../ErrorMessage/ErrorMessage";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
@@ -45,6 +52,7 @@ export const DonationList: React.FC<{
   organizations,
   causeAreas,
 }) => {
+  const formattingLocale = getFormattingLocale(useMainLocale());
   let taxDeductionText: ReactNode | undefined = undefined;
 
   let taxDeductions = taxUnits.reduce(
@@ -69,7 +77,7 @@ export const DonationList: React.FC<{
     let taxDeductionTextSplit: string[];
     let taxDeductionSumElement: ReactNode = (
       <span style={{ whiteSpace: "nowrap" }}>
-        {thousandize(Math.round(taxDeductions.yearlyBenefit))}
+        {thousandize(Math.round(taxDeductions.yearlyBenefit), formattingLocale)}
       </span>
     );
 
@@ -104,7 +112,7 @@ export const DonationList: React.FC<{
       id: donation.id.toString(),
       defaultExpanded: firstOpen && index === 0 ? true : false,
       cells: configuration.columns.map((column) => ({
-        value: formatField(donation[column.value], column.type),
+        value: formatField(donation[column.value], column.type, formattingLocale),
       })),
       details: detailsConfiguration ? (
         <DonationDetails
@@ -143,12 +151,12 @@ export const DonationList: React.FC<{
   );
 };
 
-const formatField: (field: any, type: TableFieldTypes) => string = (field, type) => {
+const formatField = (field: any, type: TableFieldTypes, locale: FormattingLocale): string => {
   switch (type) {
     case "string":
       return field;
     case "sum":
-      return thousandize(Math.round(toNumber(field))) + " kr";
+      return thousandize(Math.round(toNumber(field)), locale) + " kr";
     case "date":
       return onlyDate(field);
     case "paymentmethod":

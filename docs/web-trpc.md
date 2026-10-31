@@ -170,7 +170,8 @@ routes, so the REST link leaves them unmapped and they fail without a request on
   (`/causeareas/all/`, `/referrals/types` on the Danish backend), and the three writes keep the
   original REST requests: the Danish `/donations/register` takes and answers a different shape
   (string donor ids, no KID for card payments, an empty 500 on errors), and the Danish backend has no
-  bank-pending or referral route.
+  bank-pending or referral route. The widget doesn't ask "how did you hear about us" there
+  (`widgetAsksForReferrals`), and a REST error body that isn't JSON gets the generic error message.
 - The fundraiser widget (`FundraiserWidget/hooks/useRegisterDonation.ts`) registers gifts with
   `widget.registerDonation` too; on the Danish site it keeps its REST request, like the widget.
 - The batch guard covers every `widget.*` mutation: `publicMutations` is read from the router.
@@ -304,10 +305,8 @@ Kept, although Min Side and the widget no longer call them:
 
 ## Deployment notes
 
-- Vercel's ignored build step only checks `apps/web`, `pnpm-lock.yaml` and
-  `pnpm-workspace.yaml`. A change to `apps/api/src/trpc/shared/` or `packages/api/` alone changes what the
-  web bundles, but it does not redeploy the website. Either add
-  `../../src/trpc/shared ../../packages/api` to that command in the main-site, giv-effektivt and
-  ge-effektivt project settings, or touch apps/web in the same PR.
+- Production deploys of the website always build. Previews build when `apps/web` or what it is
+  built from changed, including `packages/api/` and `apps/api/src/trpc/`
+  (`apps/web/vercel-ignore-build.sh`, the Ignored Build Step of all three Vercel projects).
 - Deploy the backend procedure before the web code that calls it. The website switches to tRPC
   as soon as its build is deployed.

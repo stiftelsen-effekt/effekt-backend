@@ -207,6 +207,9 @@ push to `master` builds, and with the old settings that builds the repository ro
    [ "$VERCEL_ENV" = production ] || [ -z "$VERCEL_GIT_PREVIOUS_SHA" ] && exit 1; git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" HEAD -- . ../../pnpm-lock.yaml ../../pnpm-workspace.yaml
    ```
 
+   (Since 2026-10-31 the command is `bash vercel-ignore-build.sh`, which also watches the tRPC
+   contract and compares a branch's first preview with main.)
+
    Production always builds, as today: deploy hooks (Sanity publishes, scheduled content)
    rebuild without a code change, and skipping those would leave content stale. Previews build
    only when `apps/web` or the root workspace files changed since the branch's last deployment,

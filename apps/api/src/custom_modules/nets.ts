@@ -1,24 +1,41 @@
 import { getConnection } from "./sftp";
+import type { OCRFile, OCRFileInfo } from "./ocrFiles";
 
 /**
- * Fetches the latest OCR file as a buffer
- * @returns {Buffer} A buffer of the file contents
+ * Closes an SFTP connection without throwing: by then the work is done, and failing the caller
+ * (for instance after a claims file was sent) would invite a retry that repeats it.
  */
-export async function getLatestOCRFile() {
+async function closeQuietly(connection: { end: () => Promise<unknown> }) {
+  try {
+    await connection.end();
+  } catch (ex) {
+    console.error("Failed to close SFTP connection", ex);
+  }
+}
+
+/**
+ * Fetches the OCR files in /Outbound that `select` picks from the listing
+ * @returns The selected files with their contents, in the order `select` returned them
+ */
+export async function getOCRFiles(
+  select: (files: OCRFileInfo[]) => OCRFileInfo[],
+): Promise<OCRFile[]> {
   const connection = await getConnection();
+  try {
+    const listing = await connection.list("/Outbound");
+    const files = listing
+      .filter((file) => file.type !== "d")
+      .map((file) => ({ name: file.name, modifyTime: file.modifyTime }));
 
-  const files = await connection.list("/Outbound");
-
-  if (files.length == 0) return null;
-
-  const sortedFiles = files.sort((file) => file.modifyTime);
-
-  const latest = sortedFiles[sortedFiles.length - 1];
-
-  const buffer = await connection.get(`/Outbound/${latest.name}`);
-  connection.end();
-
-  return buffer;
+    const result: OCRFile[] = [];
+    for (const file of select(files)) {
+      const contents = (await connection.get(`/Outbound/${file.name}`)) as Buffer;
+      result.push({ ...file, contents });
+    }
+    return result;
+  } finally {
+    await closeQuietly(connection);
+  }
 }
 
 /**
@@ -29,8 +46,12 @@ export async function getLatestOCRFile() {
 export async function checkIfAcceptedReciept(shipmentID: number) {
   const connection = await getConnection();
 
-  const files = await connection.list("/Inbound");
-  connection.end();
+  let files;
+  try {
+    files = await connection.list("/Inbound");
+  } finally {
+    await closeQuietly(connection);
+  }
 
   if (files.length == 0) return false;
 
@@ -52,8 +73,11 @@ export async function checkIfAcceptedReciept(shipmentID: number) {
  */
 export async function sendFile(file, filename) {
   const connection = await getConnection();
-  await connection.put(file, `/Inbound/${filename}`);
-  connection.end();
+  try {
+    await connection.put(file, `/Inbound/${filename}`);
+  } finally {
+    await closeQuietly(connection);
+  }
 
   return file;
 }

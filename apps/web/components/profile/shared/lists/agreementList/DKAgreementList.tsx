@@ -2,7 +2,9 @@ import { PortableText } from "@portabletext/react";
 import { DKAgreement, DKPaymentMethod, Distribution, TaxUnit } from "../../../../../models";
 import { GenericList } from "../GenericList";
 import { ListRow } from "../GenericListRow";
-import { thousandize } from "../../../../../util/formatting";
+import { FormattingLocale, getFormattingLocale, thousandize } from "../../../../../util/formatting";
+import { useMainLocale } from "../../../../../context/MainLocaleContext";
+
 import { AgreementDetailsConfiguration } from "./AgreementDetails";
 import { DKAgreementDetails } from "./DKAgreementDetails";
 import { distributionTargetsMembershipFee } from "./dkMembershipDisplay";
@@ -49,6 +51,7 @@ export const DKAgreementList: React.FC<{
   configuration: DKAgreementListConfiguration;
   causeAreaContexts: CauseAreaContext[];
 }> = ({ agreements, distributions, taxUnits, expandable, configuration, causeAreaContexts }) => {
+  const formattingLocale = getFormattingLocale(useMainLocale());
   const columns = configuration.columns.filter(
     (column) => window && !(window.innerWidth < 1180 && column.hide_on_mobile),
   );
@@ -80,6 +83,7 @@ export const DKAgreementList: React.FC<{
           row.type,
           rowDistribution,
           dkAgreement.is_payment_expired,
+          formattingLocale,
         ),
       })),
       details:
@@ -125,12 +129,13 @@ const formatColumnValue = (
   method: DKPaymentMethod,
   distribution: Distribution | undefined,
   isPaymentExpired: boolean,
+  locale: FormattingLocale,
 ) => {
   switch (column.type) {
     case "string":
       return value;
     case "sum":
-      return thousandize(Math.round(parseFloat(value))) + " kr";
+      return thousandize(Math.round(parseFloat(value)), locale) + " kr";
     case "date":
       if (isPaymentExpired) {
         return "Betalingsmiddel er udløbet";

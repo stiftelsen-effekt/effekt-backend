@@ -9,6 +9,8 @@
 #
 #   E2E_KEEP_UP=1      leave the stack and the web server running afterwards (for `cypress open`)
 #   E2E_SKIP_BUILD=1   reuse the existing apps/web/.next build (same ports as the last build)
+#   E2E_SKIP_STACK_BUILD=1
+#                      use the effekt-backend-dev:local image as it is (CI builds it with a layer cache)
 #   E2E_WEB_PORT (3100), E2E_API_PORT (5150), E2E_AUTH_PORT (8191), E2E_DB_PORT (3317)
 #
 # The production build is written to apps/web/.next, replacing any earlier `next build`.
@@ -47,11 +49,15 @@ timer() { date +%s; }
 elapsed() { echo "$(($(date +%s) - $1))s"; }
 
 t=$(timer)
-echo "==> Starting backend stack (db, migrate + seed, auth, oidc, api)"
+echo "==> Starting backend stack (db, migrate + seed, auth, oidc, api) in the background"
 # Build first: migrate and api share one image tag, building it from both at once can race.
-compose build migrate
-compose up -d --wait
-echo "    stack up in $(elapsed "$t")"
+if [ "${E2E_SKIP_STACK_BUILD:-0}" != "1" ]; then
+  compose build migrate
+fi
+# The stack starts while the tRPC types build below; the web build waits for it, because static
+# generation reads from the API (a fundraiser page).
+compose up -d --wait >"$LOG_DIR/stack-up.log" 2>&1 &
+STACK_PID=$!
 
 # Public, non-secret build settings. Content comes read-only from the production Sanity dataset
 # (no token needed); everything the browser talks to besides Sanity is local.
@@ -65,17 +71,34 @@ export NEXT_PUBLIC_AUTH_AUDIENCE=http://localhost:5050
 export NEXT_PUBLIC_AUTH_USER_ID_CLAIM=https://gieffektivt.no/user-id
 export NEXT_TELEMETRY_DISABLED=1
 
+wait_for_stack() {
+  if ! wait "$STACK_PID"; then
+    cat "$LOG_DIR/stack-up.log" >&2
+    exit 1
+  fi
+  echo "    stack up in $(elapsed "$t")"
+}
+
 if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then
-  t=$(timer)
-  echo "==> Building apps/web (next build)"
-  # `next build` directly: the package's prebuild step builds the Sanity studio, not needed here.
-  # The type build first, as `pnpm build` does: without dist-types the tRPC client is untyped
-  # (docs/web-trpc.md)
-  { pnpm build:types && pnpm --filter main-site exec next build; } >"$LOG_DIR/web-build.log" 2>&1 || {
+  echo "==> Building the tRPC types"
+  # As `pnpm build` does: without dist-types the tRPC client is untyped (docs/web-trpc.md)
+  pnpm build:types >"$LOG_DIR/web-build.log" 2>&1 || {
     tail -50 "$LOG_DIR/web-build.log" >&2
     exit 1
   }
-  echo "    web built in $(elapsed "$t")"
+  wait_for_stack
+  tb=$(timer)
+  echo "==> Building apps/web (next build)"
+  # `next build` directly: the package's prebuild step builds the Sanity studio, not needed here.
+  # CI=1 turns on the build's shared Sanity fetch cache (apps/web/lib/sanity.client.ts), as on
+  # Vercel; GitHub Actions sets CI=true.
+  CI=1 pnpm --filter main-site exec next build >>"$LOG_DIR/web-build.log" 2>&1 || {
+    tail -50 "$LOG_DIR/web-build.log" >&2
+    exit 1
+  }
+  echo "    web built in $(elapsed "$tb")"
+else
+  wait_for_stack
 fi
 
 echo "==> Serving apps/web on http://localhost:${E2E_WEB_PORT}"
