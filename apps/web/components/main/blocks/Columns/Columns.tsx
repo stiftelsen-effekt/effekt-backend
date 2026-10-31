@@ -1,4 +1,3 @@
-import { useRouter } from "next/router";
 import React from "react";
 import styles from "./Columns.module.scss";
 import { LinkType, Links } from "../Links/Links";
@@ -15,8 +14,6 @@ export interface Columns {
   }[];
 }
 export const Columns: React.FC<Columns> = ({ columns }) => {
-  const router = useRouter();
-
   return (
     <div className={styles.grid}>
       {columns.filter(Boolean).map((column) => (

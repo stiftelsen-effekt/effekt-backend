@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, FormEvent, ReactNode } from "react";
+import React, { useState, ChangeEvent, FormEvent } from "react";
 import styles from "./DKMembershipWidget.module.scss";
 import { validateCpr, formatCprInput, CprValidationResult } from "../../../../util/tin-validation";
 import { EffektButton } from "../../../shared/components/EffektButton/EffektButton";
@@ -64,14 +64,6 @@ export const DKMembershipWidget: React.FC<{ config?: ConfigurationType }> = ({ c
   >({});
   const [loading, setLoading] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | undefined>(undefined);
-
-  const renderErrorMessage = (): ReactNode => {
-    return (
-      <React.Fragment key={`api-error-text`}>
-        {mergedTexts.failed_submission_message}
-      </React.Fragment>
-    );
-  };
 
   const isDenmarkSelected = isDenmark(formData.country);
   const showBirthdayField = !isDenmarkSelected;

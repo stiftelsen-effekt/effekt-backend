@@ -93,7 +93,6 @@ export const DonationsPage = withStaticProps(
     );
   }
 
-  const dashboard = data.result.dashboard[0];
   const page = data.result.page;
 
   if (!page)
@@ -136,14 +135,12 @@ export const DonationsPage = withStaticProps(
   const {
     loading: aggregatedLoading,
     data: aggregatedDonations,
-    isValidating: aggregatedDonationsValidating,
     error: aggregatedError,
   } = useAggregatedDonations(user, getAccessTokenSilently);
 
   const {
     loading: donationsLoading,
     data: donations,
-    isValidating: donationsIsValidating,
     error: donationsError,
   } = useDonations(user, getAccessTokenSilently);
 
@@ -158,14 +155,12 @@ export const DonationsPage = withStaticProps(
   const {
     loading: distributionsLoading,
     data: distributions,
-    isValidating: distributionsValidating,
     error: distributionsError,
   } = useDistributions(user, getAccessTokenSilently, shouldFetchDistributions, kids);
 
   const {
     data: organizations,
     loading: organizationsloading,
-    isValidating: organizationsValidation,
     error: organizationsError,
   } = useAllOrganizations();
 
@@ -174,7 +169,6 @@ export const DonationsPage = withStaticProps(
   const {
     data: taxUnits,
     loading: taxUnitsLoading,
-    isValidating: taxUnitsValidation,
     error: taxUnitsError,
   } = useTaxUnits(user, getAccessTokenSilently);
   const donationsLoaded = Array.isArray(donations);

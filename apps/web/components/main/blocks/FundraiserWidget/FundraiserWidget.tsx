@@ -49,7 +49,6 @@ export const FundraiserWidget: React.FC<DonationWidgetProps> = ({
   fundraiserId,
   organizationInfo,
   locale,
-  onComplete = () => {},
 }) => {
   const { formData, updateField } = useFundraiserForm(
     widgetConfig?.payment_methods?.map((method) => method._type) || [],

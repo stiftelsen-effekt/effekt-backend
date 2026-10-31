@@ -1,4 +1,3 @@
-import { useRouter } from "next/router";
 import React from "react";
 import styles from "./GiftCard.module.scss";
 import type { SanityImageObject } from "@sanity/image-url";
@@ -13,8 +12,6 @@ export const GiftCard: React.FC<{
   image: SanityImageObject;
   links: (LinkType | NavLink)[];
 }> = ({ title, description, image, links }) => {
-  const router = useRouter();
-
   return (
     <div className={styles.giftcard}>
       <div className={styles.giftcardimage}>

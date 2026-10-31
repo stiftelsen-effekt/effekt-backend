@@ -66,7 +66,7 @@ export const AgreementsPage = withStaticProps(
       },
     } satisfies GeneralPageProps;
   },
-)(({ navbarData, data, draftMode }) => {
+)(({ navbarData, data }) => {
   const page = data.result.page;
   const cookieBannerConfig = data.result.settings[0].cookie_banner_configuration;
   const locale = data.result.settings[0].main_locale;
@@ -304,14 +304,12 @@ const NordicAgreementsPageContent: React.FC<{
   const {
     loading: avtaleGiroLoading,
     data: avtaleGiro,
-    isValidating: avtaleGiroRefreshing,
     error: avtaleGiroError,
   } = useAvtalegiroAgreements(user, getAccessTokenSilently);
 
   const {
     loading: vippsLoading,
     data: vipps,
-    isValidating: vippsRefreshing,
     error: vippsError,
   } = useVippsAgreements(user, getAccessTokenSilently);
 
@@ -335,14 +333,12 @@ const NordicAgreementsPageContent: React.FC<{
   const {
     loading: distributionsLoading,
     data: distributions,
-    isValidating: distributionsRefreshing,
     error: distributionsError,
   } = useAgreementsDistributions(user, getAccessTokenSilently, shouldFetchDistributions, kids);
 
   const {
     loading: taxUnitsLoading,
     data: taxUnits,
-    isValidating: taxUnitsRefreshing,
     error: taxUnitsError,
   } = useTaxUnits(user, getAccessTokenSilently);
   const vippsLoaded = Array.isArray(vipps);

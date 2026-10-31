@@ -57,7 +57,7 @@ export const TaxPage = withStaticProps(
       },
     } satisfies GeneralPageProps;
   },
-)(({ data, subpath, navbarData, draftMode }) => {
+)(({ data, subpath, navbarData }) => {
   const page = data.result.page;
 
   if (!page) return <ErrorMessage>Missing tax page</ErrorMessage>;

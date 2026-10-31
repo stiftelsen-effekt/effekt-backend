@@ -12,7 +12,7 @@ export const ResultsTeaser: React.FC<{
   donorsSubtitle?: string;
   seeMoreButton?: NavLink;
   locale: string;
-}> = ({ title, sumSubtitle, donorsSubtitle, seeMoreButton, locale }) => {
+}> = ({ sumSubtitle, donorsSubtitle, seeMoreButton, locale }) => {
   const [data, setData] = useState<{
     totalDonationsToRecommendedOrgs: string | number;
     numberOfDonors: string | number;

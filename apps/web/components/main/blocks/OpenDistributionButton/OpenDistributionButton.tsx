@@ -13,7 +13,7 @@ export const OpenDistributionButton: React.FC<Opendistributionbutton> = ({
   display_output_info,
   distribution_cause_areas,
 }) => {
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [, setWidgetContext] = useContext(WidgetContext);
   const plausible = usePlausible();
 
   if (!distribution_cause_areas) {

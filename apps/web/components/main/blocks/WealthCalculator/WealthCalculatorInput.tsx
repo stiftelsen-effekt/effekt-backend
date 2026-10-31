@@ -39,7 +39,6 @@ export const WealthCalculatorInput: React.FC<{
   config: WealthCalculatorInputConfiguration;
 }> = ({
   title,
-  incomeInput,
   setIncomeInput,
   numberOfChildren,
   setNumberOfChildren,

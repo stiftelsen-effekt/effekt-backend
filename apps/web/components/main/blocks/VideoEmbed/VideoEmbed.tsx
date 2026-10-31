@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import elements from "./VideoEmbed.module.scss";
 import type { SanityImageObject } from "@sanity/image-url";
 import { ResponsiveImage } from "../../../shared/responsiveimage";
@@ -10,7 +10,6 @@ export const VideoEmbed: React.FC<{ id: string; thumbnail: SanityImageObject }> 
 }) => {
   const [showThumbnail, setShowThumbnail] = useState(true);
   const [videoTarget, setVideoTarget] = useState<any>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const onVideoReady = (event: any) => {
     setVideoTarget(event.target);

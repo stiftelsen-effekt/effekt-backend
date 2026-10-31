@@ -116,7 +116,6 @@ export const Layout = withStaticProps(
   footer,
   widget,
   giveButton,
-  general_banner,
   cookie_banner_configuration,
   mainLocale,
   consentState,

@@ -36,7 +36,7 @@ export const OrganizationsList: React.FC<{ organizations: Organization[] }> = ({
   organizations,
 }) => {
   const plausible = usePlausible();
-  const [widgetContext, setWidgetContext] = useContext(WidgetContext);
+  const [, setWidgetContext] = useContext(WidgetContext);
 
   return (
     <div className={styles.organizationWrapper} data-cy="organizations-list">
