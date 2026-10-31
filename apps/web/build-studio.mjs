@@ -3,6 +3,10 @@
 // build-time environment and the Node version. The copy lives in .next/cache, which Vercel keeps
 // between builds; most production builds are deploy hooks after a Sanity publish, with the same
 // studio. A fresh build installs the studio's dependencies and takes about 35s on Vercel.
+//
+// The studio is a package of the pnpm workspace (effekt-studio). The website's install (Vercel's
+// install command, web-checks.yml) leaves it out, so its dependencies are only installed here,
+// when it is built.
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -14,7 +18,11 @@ const studio = join(web, "studio");
 const output = join(web, "public", "studio");
 const cacheRoot = join(web, ".next", "cache", "studio");
 
-const BUILD = "npm i --prefix studio && npm run build --prefix studio -- ../public/studio -y";
+const BUILD =
+  "pnpm install --frozen-lockfile --filter effekt-studio && pnpm --dir studio run build ../public/studio -y";
+// The studio's dependency versions live in the workspace lockfile and catalog
+const repo = join(web, "..", "..");
+const lockfiles = [join(repo, "pnpm-lock.yaml"), join(repo, "pnpm-workspace.yaml")];
 
 // Generated or installed, not sources
 const SKIP = new Set(["node_modules", "dist", ".sanity"]);
@@ -49,7 +57,7 @@ function buildEnv() {
 const hash = createHash("sha256");
 hash.update(`${BUILD}\n${process.version}\n`);
 for (const entry of buildEnv()) hash.update(`${entry}\n`);
-for (const path of files(studio)) {
+for (const path of [...lockfiles, ...files(studio)]) {
   hash.update(`${relative(studio, path)}\n`);
   hash.update(readFileSync(path));
 }
