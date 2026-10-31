@@ -216,7 +216,10 @@ describe("Agreements page (full stack)", () => {
     cy.get("[data-cy=lightbox-confirm]").click();
     cy.wait("@cancel").its("response.statusCode").should("equal", 200);
 
-    activeTable().find("tbody").should("have.length", 4);
+    // The lists only change once SWR has refetched them, so assert the state after the refetch:
+    // Vipps x2 and the other AvtaleGiro stay active; the stopped Vipps and this one are inactive
+    activeTable().should("not.contain", KIDS.avtalegiroToCancel);
+    activeTable().find("tbody").should("have.length", 3);
     inactiveTable().find("tbody").should("have.length", 2);
     agreementRow(inactiveTable, KIDS.avtalegiroToCancel).should("contain.text", "AvtaleGiro");
 
