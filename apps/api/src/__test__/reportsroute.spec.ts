@@ -63,6 +63,45 @@ describe("Vipps route handles report correctly", () => {
     expect(mailStub.callCount).to.be.equal(10);
   });
 
+  it("Only sends receipts for donations that were added", async () => {
+    addStub.onFirstCall().rejects(new Error("EXISTING_DONATION | already added"));
+    addStub.onSecondCall().rejects(new Error("NO_KID | KID does not exist"));
+    config.env = "production";
+    try {
+      await runVipps("Vipps April 2019");
+    } finally {
+      config.env = "development";
+      addStub.resetBehavior();
+      addStub.resolves(10);
+    }
+
+    expect(addStub.callCount).to.be.equal(10);
+    expect(mailStub.callCount).to.be.equal(8);
+    expect(mailStub.alwaysCalledWith(10)).to.be.true;
+  });
+
+  it("Waits for receipts and keeps going if one fails", async () => {
+    let pending = 0;
+    let maxPending = 0;
+    mailStub.callsFake(async () => {
+      pending++;
+      maxPending = Math.max(maxPending, pending);
+      await new Promise((r) => setTimeout(r, 1));
+      pending--;
+      throw new Error("mail failed");
+    });
+    config.env = "production";
+    try {
+      await runVipps("Vipps April 2019");
+    } finally {
+      config.env = "development";
+      mailStub.resetBehavior();
+    }
+
+    expect(mailStub.callCount).to.be.equal(10);
+    expect(maxPending).to.equal(1);
+  });
+
   it("Adds default donations", async () => {
     parsingRulesStub.resolves([
       {
