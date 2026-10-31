@@ -702,6 +702,93 @@ describe("tRPC regranting", () => {
     });
   });
 
+  describe("saving the builder's payments", () => {
+    const basis = [{ id: 70, lines: [{ organizationId: 1, projectId: null, amountNok: 1000 }] }];
+    const plan = {
+      roundId: 7,
+      basis,
+      setLines: [{ id: 70, lines: [{ organizationId: 1, projectId: null, amountNok: 600 }] }],
+      create: [{ payeeId: 11, lines: [{ organizationId: 3, projectId: null, amountNok: 400 }] }],
+    };
+
+    /** inTransaction keeps the writes of a callback that throws out of the "database" */
+    const transactional = (stubs: Stubs) => {
+      const committed: string[] = [];
+      stubs.inTransaction.callsFake(async (fn: (conn: unknown) => unknown) => {
+        const conn = { pending: [] as string[] };
+        const result = await fn(conn);
+        committed.push(...conn.pending);
+        return result;
+      });
+      stubs.createTransfer.callsFake(
+        async (conn: { pending: string[] }, t: { payeeId: number }) => {
+          conn.pending.push(`create payee ${t.payeeId}`);
+          return 71;
+        },
+      );
+      stubs.replaceTransferLines.callsFake(async (conn: { pending: string[] }, id: number) => {
+        conn.pending.push(`lines ${id}`);
+      });
+      return committed;
+    };
+
+    const setUp = () => {
+      const stubs = stubDao();
+      stubs.lockRound.resolves(round());
+      stubs.getTransfers.resolves([transfer()]);
+      stubs.getPayee.resolves({ id: 11, name: "MC", currency: "NOK" });
+      return stubs;
+    };
+
+    it("applies the whole plan in one transaction", async () => {
+      const stubs = setUp();
+      const committed = transactional(stubs);
+      expect(await admin().transfers.savePayments(plan)).to.deep.equal({ updated: 1, created: 1 });
+      expect(stubs.inTransaction.calledOnce).to.be.true;
+      expect(committed).to.deep.equal(["lines 70", "create payee 11", "lines 71"]);
+    });
+
+    it("saves nothing when a step fails", async () => {
+      const stubs = setUp();
+      const committed = transactional(stubs);
+      stubs.replaceTransferLines
+        .withArgs(sinon.match.any, 71)
+        .rejects(new Error("connection lost"));
+      try {
+        await admin().transfers.savePayments(plan);
+        expect.fail("expected the save to fail");
+      } catch (err: any) {
+        expect(err.message).to.match(/connection lost/);
+      }
+      expect(committed).to.deep.equal([]);
+    });
+
+    it("refuses a plan made from transfers that have changed (a retry after a lost response)", async () => {
+      const stubs = setUp();
+      const committed = transactional(stubs);
+      // The first save went through: the round now has the updated line and a new transfer
+      stubs.getTransfers.resolves([
+        transfer({ lines: [{ ...transfer().lines[0], amountNok: "600.00" }] }),
+        transfer({ id: 71, payee: { id: 11, name: "MC", currency: "NOK" } }),
+      ]);
+      await expectTrpcError(admin().transfers.savePayments(plan), "CONFLICT", /changed since/);
+      expect(committed).to.deep.equal([]);
+      expect(stubs.createTransfer.called).to.be.false;
+    });
+
+    it("only edits the round's own transfers, and only in a draft", async () => {
+      const stubs = setUp();
+      await expectTrpcError(
+        admin().transfers.savePayments({ ...plan, setLines: [{ ...plan.setLines[0], id: 99 }] }),
+        "BAD_REQUEST",
+        /isn't in this round/,
+      );
+      stubs.lockRound.resolves(round({ status: "approved" }));
+      await expectTrpcError(admin().transfers.savePayments(plan), "CONFLICT");
+      expect(stubs.replaceTransferLines.called).to.be.false;
+    });
+  });
+
   describe("adjustments attached to a round", () => {
     const adjustment = (overrides: Record<string, unknown>) => ({
       id: 1,

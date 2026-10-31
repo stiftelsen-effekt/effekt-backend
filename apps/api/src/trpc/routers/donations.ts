@@ -228,7 +228,20 @@ export const donationsRouter = router({
     }),
 
   delete: adminProcedure.input(z.strictObject({ id: idSchema })).mutation(async ({ input }) => {
-    const removed = await DAO.donations.remove(input.id);
+    let removed: boolean;
+    try {
+      removed = await DAO.donations.remove(input.id);
+    } catch (err) {
+      // Still referenced (MySQL 1451): a major_donor regranting round holds the donation
+      if ((err as { errno?: unknown })?.errno === 1451)
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "This donation is part of a major-donor regranting round. Remove it from the round (drafts only) before deleting it; approved and paid rounds keep their donations.",
+          cause: err,
+        });
+      throw err;
+    }
     if (!removed) throw new TRPCError({ code: "NOT_FOUND" });
   }),
 

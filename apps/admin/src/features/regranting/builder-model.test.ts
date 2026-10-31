@@ -203,6 +203,20 @@ describe("planSave", () => {
     expect(() => planSave(builder, edits)).toThrow(/no payee/);
   });
 
+  it("carries the transfers it was made from, so the API can refuse a stale plan", () => {
+    const edits = setPayment(new Map(), saved, 10, null, { amount: "900.00", transferId: 100 });
+    expect(planSave(builder, edits).basis).toEqual(
+      builder.transfers.map((t) => ({
+        id: t.id,
+        lines: t.lines.map((l) => ({
+          organizationId: l.organizationId,
+          projectId: l.projectId,
+          amountNok: Number(l.amountNok),
+        })),
+      })),
+    );
+  });
+
   it("summarizes before → after", () => {
     const edits = setPayment(new Map(), saved, 10, 7, { amount: "0.00", transferId: 100 });
     expect(summarizeEdits(builder, edits)).toEqual([

@@ -335,8 +335,24 @@ function FundGrantDialog({
             ...(grant?.lines.map((l) => l.organizationId) ?? []),
           ]),
         ];
-        if (v.repropose) await propose.mutateAsync({ id: builder.round.id, organizationIds: orgs });
+        // The grant is saved either way: a failed re-proposal mustn't make Save create it twice
+        // (the fund would be debited again). Proposing again is a separate step on the round.
+        const proposed = v.repropose
+          ? await propose
+              .mutateAsync({ id: builder.round.id, organizationIds: orgs })
+              .then(() => true)
+              .catch((err) => {
+                notify.error(
+                  err,
+                  grant
+                    ? "The grant was saved, but its recipients' amounts weren't re-proposed"
+                    : "The grant was added, but its recipients' amounts weren't re-proposed",
+                );
+                return false;
+              })
+          : true;
         await queryClient.invalidateQueries({ queryKey: trpc.regranting.pathKey() });
+        if (!proposed) return;
         notify.success(
           grant ? "Fund grant updated" : "Fund grant added",
           `${formatMoney(grantTotal(v))} from ${fund.name}`,
