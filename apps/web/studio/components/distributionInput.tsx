@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Box, Stack, Card, Text, Button, Select, Label, TextInput, Flex } from "@sanity/ui";
 import { ArrayOfObjectsInputProps, PatchEvent, set, unset } from "sanity";
-import { AddIcon } from "@sanity/icons/Add";
 import { TrashIcon } from "@sanity/icons/Trash";
 
 // Types for our data structures
@@ -32,11 +31,6 @@ type DistributionItem = {
   percentage: number;
   name?: string; // Store name for display purposes
 };
-
-interface DistributionInputProps {
-  value?: DistributionItem[];
-  onChange: (event: PatchEvent) => void;
-}
 
 // Helper function to generate a unique key
 const generateKey = (): string => {

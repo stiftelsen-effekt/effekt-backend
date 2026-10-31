@@ -1,4 +1,4 @@
-import { BarChart, BarChart2 } from "react-feather";
+import { BarChart } from "react-feather";
 import { defineType, defineField } from "sanity";
 
 export default defineType({

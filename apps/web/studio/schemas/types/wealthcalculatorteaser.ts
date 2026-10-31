@@ -1,6 +1,5 @@
 import { defineType, defineField } from "sanity";
 import { DollarSign } from "react-feather";
-import { ColumnsPreview } from "../../components/columnsPreview";
 import { blocktype } from "./blockcontent";
 
 export default defineType({

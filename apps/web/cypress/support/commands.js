@@ -122,21 +122,6 @@ const pickRecurringDonation = () => {
   cy.get("[data-cy=radio-recurring]").click({ force: true });
 };
 
-const registerDonationStub = () => {
-  cy.intercept("POST", "/donations/register", {
-    statusCode: 200,
-    body: {
-      status: 200,
-      content: {
-        KID: "87397824",
-        donorID: 973,
-        hasAnsweredReferral: false,
-        paymentProviderUrl: "",
-      },
-    },
-  }).as("registerDonation");
-};
-
 const pickSingleDonation = () => {
   cy.get("[data-cy=radio-single]").click({ force: true });
 };

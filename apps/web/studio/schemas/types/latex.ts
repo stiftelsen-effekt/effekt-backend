@@ -1,4 +1,3 @@
-import { Divide } from "react-feather";
 import KatexInput from "../../components/katexInput";
 import { KatexPreview } from "../../components/katexPreview";
 import { TexIcon } from "../../components/texIcon";

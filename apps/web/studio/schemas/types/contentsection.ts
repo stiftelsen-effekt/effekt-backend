@@ -1,6 +1,5 @@
 import { FileText } from "react-feather";
 import { ContentSectionPreview } from "../../components/contentSectionPreview";
-import { useMemo } from "react";
 import { defineType, defineField } from "sanity";
 
 export default defineType({

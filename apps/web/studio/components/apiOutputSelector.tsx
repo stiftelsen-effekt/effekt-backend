@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StringInputProps, set, unset, StringSchemaType } from "sanity";
-import { Card, Select, Stack, Text, Spinner, Button } from "@sanity/ui";
+import { Card, Select, Stack, Text, Spinner } from "@sanity/ui";
 
 interface ApiResponse {
   status: number;
@@ -24,7 +24,7 @@ interface ApiOutputSelectorProps extends Omit<StringInputProps, "schemaType"> {
 const api = process.env.SANITY_STUDIO_EFFEKT_API_URL;
 
 export default function ApiOutputSelector(props: ApiOutputSelectorProps) {
-  const { onChange, value, schemaType } = props;
+  const { onChange, value } = props;
   const [outputs, setOutputs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

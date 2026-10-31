@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { PreviewProps } from "sanity";
-import { Navitem } from "../sanity.types";
 import { Card, Flex, Stack, Text } from "@sanity/ui";
 import { Clock, Link, Eye } from "react-feather";
 import { fetchPageViews } from "./pageviews";

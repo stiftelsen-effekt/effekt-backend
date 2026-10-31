@@ -7,7 +7,7 @@ export default defineType({
   title: "Contributors",
   icon: User,
   validation: (Rule) =>
-    Rule.custom(async (fields): Promise<CustomValidatorResult> => {
+    Rule.custom(async (_fields): Promise<CustomValidatorResult> => {
       /* TODO: migrate */
       /*
       const referencedContributors: any[] = await client.fetch(

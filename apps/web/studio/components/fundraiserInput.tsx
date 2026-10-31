@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Stack, Card, Text, Spinner, Flex, TextInput, Label } from "@sanity/ui";
+import { Box, Stack, Card, Text, Spinner, Flex, TextInput } from "@sanity/ui";
 import { SearchIcon } from "@sanity/icons/Search";
 import { PatchEvent, set, unset } from "sanity";
 import { format } from "date-fns";
@@ -94,7 +94,7 @@ export const FundraiserInput = React.forwardRef<HTMLDivElement, FundraiserInputP
     const formatDate = (dateString: string) => {
       try {
         return format(new Date(dateString), "PPP");
-      } catch (e) {
+      } catch {
         return dateString;
       }
     };

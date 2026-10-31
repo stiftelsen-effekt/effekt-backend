@@ -30,7 +30,6 @@ async function fetchWithCache(
   url: string,
   { slugs = [], expireInMinutes = 60 }: { slugs?: string[]; expireInMinutes?: number } = {},
 ) {
-  const cache = await caches.open("plausible-api-cache");
   const cacheKey = cacheWithLocalStorage.createKey(url, slugs);
 
   const cachedData = cacheWithLocalStorage.get(cacheKey);
@@ -61,15 +60,6 @@ async function fetchWithCache(
     console.error("Fetch error:", error);
     throw error;
   }
-}
-
-function createCacheKey(slugs: string[]) {
-  return `views-${slugs.sort().join(",")}`;
-}
-
-async function getCachedData(cache: Cache, key: string) {
-  const response = await cache.match(key);
-  return response ? response.json() : null;
 }
 
 function isExpired(timestamp: number, expireInMinutes: number) {

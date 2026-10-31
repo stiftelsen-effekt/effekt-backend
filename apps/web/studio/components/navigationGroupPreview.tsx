@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PreviewProps } from "sanity";
 import { Card, Flex, Stack, Text } from "@sanity/ui";
 import { Clock, Eye, List } from "react-feather";

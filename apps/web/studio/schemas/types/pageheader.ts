@@ -1,4 +1,4 @@
-import { defineType, defineField, Rule } from "sanity";
+import { defineType, defineField } from "sanity";
 import { Sunset } from "react-feather";
 import { Pageheader } from "../../sanity.types";
 import {

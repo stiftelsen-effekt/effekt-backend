@@ -92,7 +92,6 @@ export default defineType({
             },
             prepare(selection: any) {
               const {
-                headers,
                 firstrowfirstcell,
                 firstrowsecondcell,
                 firstrowthirdcell,

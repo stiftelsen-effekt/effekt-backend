@@ -1,5 +1,4 @@
 import { defineType, defineField } from "sanity";
-import { HelpCircle } from "react-feather";
 
 export default defineType({
   name: "support",

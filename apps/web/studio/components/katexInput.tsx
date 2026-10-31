@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { TextInput, Card, Stack } from "@sanity/ui";
 import katex from "katex";
 import "katex/dist/katex.min.css";
-import { ObjectInputProps, set, unset } from "sanity";
+import { ObjectInputProps, set } from "sanity";
 
 const KatexInput = (props: ObjectInputProps) => {
   const { value, onChange, readOnly } = props;
@@ -15,7 +15,7 @@ const KatexInput = (props: ObjectInputProps) => {
     let renderedHtml = "";
     try {
       renderedHtml = katex.renderToString(newValue, { throwOnError: false });
-    } catch (e) {
+    } catch {
       renderedHtml = `<span class="katex-error">Invalid LaTeX expression</span>`;
     }
 

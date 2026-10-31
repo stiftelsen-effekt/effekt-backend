@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack, Text, Flex, Card } from "@sanity/ui";
-import { Box, Link as LinkIcon } from "react-feather";
+import { Link as LinkIcon } from "react-feather";
 import { PreviewProps } from "sanity";
 import { Link, Links, Navitem } from "../sanity.types";
 // These are react components
