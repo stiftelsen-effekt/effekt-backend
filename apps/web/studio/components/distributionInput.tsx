@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Stack, Card, Text, Button, Select, Label, TextInput, Flex } from "@sanity/ui";
 import { ArrayOfObjectsInputProps, PatchEvent, set, unset } from "sanity";
 import { AddIcon } from "@sanity/icons/Add";
@@ -43,27 +43,21 @@ const generateKey = (): string => {
   return Math.random().toString(36).substring(2, 15);
 };
 
-// Helper function to ensure all items have _key properties
-const ensureKeys = (items: any[]): DistributionItem[] => {
-  return items.map((item) => {
-    if (!item._key) {
-      return {
-        ...item,
-        _key: generateKey(),
-      };
-    }
-    return item;
-  });
-};
+// Items saved without a _key get one from their position, so the key stays the same between
+// renders (and is saved with the next edit)
+const withKeys = (items: any[]): DistributionItem[] =>
+  items.map((item, index) => (item._key ? item : { ...item, _key: `item-${index}` }));
 
 const api = process.env.SANITY_STUDIO_EFFEKT_API_URL;
 
 // DistributionInput Component (main input component for Sanity)
 export const DistributionInput = (props: ArrayOfObjectsInputProps) => {
-  // Ensure all initial values have _key property
-  const initialDistributions = props.value ? ensureKeys(props.value) : [];
-
-  const [distributions, setDistributions] = useState<DistributionItem[]>(initialDistributions);
+  // The document's value is the only state: edits are patched straight to the document, and
+  // opening a document patches nothing (which would create a draft just by viewing it)
+  const { value, onChange } = props;
+  const distributions = useMemo(() => withKeys(value ?? []), [value]);
+  const setDistributions = (next: DistributionItem[]) =>
+    onChange(PatchEvent.from(next.length ? set(next) : unset()));
   const [causeAreas, setCauseAreas] = useState<CauseArea[]>([]);
   const [allCauseAreas, setAllCauseAreas] = useState<CauseArea[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -87,21 +81,6 @@ export const DistributionInput = (props: ArrayOfObjectsInputProps) => {
         setError("Failed to load cause areas");
         setLoading(false);
       });
-  }, []);
-
-  // Update the parent value when distributions change
-  useEffect(() => {
-    if (distributions !== props.value) {
-      props.onChange(PatchEvent.from(distributions.length ? set(distributions) : unset()));
-    }
-  }, [distributions]);
-
-  // Initialize from props
-  useEffect(() => {
-    if (props.value && props.value.length > 0) {
-      // Ensure all values have _key property
-      setDistributions(ensureKeys(props.value));
-    }
   }, []);
 
   // Get name for a cause area
