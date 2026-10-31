@@ -159,21 +159,6 @@ async function getOrder(orderID) {
 }
 
 /**
- * Fetches the most recent vipps order
- * @return {VippsOrder | false}
- */
-async function getRecentOrder() {
-  let [res] = await DAO.query<Vipps_orders[]>(`
-        SELECT * FROM Vipps_orders
-            ORDER BY 
-                registered DESC
-            LIMIT 1`);
-
-  if (res.length === 0) return false;
-  else return res[0];
-}
-
-/**
  * Fetches an agreement by agreementId
  * @property {string} agreementID
  * @return {VippsAgreement | false}
@@ -1333,7 +1318,6 @@ export const vipps = {
   getPaymentsByAgreementId,
   getLatestToken,
   getOrder,
-  getRecentOrder,
   getAgreement,
   getAgreements,
   getAgreementsByDonorId,

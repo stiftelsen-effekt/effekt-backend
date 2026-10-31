@@ -12,19 +12,6 @@ function throwError(message) {
   throw error;
 }
 
-router.get("/payments/all", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    const content = await DAO.facebook.getAllFacebookDonations();
-
-    res.json({
-      status: 200,
-      content,
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
 /**
  * Called from the donor profile page (Min side) by a logged-in donor to claim a
  * Facebook / Instagram payment for tax deduction. The caller must be authenticated and

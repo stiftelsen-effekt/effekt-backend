@@ -229,44 +229,6 @@ router.get("/transaction_costs_report", authMiddleware.isAdmin, async (req, res,
   }
 });
 
-router.post("/reciepts", authMiddleware.isAdmin, async (req, res, next) => {
-  let donationIDs = req.body.donationIDs;
-
-  try {
-    for (let i = 0; i < donationIDs.length; i++) {
-      let donationID = donationIDs[i];
-
-      var mailStatus = await sendDonationReceipt(donationID);
-
-      if (mailStatus == false)
-        console.error(`Failed to send donation for donationID ${donationID}`);
-    }
-
-    res.json({
-      status: 200,
-      content: "OK",
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-router.get("/externalID/:externalID/:methodID", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    let donation = await DAO.donations.getByExternalPaymentID(
-      req.params.externalID,
-      req.params.methodID,
-    );
-
-    return res.json({
-      status: 200,
-      content: donation,
-    });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
 router.get("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     var donation = await DAO.donations.getByID(req.params.id);
@@ -287,25 +249,6 @@ router.get("/all/:kid", authMiddleware.isAdmin, async (req, res, next) => {
       status: 200,
       content: donations,
     });
-  } catch (ex) {
-    next(ex);
-  }
-});
-
-router.put("/transaction_cost/:donationID", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    let result = await DAO.donations.updateTransactionCost(
-      req.body.transactionCost,
-      req.params.donationID,
-    );
-
-    if (result) {
-      return res.json({
-        status: 200,
-      });
-    } else {
-      throw new Error(`Could not update transaction cost for donation ID ${req.params.donationID}`);
-    }
   } catch (ex) {
     next(ex);
   }

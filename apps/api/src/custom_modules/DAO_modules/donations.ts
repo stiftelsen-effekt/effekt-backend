@@ -1033,59 +1033,6 @@ async function getMedianFromRange(fromDate, toDate) {
   return parseFloat(donations[medianIndex].sum_confirmed);
 }
 
-/**
- * Fetches the total amount of money donated to each organization by a specific donor
- * @param {Number} donorID
- * @returns {Array<DonationSummary>} Array of DonationSummary objects
- */
-async function getSummary(donorID) {
-  var [res] = await DAO.query(
-    `SELECT
-            Organizations.full_name, 
-            (Donations.sum_confirmed * percentage_share / 100) as sum_distribution, 
-            transaction_cost, 
-            Donations.Donor_ID
-        
-        FROM Donations
-            INNER JOIN Combining_table 
-                ON Combining_table.KID = Donations.KID_fordeling
-            INNER JOIN Distribution 
-                ON Combining_table.Distribution_ID = Distribution.ID
-            INNER JOIN Organizations 
-                ON Organizations.ID = Distribution.OrgID
-        WHERE 
-            Donations.Donor_ID = ? 
-            
-        ORDER BY timestamp_confirmed DESC
-         
-        LIMIT 10000`,
-    [donorID],
-  );
-
-  const summary: any[] = [];
-  const map = new Map();
-  for (const item of res) {
-    if (!map.has(item.full_name)) {
-      map.set(item.full_name, true);
-      summary.push({
-        organization: item.full_name,
-        sum: 0,
-      });
-    }
-  }
-  res.forEach((row) => {
-    summary.forEach((obj) => {
-      if (row.full_name == obj.organization) {
-        obj.sum += parseFloat(row.sum_distribution);
-      }
-    });
-  });
-
-  summary.push({ donorID: donorID });
-
-  return summary;
-}
-
 async function getYearlyAggregateByDonorId(donorId) {
   const [res] = await DAO.query<
     {
@@ -1177,70 +1124,6 @@ async function getMonthlyAggregateByOrganization(): Promise<
     Amount: parseFloat(row.Amount),
     Cause: row.Cause,
   }));
-}
-
-/**
- * Fetches all donations recieved by a specific donor
- * @param {Number} donorID
- * @returns {Array<DonationDistributions>}
- */
-async function getHistory(donorID) {
-  var [res] = await DAO.query(
-    `
-            SELECT
-                Organizations.full_name,
-                Organizations.abbriv,
-                Donations.timestamp_confirmed,
-                Donations.ID as donation_id,
-                Donations.sum_confirmed as sum_donation,
-                Distribution.ID as distribution_id,
-                (Donations.sum_confirmed * percentage_share / 100) as sum_distribution
-            
-            FROM Donations
-                INNER JOIN Combining_table ON Combining_table.KID = Donations.KID_fordeling
-                INNER JOIN Distribution ON Combining_table.Distribution_ID = Distribution.ID
-                INNER JOIN Organizations ON Organizations.ID = Distribution.OrgID
-
-            WHERE Donations.Donor_ID = ?
-            
-            ORDER BY timestamp_confirmed DESC
-            
-            LIMIT 10000`,
-    [donorID],
-  );
-
-  const history: Array<{
-    donationID: any;
-    donationSum: any;
-    date: any;
-    distributions: Array<{ organization: any; abbriv: any; sum: any }>;
-  }> = [];
-  const map = new Map();
-  for (const item of res) {
-    if (!map.has(item.donation_id)) {
-      map.set(item.donation_id, true);
-      history.push({
-        donationID: item.donation_id,
-        donationSum: item.sum_donation,
-        date: item.timestamp_confirmed,
-        distributions: [],
-      });
-    }
-  }
-
-  res.forEach((row) => {
-    history.forEach((obj) => {
-      if (obj.donationID == row.donation_id) {
-        obj.distributions.push({
-          organization: row.full_name,
-          abbriv: row.abbriv,
-          sum: row.sum_distribution,
-        });
-      }
-    });
-  });
-
-  return history;
 }
 
 /**
@@ -1465,18 +1348,6 @@ async function updateDonorId(donationId: number, donorId: number) {
   );
 }
 
-async function updateTransactionCost(transactionCost, donationID) {
-  await DAO.execute(
-    `
-            UPDATE Donations
-            SET transaction_cost = ?
-            WHERE ID = ?`,
-    [transactionCost, donationID],
-  );
-
-  return true;
-}
-
 async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUnit) {
   await DAO.execute(
     `
@@ -1595,8 +1466,6 @@ export const donations = {
   getAggregateLastYearByMonth,
   getFromRange,
   getMedianFromRange,
-  getSummary,
-  getHistory,
   getTransactionCostsReport,
   getYearlyAggregateByDonorId,
   getMonthlyAggregateByOrganization,
@@ -1606,7 +1475,6 @@ export const donations = {
   getEAFundsDonations,
   getLatestByLegacySeDistribution,
   externalPaymentIDExists,
-  updateTransactionCost,
   update,
   updateDonorId,
   add,

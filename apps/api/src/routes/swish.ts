@@ -16,18 +16,6 @@ const swishWhitelistMiddleware: RequestHandler = (req, res, next) => {
   next();
 };
 
-router.get("/orders/:id/status", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const order = await swish.getSwishOrder(parseInt(id));
-    if (!order) return res.sendStatus(404);
-    res.json({ status: order.status });
-  } catch (err) {
-    console.error("Error while fetching payment request: ", err);
-    next(err);
-  }
-});
-
 router.get("/qr/:token", async (req, res, next) => {
   try {
     const { token } = req.params;

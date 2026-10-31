@@ -194,7 +194,6 @@ describe("public widget paths", () => {
       const getAgreements = sinon.stub(vipps, "getAgreements").resolves([]);
       const createCharge = sinon.stub(vipps, "createCharge").resolves({});
       const refundOrder = sinon.stub(vipps, "refundOrder").resolves(true);
-      await request(app).get("/vipps/agreements/all").expect(401);
       await request(app).get("/vipps/agreement/agr_1").expect(401);
       await request(app)
         .post("/vipps/agreement/charge/create")

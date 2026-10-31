@@ -594,51 +594,6 @@ async function getIDByMatchedNameFB(name) {
 }
 
 /**
- * Gets all the distributions that belong to a donor with only one active tax unit and at least one donation
- * after the provided year
- * @return {Array<{number, number}>} Array of all donor ID and tax unit pairs
- */
-async function getKIDsWithOneTaxUnit(year: number) {
-  let [res] = await DAO.query<{ KID: string; Donor_ID: number; Tax_unit_ID: number }[]>(
-    `
-    SELECT 
-      DI.KID, 
-      DI.Donor_ID, 
-      (SELECT ID FROM Tax_unit WHERE Donor_ID = DI.Donor_ID AND Archived IS NULL) as Tax_unit_ID
-      -- SUM(sum_confirmed), -- Used for debugging
-      -- COUNT(D.ID) -- Used for debugging
-      
-      FROM Donations as D 
-    INNER JOIN Distributions as DI
-      ON D.KID_fordeling = DI.KID
-      
-      WHERE D.Donor_ID IN (
-      -- Donors with exactly one (active) unit
-      SELECT * FROM (
-        SELECT Donor_ID AS unitCount
-          FROM Tax_unit as T WHERE
-          
-          T.archived IS NULL
-          
-          GROUP BY Donor_ID
-          
-          HAVING COUNT(*) = 1
-      ) ids
-    )
-      -- Donations where year is less than or equal
-      AND YEAR(D.timestamp_confirmed) >= ?
-      -- And is missing tax unit
-      AND DI.Tax_unit_ID IS NULL
-      
-      GROUP BY DI.Donor_ID, DI.KID, DI.Tax_unit_ID
-    `,
-    [year],
-  );
-
-  return res;
-}
-
-/**
  * Searches for a user with either email or name matching the query
  * @param {object} filter                All query arguments
  * @param {string} filter.query          A query string trying to match agains full name, email and ID
@@ -794,7 +749,6 @@ export const donors = {
   getByKID,
   getByFacebookPayment,
   getIDByMatchedNameFB,
-  getKIDsWithOneTaxUnit,
   getNumberOfDonationsByDonorID,
   search,
   add,

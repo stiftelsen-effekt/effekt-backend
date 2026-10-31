@@ -1,5 +1,4 @@
 import * as authMiddleware from "../custom_modules/authorization/authMiddleware";
-import { sendVippsAgreementChange } from "../custom_modules/mail";
 import { DAO } from "../custom_modules/DAO";
 
 import express from "express";
@@ -257,24 +256,6 @@ router.post(
   },
 );
 
-router.get("/agreements/all", authMiddleware.isAdmin, async (req, res, next) => {
-  try {
-    let agreements = [];
-
-    // Vipps does not allow fetching all statuses in a single request
-    const active = await vipps.getAgreements("ACTIVE");
-    const pending = await vipps.getAgreements("PENDING");
-    const stopped = await vipps.getAgreements("STOPPED");
-    const expired = await vipps.getAgreements("EXPIRED");
-
-    agreements = agreements.concat(active, pending, stopped, expired);
-
-    res.json(agreements);
-  } catch (ex) {
-    next({ ex });
-  }
-});
-
 router.get("/agreementredirect/:urlcode", async (req, res, next) => {
   try {
     const urlcode = req.params.urlcode;
@@ -409,20 +390,6 @@ router.post(
   },
 );
 
-router.post("/agreement/notify/change", jsonBody, async (req, res, next) => {
-  try {
-    const agreementCode = req.body.agreementCode;
-    const change = req.body.change;
-    const newValue = req.body.newValue;
-
-    const response = await sendVippsAgreementChange(agreementCode, change, newValue);
-
-    res.json(response);
-  } catch (ex) {
-    next({ ex });
-  }
-});
-
 /**
  * Callback from the Vipps eCom v2 API for one-off payments (callbackPrefix set in
  * vipps.initiateOrder). Vipps echoes the per-order authToken we registered when creating
@@ -506,13 +473,6 @@ function vippsCallbackAuthTokenMatches(
   const b = crypto.createHash("sha256").update(provided).digest();
   return crypto.timingSafeEqual(a, b);
 }
-
-router.post("/fundraiser/:id/webhook", jsonBody, async (req, res, next) => {
-  console.log("Webhook received for fundraiser", req.params.id);
-  console.log(req.body);
-
-  return res.sendStatus(200);
-});
 
 /**
  * Vipps Webhooks API endpoint for recurring agreement events.
@@ -608,51 +568,6 @@ router.get("/redirect/:orderId", async (req, res, next) => {
   }
 });
 
-router.get("/integration-test/:linkToken", async (req, res, next) => {
-  if (config.env === "production") {
-    res.status(403).json({
-      status: 403,
-      content: "Integration test not applicable in production environment",
-    });
-    return false;
-  }
-
-  try {
-    let order = await DAO.vipps.getRecentOrder();
-
-    if (!order) {
-      res.status(404).json({
-        status: 404,
-        content: "No recent order found",
-      });
-      return false;
-    }
-
-    let approved = await vipps.approveOrder(order.orderID, req.params.linkToken);
-
-    if (!approved) throw new Error("Could not approve recent order");
-
-    //Try five times for a maximum of 5 seconds
-    for (let i = 0; i < 5; i++) {
-      console.log("Wait 1000");
-      await delay(1000);
-      if (!order) {
-        continue;
-      }
-      order = await DAO.vipps.getOrder(order.orderID);
-      console.log(order);
-      if (order && order.donationID != null) {
-        res.json({ status: 200, content: "Donation registered successfully" });
-        return true;
-      }
-    }
-    throw new Error("Timed out when attempting to verify integration");
-  } catch (ex) {
-    console.warn(ex);
-    res.status(500).json({ status: 500, content: ex.message });
-  }
-});
-
 router.post("/refund/:orderId", authMiddleware.isAdmin, async (req, res, next) => {
   try {
     let refunded = await vipps.refundOrder(req.params.orderId);
@@ -693,14 +608,5 @@ router.put("/cancel/:orderId", authMiddleware.isAdmin, async (req, res, next) =>
     next(ex);
   }
 });
-
-//Helper for integration test
-function delay(t) {
-  return new Promise<void>(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, t);
-  });
-}
 
 module.exports = router;

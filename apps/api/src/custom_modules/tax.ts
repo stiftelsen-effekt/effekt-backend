@@ -61,43 +61,6 @@ export async function connectDonationsForFirstTaxUnit(donorId: number, taxUnitId
   }
 }
 
-export async function setTaxUnitOnDistribution(kid: string, taxUnitId: number) {
-  const distribution = await DAO.distributions.getSplitByKID(kid);
-
-  if (!distribution) {
-    throw new Error("Distribution not found");
-  }
-
-  if (distribution.taxUnitId) {
-    throw new Error("Distribution already has a tax unit");
-  }
-
-  // Fundraiser distributions have unique KIDs that should not be replaced
-  // Just set the tax unit directly without creating a duplicate
-  if (distribution.fundraiserTransactionId) {
-    await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
-    return;
-  }
-
-  // Create a duplicate of the distribution
-  const newDistribution = {
-    ...distribution,
-  };
-
-  const newKID = await donationHelpers.createKID(15, distribution.donorId);
-  newDistribution.kid = newKID;
-
-  // Add the new distribution
-  await DAO.distributions.add(newDistribution);
-
-  // Update the donations to use the new KID
-  const previousYearStart = DateTime.now().minus({ years: 1 }).startOf("year");
-  await DAO.donations.updateKIDBeforeTimestamp(kid, newKID, previousYearStart);
-
-  // Set the tax unit on the original distribution
-  await DAO.distributions.addTaxUnitToDistribution(kid, taxUnitId);
-}
-
 export async function createXMLReportToTaxAuthorities(
   year: number,
   minSum: number,

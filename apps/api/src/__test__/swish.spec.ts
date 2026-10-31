@@ -453,34 +453,6 @@ describe("swish", () => {
       server.use("/swish", swishRouter);
     });
 
-    describe("GET /swish/orders/:id/status", async () => {
-      let getOrderStub: sinon.SinonStub;
-
-      beforeEach(() => {
-        getOrderStub = sinon.stub(swish, "getSwishOrder");
-      });
-
-      function withOrder(order: Partial<Swish_orders> | null) {
-        getOrderStub.resolves(order as any);
-      }
-
-      it("should return 200 if order exists", async () => {
-        const ID = 123;
-        withOrder({ ID });
-
-        await request(server).get(`/swish/orders/${ID}/status`).expect(200);
-
-        expect(getOrderStub.called).to.be.true;
-        expect(getOrderStub.args[0][0]).to.equal(ID);
-      });
-
-      it("should return 404 if order does not exist", async () => {
-        withOrder(null);
-
-        await request(server).get(`/orders/123`).expect(404);
-      });
-    });
-
     describe("POST /swish/callback", () => {
       let handleOrderStatusUpdateStub: sinon.SinonStub;
 

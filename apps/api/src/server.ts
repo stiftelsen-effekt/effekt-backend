@@ -235,7 +235,7 @@ DAO.connect(() => {
 
   //The public donation mutations: the widget's tRPC mutations and their REST counterparts
   const publicMutationLimiter = createPublicMutationLimiter();
-  app.use(["/donations/register", "/vipps/agreement/notify/change"], (req, res, next) =>
+  app.use("/donations/register", (req, res, next) =>
     req.method === "POST" ? publicMutationLimiter(req, res, next) : next(),
   );
   mountTrpc(app, { publicMutationLimiter });
