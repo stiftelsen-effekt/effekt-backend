@@ -60,11 +60,26 @@ function isValidWidgetSsn(ssn: string): boolean {
  * Returns `ok: false` for requests the API rejects (400); database and payment provider errors
  * are thrown.
  */
+/**
+ * Swish takes amounts in SEK with at most two decimals, from 1 öre. Returns null for anything
+ * else, so a Swish payment request is always for the amount the donor entered.
+ */
+export function parseSwishAmount(amount: number | string): number | null {
+  const value = typeof amount === "string" ? Number(amount) : amount;
+  if (!Number.isFinite(value) || value < 0.01) return null;
+  const ore = Math.round(value * 100);
+  if (Math.abs(ore - value * 100) > 1e-6) return null;
+  return ore / 100;
+}
+
 export async function registerPendingDonation(
   parsedData: RegisterDonationBody,
 ): Promise<PendingDonationResult> {
+  let swishAmount: number | null = null;
   if (parsedData.method === methods.SWISH) {
     if (parsedData.recurring) return rejected("Recurring donations not supported with Swish");
+    swishAmount = parseSwishAmount(parsedData.amount);
+    if (swishAmount === null) return rejected("Invalid amount");
   }
 
   if (parsedData.referralCode != null && parsedData.referralCode !== "") {
@@ -266,12 +281,7 @@ export async function registerPendingDonation(
     }
     case methods.SWISH: {
       if (recurring == false) {
-        const res = await swish.initiateOrder(donationObject.KID, {
-          amount:
-            typeof donationObject.amount === "string"
-              ? parseInt(donationObject.amount)
-              : donationObject.amount,
-        });
+        const res = await swish.initiateOrder(donationObject.KID, { amount: swishAmount! });
         swishOrderID = res.orderID;
         swishPaymentRequestToken = res.paymentRequestToken;
       }
