@@ -401,8 +401,8 @@ async function isActive(KID) {
  * @param {Date} date
  * @return {boolean} Success
  */
-async function cancelAgreement(KID) {
-  DAO.query(
+async function cancelAgreement(KID): Promise<boolean> {
+  const [result] = await DAO.query<ResultSetHeader>(
     `
             UPDATE Avtalegiro_agreements
             SET cancelled = NOW(), active = 0
@@ -411,7 +411,7 @@ async function cancelAgreement(KID) {
     [KID],
   );
 
-  return true;
+  return result.affectedRows > 0;
 }
 
 async function exists(KID) {

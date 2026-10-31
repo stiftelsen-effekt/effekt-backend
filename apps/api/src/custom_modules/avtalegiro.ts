@@ -172,8 +172,13 @@ export async function updateAgreements(agreements) {
      */
     if (!agreement.totalReadout) {
       if (agreement.isTerminated) {
-        await DAO.avtalegiroagreements.cancelAgreement(agreement.KID);
-        result.terminated++;
+        try {
+          await DAO.avtalegiroagreements.cancelAgreement(agreement.KID);
+          result.terminated++;
+        } catch (ex) {
+          console.error("Failed to cancel AvtaleGiro agreement", ex);
+          result.failed.push(agreement);
+        }
         continue;
       }
 

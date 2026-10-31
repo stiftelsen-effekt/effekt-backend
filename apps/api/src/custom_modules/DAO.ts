@@ -194,35 +194,64 @@ export const DAO = {
   //Convenience functions for transactions
   //Use the returned transaction object for queries in the transaction
   startTransaction: async function (): Promise<mysql.PoolConnection> {
+    let transaction: mysql.PoolConnection | undefined;
     try {
-      let transaction = await this.dbPool.getConnection();
-      await transaction.query("START TRANSACTION");
-      return transaction;
+      const connection: mysql.PoolConnection = await this.dbPool.getConnection();
+      transaction = connection;
+      // mysql2 wraps each checkout in a new object, but don't rely on it
+      finishedTransactions.delete(connection);
+      await connection.query("START TRANSACTION");
+      return connection;
     } catch (ex) {
       console.log(ex);
+      transaction?.release();
       throw new Error("Fatal error, failed to start transaction");
     }
   },
 
+  /**
+   * Rolls back and releases the connection. A no-op for a transaction that has already been
+   * committed or rolled back, so callers can roll back in a catch after a failed commit.
+   */
   rollbackTransaction: async function (transaction) {
+    if (finishedTransactions.has(transaction)) return;
+    finishedTransactions.add(transaction);
     try {
       await transaction.query("ROLLBACK");
-      transaction.release();
     } catch (ex) {
       console.log(ex);
       throw new Error("Fatal error, failed to rollback transaction");
+    } finally {
+      transaction.release();
     }
   },
 
+  /**
+   * Commits and releases the connection. If the COMMIT fails the transaction is rolled back
+   * before the connection goes back to the pool.
+   */
   commitTransaction: async function (transaction) {
+    if (finishedTransactions.has(transaction)) {
+      throw new Error("Fatal error, transaction was already committed or rolled back");
+    }
+    finishedTransactions.add(transaction);
     try {
       await transaction.query("COMMIT");
-      transaction.release();
     } catch (ex) {
       console.log(ex);
+      try {
+        await transaction.query("ROLLBACK");
+      } catch (rollbackEx) {
+        console.log(rollbackEx);
+      }
       throw new Error("Fatal error, failed to commit transaction");
+    } finally {
+      transaction.release();
     }
   },
 };
+
+/** Connections whose transaction has been committed or rolled back, and released. */
+const finishedTransactions = new WeakSet<object>();
 
 const wait = (ms) => new Promise((res) => setTimeout(res, ms));
