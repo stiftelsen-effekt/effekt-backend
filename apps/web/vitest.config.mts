@@ -6,6 +6,7 @@ export default defineConfig({
     environment: "node",
     globals: false,
     include: ["**/*.test.{ts,tsx}"],
-    exclude: ["**/node_modules/**", ".next/**", "public/studio/**", "cypress/**"],
+    // The studio is its own package with its own `pnpm test`
+    exclude: ["**/node_modules/**", ".next/**", "public/studio/**", "studio/**", "cypress/**"],
   },
 });

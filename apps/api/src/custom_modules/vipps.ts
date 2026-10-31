@@ -28,6 +28,41 @@ function agreementUrlCodeOf(agreement: {
   return fromUrl || agreement.productDescription;
 }
 
+/**
+ * Converts an amount in kroner (a number or a decimal string, as the widget sends it) to whole
+ * øre, which is what Vipps takes. Multiplying a decimal by 100 can land just off an integer
+ * (0.29 * 100 = 28.999...), so round.
+ */
+function toOre(kroner: number | string): number {
+  const value = typeof kroner === "string" ? Number(kroner) : kroner;
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Invalid amount: ${kroner}`);
+  }
+  return Math.round(value * 100);
+}
+
+/** How long the pollers keep checking an order or agreement */
+const POLLING_MAX_DURATION = 1000 * 60 * 10;
+
+/**
+ * Wraps a poll check so an error (a network error, a Vipps 5xx) is logged and polling goes on,
+ * until POLLING_MAX_DURATION has passed. Without this a single failed request ended the polling
+ * and surfaced as an unhandled rejection.
+ */
+function resilientPoll(
+  label: string,
+  check: (polls: number) => Promise<boolean>,
+): (polls: number) => Promise<boolean> {
+  return async (polls) => {
+    try {
+      return await check(polls);
+    } catch (ex) {
+      console.error(`Polling ${label} failed (poll ${polls})`, loggableRequestError(ex));
+      return polls * POLLING_INTERVAL + POLLING_START_DELAY > POLLING_MAX_DURATION;
+    }
+  };
+}
+
 /** How many days ahead of its due date the daily job creates a charge. */
 const CHARGE_DAYS_IN_ADVANCE = 3;
 
@@ -298,7 +333,7 @@ module.exports = {
         paymentType: "eComm Regular Payment",
       },
       transaction: {
-        amount: sum * 100, //Specified in øre, therefore NOK * 100
+        amount: toOre(sum), //Specified in øre
         orderId: order.orderID,
         timeStamp: new Date(),
         transactionText: VIPPS_TEXT,
@@ -325,8 +360,16 @@ module.exports = {
    * @param {string} orderId
    */
   async pollOrder(orderId) {
-    await new Promise((resolve) => setTimeout(resolve, POLLING_START_DELAY));
-    await pollLoop((polls) => this.checkOrderDetails(orderId, polls), POLLING_INTERVAL);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, POLLING_START_DELAY));
+      await pollLoop(
+        resilientPoll(`order ${orderId}`, (polls) => this.checkOrderDetails(orderId, polls)),
+        POLLING_INTERVAL,
+      );
+    } catch (ex) {
+      // Started without awaiting; never let it reject
+      console.error(`Polling order ${orderId} stopped`, loggableRequestError(ex));
+    }
   },
 
   /**
@@ -498,7 +541,8 @@ module.exports = {
         json: data,
       });
     } catch (ex) {
-      if (ex.statusCode === 423 || ex.statusCode === 402 || ex.error[0].errorCode == 61) {
+      const errorCode = Array.isArray(ex?.error) ? ex.error[0]?.errorCode : undefined;
+      if (ex?.statusCode === 423 || ex?.statusCode === 402 || errorCode == 61) {
         //This is most likely a case of the polling trying to capture an order already captured by the callback, simply return true
         return true;
       } else {
@@ -563,7 +607,7 @@ module.exports = {
           merchantSerialNumber: config.vipps_merchant_serial_number,
         },
         transaction: {
-          amount: Number(donation.sum) * 100,
+          amount: toOre(donation.sum),
           transactionText: VIPPS_TEXT,
         },
       };
@@ -663,7 +707,7 @@ module.exports = {
     if (monthlyChargeDay > 28) monthlyChargeDay = 28;
 
     // Real price is set in øre
-    const realAmount = amount * 100;
+    const realAmount = toOre(amount);
     const agreementUrlCode = crypto.randomBytes(16).toString("hex");
 
     const data = {
@@ -965,7 +1009,7 @@ module.exports = {
 
     /** @type {ChargePayload} */
     const data = {
-      amount: amountKroner * 100,
+      amount: toOre(amountKroner),
       currency: "NOK",
       description: "Fast donasjon til Gi Effektivt.",
       due: formattedDueDate,
@@ -1200,7 +1244,14 @@ module.exports = {
    */
   async pollAgreement(agreementId) {
     setTimeout(() => {
-      pollLoop((polls) => this.checkAgreement(agreementId, polls), POLLING_INTERVAL);
+      pollLoop(
+        resilientPoll(`agreement ${agreementId}`, (polls) =>
+          this.checkAgreement(agreementId, polls),
+        ),
+        POLLING_INTERVAL,
+      ).catch((ex) => {
+        console.error(`Polling agreement ${agreementId} stopped`, loggableRequestError(ex));
+      });
     }, POLLING_START_DELAY);
   },
 
@@ -1452,4 +1503,6 @@ module.exports = {
 
   scheduledChargeDueDate,
   scheduledChargeIdempotencyKey,
+  toOre,
+  resilientPoll,
 };

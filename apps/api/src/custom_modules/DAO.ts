@@ -115,6 +115,8 @@ export const DAO = {
       password: config.db_password,
       database: config.db_name,
       waitForConnections: true,
+      // DB_CONNECTION_LIMIT, 10 by default (the mysql2 default)
+      connectionLimit: config.db_connection_limit,
       enableKeepAlive: true as true, // Workaround for type checking quirk
       timezone: "+00:00",
       // Bind objects as strings instead of expanding them to `key` = value, which turns
