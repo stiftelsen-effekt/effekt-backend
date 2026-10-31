@@ -115,9 +115,7 @@ export const DonationsPage = withStaticProps(
 
   const debouncedMobileCheck = useDebouncedCallback(
     () => {
-      typeof window !== "undefined" && window.innerWidth <= 1180
-        ? setIsMobile(true)
-        : setIsMobile(false);
+      setIsMobile(typeof window !== "undefined" && window.innerWidth <= 1180);
     },
     500,
     { trailing: true },

@@ -23,7 +23,7 @@ export const TaxYearlyReportList: React.FC<{
     { label: "Skatteenhet", width: "25%" },
     { label: "Enhetsnummer", width: "25%" },
     { label: "Skattefradrag", width: "25%" },
-    { label: "Sum donasjoner", width: "25%", align: "right" as "right" },
+    { label: "Sum donasjoner", width: "25%", align: "right" as const },
   ];
 
   const currentYear = new Date().getFullYear();
@@ -43,7 +43,7 @@ export const TaxYearlyReportList: React.FC<{
       { value: "-" },
       {
         value: thousandize(Math.round(report.sumDonationsWithoutTaxUnit.sumDonations)) + " kr",
-        align: "right" as "right",
+        align: "right" as const,
       },
     ],
     details: (
@@ -61,7 +61,7 @@ export const TaxYearlyReportList: React.FC<{
       { value: unit.name },
       { value: unit.ssn },
       { value: thousandize(Math.round(unit.taxDeduction)) + " kr" },
-      { value: thousandize(Math.round(unit.sumDonations)) + " kr", align: "right" as "right" },
+      { value: thousandize(Math.round(unit.sumDonations)) + " kr", align: "right" as const },
     ],
     details: <TaxYearlyReportDesktopDetails channels={unit.channels} unit={unit} />,
     element: unit,

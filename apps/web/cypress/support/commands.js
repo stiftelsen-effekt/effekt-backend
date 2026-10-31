@@ -231,5 +231,3 @@ Cypress.Commands.add("ignorePlausibleTracking", () => {
     win.localStorage.setItem("plausible_ignore", "true");
   });
 });
-
-export {};

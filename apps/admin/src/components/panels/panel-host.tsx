@@ -295,7 +295,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
       top?.focus({ preventScroll: true });
     } else if (count < before) {
       const target = returnFocus.current.get(count);
-      for (const depth of [...returnFocus.current.keys()])
+      for (const depth of Array.from(returnFocus.current.keys()))
         if (depth >= count) returnFocus.current.delete(depth);
       if (target?.isConnected) target.focus({ preventScroll: true });
       else top?.focus({ preventScroll: true });

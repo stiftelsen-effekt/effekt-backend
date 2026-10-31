@@ -17,7 +17,7 @@ export default defineType({
   ],
   preview: {
     select: {},
-    prepare({}: {}) {
+    prepare() {
       return {
         title: "DK Renew Payment",
       };

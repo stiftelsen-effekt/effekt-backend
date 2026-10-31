@@ -73,7 +73,7 @@ export const Outputs: React.FC<{
 
   const maxOutputsInYear = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const years = Array.from(new Array(currentYear + 1 - startYear)).map((_, i) => startYear + i);
+    const years = Array.from({ length: currentYear + 1 - startYear }).map((_, i) => startYear + i);
     const yearlyMaxes = years.map((year) =>
       transformedMonthlyDonationsPerOutput
         .filter((d) => d.period.getFullYear() === year)
@@ -102,7 +102,7 @@ export const Outputs: React.FC<{
     (data: TransformedMonthlyDonationsPerOutput) => {
       if (graphRef.current && legendRef.current && innerGraph.current) {
         const currentYear = new Date().getFullYear();
-        const years = Array.from(new Array(currentYear + 1 - startYear), (x, i) => ({
+        const years = Array.from({ length: currentYear + 1 - startYear }, (x, i) => ({
           period: new Date(startYear + i, 0, 1),
           y: 0,
         }));
@@ -315,7 +315,7 @@ export const Outputs: React.FC<{
           ],
         };
 
-        const range = (plotConfig.color?.range as any).slice();
+        const range = (plotConfig.color?.range as any)?.slice();
 
         if (range) {
           ((plotConfig.color as any).range as any[]).forEach(

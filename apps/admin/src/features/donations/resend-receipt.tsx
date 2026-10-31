@@ -130,7 +130,7 @@ export function ResendReceiptDialog({
 export function receiptError(error: unknown): { title: string; hint: string } {
   const message = error instanceof Error ? error.message : "";
   // The API answers BAD_GATEWAY with what the mail service said.
-  if (errorCode(error) === "BAD_GATEWAY" || /^Receipt failed/.test(message)) {
+  if (errorCode(error) === "BAD_GATEWAY" || message.startsWith("Receipt failed")) {
     return {
       title: "The receipt wasn't sent",
       hint: `${message.replace(

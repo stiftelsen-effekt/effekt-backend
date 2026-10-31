@@ -91,7 +91,7 @@ export const validateReport = (report): string | null => {
     if (!moment.utc(row[fieldMapping.date], "DD.MM.YYYY", true).isValid()) {
       return `${line} has no date in the first column (DD.MM.YYYY)`;
     }
-    const amount = Number(row[fieldMapping.sum].replace(/\./g, "").replace(/\,/g, "."));
+    const amount = Number(row[fieldMapping.sum].replace(/\./g, "").replace(/,/g, "."));
     if (row[fieldMapping.sum].trim() === "" || !Number.isFinite(amount)) {
       return `${line} has no amount in the fourth column`;
     }
@@ -108,7 +108,7 @@ const parseRow = (row: Array<string>) => {
   return {
     date: moment.utc(row[fieldMapping.date], "DD.MM.YYYY"),
     message: row[fieldMapping.message].replace(/(\r\n|\r|\n)/g, ""),
-    amount: Number(row[fieldMapping.sum].replace(/\./g, "").replace(/\,/g, ".")),
+    amount: Number(row[fieldMapping.sum].replace(/\./g, "").replace(/,/g, ".")),
     KID: parseUtil.extractKID(row[fieldMapping.KID]),
     transactionID: row[fieldMapping.externalRef],
     paymentID: 5,

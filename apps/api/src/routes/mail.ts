@@ -63,66 +63,6 @@ router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) 
     status: 501,
     content: "Not implemented",
   });
-
-  try {
-    const reportsWithUserOnProfilePage = await DAO.tax.getReportsWithUserOnProfilePage();
-    const reportsWithoutUserOnProfilePage = []; //await DAO.tax.getReportsWithoutUserOnProfilePage();
-
-    let successfullySent = 0;
-    let failedToSend = 0;
-
-    // Batch send to all users with profile page, maximum 10 at a time
-    // Using Promise.all to send all at once
-    let results = [];
-    const totalEmails =
-      reportsWithUserOnProfilePage.length + reportsWithoutUserOnProfilePage.length;
-    while (successfullySent + failedToSend < totalEmails) {
-      const promises = [];
-      const MAX_CONCURRENT = 10;
-
-      console.log(
-        `Batch sending ${MAX_CONCURRENT} reports (total: ${
-          successfullySent + failedToSend
-        }) (success: ${successfullySent}) (failed: ${failedToSend})...`,
-      );
-
-      for (let i = 0; i < MAX_CONCURRENT; i++) {
-        if (reportsWithUserOnProfilePage.length > 0) {
-          const report = reportsWithUserOnProfilePage.pop();
-          // TODO: Replace with new mailersend template
-          // promises.push(sendTaxYearlyReportNoticeWithUser(report));
-        } else if (reportsWithoutUserOnProfilePage.length > 0) {
-          const report = reportsWithoutUserOnProfilePage.pop();
-          // TODO: Replace with new mailersend template
-          // romises.push(sendTaxYearlyReportNoticeNoUser(report));
-        } else {
-          break;
-        }
-      }
-
-      const results = await Promise.allSettled(promises);
-      results.forEach((result) => {
-        results.push(result);
-        if (result.status === "fulfilled") {
-          successfullySent++;
-        } else {
-          console.error("Failed to send", result.reason);
-          failedToSend++;
-        }
-      });
-    }
-
-    res.json({
-      status: 200,
-      content: {
-        success: successfullySent,
-        failed: failedToSend,
-        results: results,
-      },
-    });
-  } catch (ex) {
-    next(ex);
-  }
 });
 
 /**

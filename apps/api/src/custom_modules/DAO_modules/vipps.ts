@@ -161,7 +161,7 @@ async function getOrder(orderID) {
 /**
  * Fetches an agreement by agreementId
  * @property {string} agreementID
- * @return {VippsAgreement | false}
+ * @return {VippsAgreement | false}
  */
 async function getAgreement(agreementID): Promise<VippsAgreement | false> {
   // ID is a VARCHAR: MySQL coerces non-numeric IDs to 0, so `ID = false` matches every row

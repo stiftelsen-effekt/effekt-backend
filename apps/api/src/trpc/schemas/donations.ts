@@ -59,7 +59,8 @@ export const paymentExternalRefSchema = z.string().min(1).max(32);
 export const transactionCostSchema = z
   .number()
   .nonnegative()
-  .max(99_999_999_999_999.99)
+  // 99_999_999_999_999.99 written so that the literal does not lose precision
+  .max(1e14 - 0.01)
   .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
     message: "Amount can have at most two decimals",
   });

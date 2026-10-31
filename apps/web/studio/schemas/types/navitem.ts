@@ -21,10 +21,8 @@ export default defineType({
       title: "Page",
       type: "reference",
       to: [
-        ...[
-          ...pages.map((p) => ({ type: p.name })),
-          ...dashboardpages.map((p) => ({ type: p.name })),
-        ],
+        ...pages.map((p) => ({ type: p.name })),
+        ...dashboardpages.map((p) => ({ type: p.name })),
       ],
     }),
   ],

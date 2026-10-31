@@ -321,7 +321,7 @@ describe("Widget", () => {
           "https://impact.gieffektivt.no/api/evaluations?charity_abbreviation=*&currency=*&language=*&donation_year=*&donation_month=*",
           (req) => {
             const [, abbriv, year, month] = req.url.match(
-              /.*abbreviation=(.*)\&currency.*year=(\d{4}).*month=(\d{1,2})/,
+              /.*abbreviation=(.*)&currency.*year=(\d{4}).*month=(\d{1,2})/,
             );
             const filename = `${year}-${month}-${abbriv}`;
             if (evaluations[filename]) {

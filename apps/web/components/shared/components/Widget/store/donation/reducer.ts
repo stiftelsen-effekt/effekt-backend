@@ -157,7 +157,7 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
     }
     case SET_CAUSE_AREA_AMOUNT: {
       const { causeAreaId, amount } = action.payload;
-      const newAmounts = { ...(state.causeAreaAmounts ?? {}), [causeAreaId]: amount };
+      const newAmounts = { ...state.causeAreaAmounts, [causeAreaId]: amount };
 
       state = {
         ...state,
@@ -168,7 +168,7 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
     case SET_CAUSE_AREA_DISTRIBUTION_TYPE: {
       const { causeAreaId, distributionType } = action.payload;
       const newDistributionTypes = {
-        ...(state.causeAreaDistributionType ?? {}),
+        ...state.causeAreaDistributionType,
         [causeAreaId]: distributionType,
       };
 
@@ -180,7 +180,7 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
     }
     case SET_ORG_AMOUNT: {
       const { orgId, amount } = action.payload;
-      const newOrgAmounts = { ...(state.orgAmounts ?? {}), [orgId]: amount };
+      const newOrgAmounts = { ...state.orgAmounts, [orgId]: amount };
 
       state = {
         ...state,
@@ -264,7 +264,7 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
     case SET_OPERATIONS_PERCENTAGE_MODE_BY_CAUSE_AREA: {
       const { causeAreaId, isPercentageMode } = (action as any).payload;
       const newModes = {
-        ...(state.operationsPercentageModeByCauseArea ?? {}),
+        ...state.operationsPercentageModeByCauseArea,
         [causeAreaId]: isPercentageMode,
       };
 
@@ -286,7 +286,7 @@ export const donationReducer: Reducer<Donation, DonationActionTypes> = (
     case SET_OPERATIONS_PERCENTAGE_BY_CAUSE_AREA: {
       const { causeAreaId, percentage } = (action as any).payload;
       const newPercentages = {
-        ...(state.operationsPercentageByCauseArea ?? {}),
+        ...state.operationsPercentageByCauseArea,
         [causeAreaId]: percentage,
       };
 
