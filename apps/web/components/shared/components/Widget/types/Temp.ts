@@ -1,15 +1,6 @@
-export interface Shares {
-  [id: number]: number;
-}
-
 export interface IServerResponse<T> {
   status: number;
   content: T | string;
-}
-
-export interface OrganizationShare {
-  id: number;
-  split: number;
 }
 
 export interface ReferralData {
@@ -24,8 +15,3 @@ export type ReferralType = {
   name: string;
   ordering: number;
 };
-
-export interface DraftAgreementResponse {
-  vippsConfirmationUrl: string;
-  agreementUrlCode: string;
-}

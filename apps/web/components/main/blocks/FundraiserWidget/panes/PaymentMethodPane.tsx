@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { EffektCheckbox } from "../../../../shared/components/EffektCheckbox/EffektCheckbox";
 import { NavLink } from "../../../../shared/components/Navbar/Navbar";
 import { Spinner } from "../../../../shared/components/Spinner/Spinner";
@@ -91,14 +91,16 @@ export const PaymentMethodPane = React.forwardRef<HTMLDivElement, PaymentMethodP
     const [ssnError, setSsnError] = useState<string | null>(null);
     const [cprSuspicious, setCprSuspicious] = useState(false);
 
-    // Clear errors when tax deduction is unchecked
-    useEffect(() => {
+    // Clear the errors when tax deduction is unchecked (during render, not in an effect, so the
+    // stale message never shows)
+    const [prevTaxDeduction, setPrevTaxDeduction] = useState(formData.taxDeduction);
+    if (formData.taxDeduction !== prevTaxDeduction) {
+      setPrevTaxDeduction(formData.taxDeduction);
       if (!formData.taxDeduction) {
-        // oxlint-disable-next-line react/set-state-in-effect -- clears the errors when tax deduction is unchecked
         setSsnError(null);
         setCprSuspicious(false);
       }
-    }, [formData.taxDeduction]);
+    }
 
     const handleSsnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { value } = e.target;

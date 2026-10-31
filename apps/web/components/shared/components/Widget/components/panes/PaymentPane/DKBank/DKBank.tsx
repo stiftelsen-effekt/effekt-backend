@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useWidgetSelector } from "../../../../store/store";
+import { useDonationTotal, useWidgetSelector } from "../../../../store/store";
 import { State } from "../../../../store/state";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import { DkBankPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
@@ -7,7 +7,6 @@ import { usePlausible } from "next-plausible";
 import AnimateHeight from "react-animate-height";
 import { PaymentInformation } from "../Bank/PaymentInformation";
 import { ANONYMOUS_DONOR } from "../../../../config/anonymous-donor";
-import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
 import { currencyForLocale } from "../../../../utils/currency";
 import panes from "../../Panes.module.scss";
 import payment from "../PaymentPane.module.scss";
@@ -18,25 +17,10 @@ export const DKBankPane: React.FC<{
 }> = ({ config, referrals }) => {
   const plausible = usePlausible();
   const donation = useWidgetSelector((state: State) => state.donation);
-  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
 
   // The rewritten widget tracks per-cause-area/organization amounts rather than a single sum,
   // so derive the total from the donation breakdown for analytics.
-  const totalAmount = calculateDonationBreakdown(
-    donation.causeAreaAmounts ?? {},
-    donation.orgAmounts ?? {},
-    donation.causeAreaDistributionType ?? {},
-    donation.operationsPercentageModeByCauseArea ?? {},
-    donation.operationsPercentageByCauseArea ?? {},
-    causeAreas,
-    donation.selectionType ?? "single",
-    donation.selectedCauseAreaId ?? 1,
-    donation.globalOperationsEnabled ?? false,
-    donation.globalOperationsPercentage ?? donation.operationsConfig?.defaultPercentage ?? 10,
-    donation.operationsConfig?.excludedCauseAreaIds ?? [],
-    donation.operationsConfig?.operationsCauseAreaId,
-    donation.smartDistributionTotal,
-  ).totalAmount;
+  const totalAmount = useDonationTotal();
 
   const [hasCompletedTransaction, setHasCompletedTransaction] = useState(false);
   const currency = currencyForLocale(config.locale);
