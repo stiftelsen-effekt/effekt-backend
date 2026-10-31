@@ -10,14 +10,12 @@ import { osloDayEnd, osloDayRange, osloDayStart } from "../../custom_modules/osl
 import {
   processBankNoReport,
   processBankSeReport,
-  processFacebookReport,
   processOcrReport,
   processVippsReport,
   ReportParseError,
 } from "../../custom_modules/reportsService";
 import {
   bankSeUploadInput,
-  fileOnlyUploadInput,
   fundraisersListInput,
   donorIdInput,
   idInput,
@@ -92,15 +90,12 @@ export const uploadLogLabels = {
   bankSe: "Bank SE - Upload",
 } as const satisfies Partial<Record<ReviewQueueSource, string>>;
 
-const FACEBOOK_UPLOAD_LOG_LABEL = "Facebook - Upload";
-
 /** The admin's names of the upload sources, by Import_logs label */
 const uploadDisplayLabels: Record<string, { source: string; label: string }> = {
   [uploadLogLabels.ocr]: { source: "ocr", label: "Bank OCR" },
   [uploadLogLabels.vipps]: { source: "vipps", label: "Vipps" },
   [uploadLogLabels.bankNo]: { source: "bankNo", label: "Bank account export" },
   [uploadLogLabels.bankSe]: { source: "bankSe", label: "Bank (SE)" },
-  [FACEBOOK_UPLOAD_LOG_LABEL]: { source: "facebook", label: "Facebook" },
 };
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -114,9 +109,6 @@ const uploadSummary = (row: ImportLogSummary & Partial<ImportLogUploadDetails>):
   }
   if (donations?.ignored) parts.push(`${donations.ignored} already registered`);
   if (row.reviewCount != null) parts.push(`${row.reviewCount} sent to review`);
-  if (row.campaignsMissingShares != null) {
-    parts.push(`${plural(Number(row.campaignsMissingShares), "campaign")} without shares`);
-  }
   const counts = parts.join(", ");
   return row.filename ? `${row.filename}${counts ? `: ${counts}` : ""}` : counts;
 };
@@ -242,8 +234,7 @@ const uploadContext = (
 
 /**
  * Each upload except dry runs writes an Import_logs entry labelled per source (see
- * uploadLogLabels; Facebook, which registers nothing, logs "Facebook - Upload" without returning
- * an id) and returns its id as `importLogId`. Invalid transactions are queued for review linked
+ * uploadLogLabels) and returns its id as `importLogId`. Invalid transactions are queued for review linked
  * to that entry and with the chosen data owner, which reviewQueue.register defaults to.
  */
 const uploadsRouter = router({
@@ -311,30 +302,6 @@ const uploadsRouter = router({
           : null,
     };
   }),
-
-  /**
-   * Facebook payout report. Returns the campaigns that have no organization shares registered.
-   * Registering shares and donations from Facebook reports is not implemented (see report).
-   * No donations are registered, so `metaOwnerID` is only validated. The upload is logged
-   * ("Facebook - Upload") with the file name and campaign count, without the file.
-   */
-  facebook: adminProcedure.input(fileOnlyUploadInput).mutation(async ({ input, ctx }) => {
-    const metaOwnerID = await checkedMetaOwner(input.metaOwnerID);
-    const data = await readBuffer(input.report);
-    const result = await processFile(() => processFacebookReport(data, { strict: true }));
-    // Logged without the file: it has donors' names and emails and is stored as the report
-    try {
-      await DAO.logging.add(FACEBOOK_UPLOAD_LOG_LABEL, {
-        upload: { source: "facebook", metaOwnerID, uploadedBy: adminIdentity(ctx.auth) },
-        campaigns: { missingShares: result.fbCampaigns.length },
-        filename: input.report.name,
-      });
-    } catch (ex) {
-      console.error("Failed to write the import log of a facebook upload");
-      console.error(ex);
-    }
-    return result;
-  }),
 });
 
 const transactionsRouter = router({
@@ -388,9 +355,9 @@ const logsRouter = router({
       { searchFilename: true, uploadDetails: true },
     );
     const rows = (entries.results as Array<ImportLogSummary & Partial<ImportLogUploadDetails>>).map(
-      ({ uploadSource, filename, donations, reviewCount, campaignsMissingShares, ...row }) => {
+      ({ uploadSource, filename, donations, reviewCount, ...row }) => {
         const upload = row.label ? uploadDisplayLabels[row.label] : undefined;
-        const details = { filename, donations, reviewCount, campaignsMissingShares };
+        const details = { filename, donations, reviewCount };
         return {
           ...row,
           displayLabel: upload?.label ?? row.label,

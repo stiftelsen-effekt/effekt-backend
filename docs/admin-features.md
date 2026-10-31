@@ -31,7 +31,7 @@ Swedish organisation runs on its own system; Swedish features are out of scope.
   it's the donor's first payment) and an Intents tab; intents on the KID page; a Home item for new
   donors waiting on a first bank/AvtaleGiro payment.
 - **Registering money** (the most important ops flow):
-  - Import a payment report per source: Vipps, bank OCR, bank (custom), Facebook. Choose data
+  - Import a payment report per source: Vipps, bank OCR, bank (custom). Choose data
     owner. Result: inserted / ignored / sent to
     review.
   - **Review queue** (server-side, shared by the team): unmatched transactions with reason + raw

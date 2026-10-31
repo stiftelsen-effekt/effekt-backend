@@ -154,7 +154,6 @@ describe("Preview environment guard", function () {
         "Auth0 M2M",
         "Auth0 MCP",
         "Survey export",
-        "Facebook sync",
       ]) {
         expect(covered.has(integration), integration).to.equal(true);
       }

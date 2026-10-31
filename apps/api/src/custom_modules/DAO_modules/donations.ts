@@ -1359,29 +1359,6 @@ async function updateDonorId(donationId: number, donorId: number) {
   );
 }
 
-async function transferDonationsFromDummy(targetDonorID, dummyDonorID, newTaxUnit) {
-  await DAO.execute(
-    `
-      UPDATE Donations
-      SET Donor_ID = ?
-      WHERE Donor_ID = ?
-      AND Payment_ID = 9
-    `,
-    [targetDonorID, dummyDonorID],
-  );
-
-  await DAO.execute(
-    `
-      UPDATE Combining_table
-      SET Donor_ID = ?, Tax_unit_ID = ?
-      WHERE Donor_ID = ?
-    `,
-    [targetDonorID, newTaxUnit, dummyDonorID],
-  );
-
-  return true;
-}
-
 async function updateKIDBeforeTimestamp(originalKID: string, newKID: string, timestamp: DateTime) {
   await DAO.execute(
     `
@@ -1492,7 +1469,6 @@ export const donations = {
   addLegacySeDonationDistribution,
   getHistogramBySum,
   getLogHistogramBySum,
-  transferDonationsFromDummy,
   updateKIDBeforeTimestamp,
   updateKIDById,
   remove,

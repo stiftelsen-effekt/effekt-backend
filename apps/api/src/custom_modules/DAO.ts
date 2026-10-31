@@ -3,7 +3,6 @@ import { donors } from "./DAO_modules/donors";
 import { donations } from "./DAO_modules/donations";
 import { distributions } from "./DAO_modules/distributions";
 import { vipps } from "./DAO_modules/vipps";
-import { facebook } from "./DAO_modules/facebook";
 import { payment } from "./DAO_modules/payment";
 import { parsing } from "./DAO_modules/parsing";
 import { referrals } from "./DAO_modules/referrals";
@@ -78,7 +77,6 @@ export const DAO = {
   initialpaymentmethod: initialpaymentmethod,
   avtalegiroagreements: avtalegiroagreements,
   avtalegirocharges: avtalegirocharges,
-  facebook: facebook,
   tax: tax,
   logging: logging,
   results: results,

@@ -21,8 +21,6 @@ export type ImportLogUploadDetails = {
   donations: { valid?: number; invalid?: number; ignored?: number } | null;
   /** Transactions sent to review */
   reviewCount: number | null;
-  /** Facebook uploads: campaigns without organization shares */
-  campaignsMissingShares: number | null;
 };
 
 export type ImportLogEntry = {
@@ -90,8 +88,7 @@ async function getEntries(
         JSON_UNQUOTE(JSON_EXTRACT(result, "$.upload.source")) AS uploadSource,
         JSON_UNQUOTE(JSON_EXTRACT(result, "$.filename")) AS filename,
         JSON_EXTRACT(result, "$.donations") AS donations,
-        JSON_LENGTH(result, "$.invalidTransactions") AS reviewCount,
-        JSON_EXTRACT(result, "$.campaigns.missingShares") AS campaignsMissingShares`
+        JSON_LENGTH(result, "$.invalidTransactions") AS reviewCount`
     : "";
 
   let [res] = await DAO.query<ImportLogSummary[]>(

@@ -73,7 +73,7 @@ every night ───────────► .github/workflows/preview-janit
    need this: a regranting round must be approved by someone other than its creator, so create
    it as Finance and approve it as Approver.
 4. Everything is fake. Names, emails and account numbers are generated. Nothing is sent: no emails,
-   Vipps payments, bank (Mastercard Payment Services) files, Mailchimp or Facebook syncs.
+   Vipps payments, bank (Mastercard Payment Services) files or Mailchimp syncs.
 5. Every push resets the database. Don't build up state you need across pushes.
 6. The first request after a quiet period takes a few seconds (the preview scales to zero).
 
@@ -165,7 +165,7 @@ password or data.
     public IP as `DB_HOST`;
   - no production secret or integration is configured: Vipps, MailerSend, Mailchimp, Mastercard
     Payment Services SFTP, Auth0 (M2M client, MCP client, log stream / register
-    webhooks, the tenant itself), the analysis MCP database, survey export, Facebook sync, Tidbyt,
+    webhooks, the tenant itself), the analysis MCP database, survey export, Tidbyt,
     site revalidation, Redis (the full list is `FORBIDDEN_PREVIEW_SETTINGS`);
   - `NODE_ENV` isn't `production` (previews run `NODE_ENV=preview`: Vipps test API, no stack
     traces in responses);

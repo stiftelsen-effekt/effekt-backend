@@ -541,59 +541,6 @@ async function getByKID(KID) {
 }
 
 /**
- * Gets a dummy donor by Facebook payment ID
- * @param {String} paymentID Facebook payment ID
- * @returns {Donor}
- */
-async function getByFacebookPayment(paymentID) {
-  var [result] = await DAO.execute(
-    `
-        SELECT Donors.ID, email, full_name FROM Donors
-        INNER JOIN Donations on Donations.Donor_ID = Donors.ID
-        where Donations.PaymentExternal_ID = ?
-        and email like "donasjon%@gieffektivt.no"
-      `,
-    [paymentID],
-  );
-
-  return result[0];
-}
-
-/**
- * Gets donors based on their Facebook name
- * If multiple donors with same name exists, sort by the most recent confirmed donation
- * @param {String} name Donor name from Facebook
- * @returns {Array<Donor>}
- */
-async function getIDByMatchedNameFB(name) {
-  var [result] = await DAO.execute(
-    `
-          SELECT DR.ID, DR.full_name, DR.email, max(DN.timestamp_confirmed) as most_recent_donation FROM Donors as DR
-          inner join Donations as DN on DR.ID = DN.Donor_ID
-          where DR.full_name = ?
-          and DR.email not like "donasjon%@gieffektivt.no"
-          group by DR.ID
-          order by most_recent_donation DESC
-          `,
-    [name],
-  );
-
-  // Query above does not find donors that have not donated before
-  if (result.length == 0) {
-    [result] = await DAO.execute(
-      `
-              SELECT ID FROM Donors
-              where full_name = ?
-          `,
-      [name],
-    );
-  }
-
-  if (result.length > 0) return result;
-  else return null;
-}
-
-/**
  * Searches for a user with either email or name matching the query
  * @param {object} filter                All query arguments
  * @param {string} filter.query          A query string trying to match agains full name, email and ID
@@ -773,8 +720,6 @@ export const donors = {
   getByID,
   getIDbyEmail,
   getByKID,
-  getByFacebookPayment,
-  getIDByMatchedNameFB,
   getNumberOfDonationsByDonorID,
   search,
   add,
