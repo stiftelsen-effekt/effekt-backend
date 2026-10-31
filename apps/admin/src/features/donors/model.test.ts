@@ -169,6 +169,7 @@ describe("donorAgreements", () => {
           cancelled: null,
           last_updated: null,
           notice: true,
+          registered_mail_sent: null,
           full_name: "Kari",
         },
       ],
