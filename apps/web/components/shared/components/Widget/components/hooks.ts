@@ -393,8 +393,6 @@ export const useWidgetScaleEffect = (
     inline,
   ]);
 
-  useEffect(() => scaleWidget, [widgetContext.open, scaleWidget]);
-
   const debouncedScaleWidget = useDebouncedCallback(() => scaleWidget(), 1000, { maxWait: 1000 });
 
   useEffect(() => {

@@ -49,8 +49,6 @@ export interface Donation extends DonationInput {
   smartDistributionTotal?: number;
   /** Whether global operations cut is enabled (for multiple cause areas) */
   globalOperationsEnabled?: boolean;
-  /** Whether global operations cut is in percentage mode (true) or custom amount mode (false) */
-  globalOperationsPercentageMode?: boolean;
   /** Whether operations cut is in percentage mode (true) or custom amount mode (false) for each cause area */
   operationsPercentageModeByCauseArea?: Record<number, boolean>;
   /** Global operations percentage value (0-100) */

@@ -100,8 +100,6 @@ Cypress.Commands.add("loginFullstack", (donorId) => {
 
 const isAuthenticatedCookie = (cookie) => /^auth0\..+\.is\.authenticated$/.test(cookie.name);
 
-const getState = () => cy.window().its("store").invoke("getState");
-
 const nextWidgetPane = () => {
   // Panes stay mounted once visited, so several [data-cy=next-button]s can
   // exist at once — .last() is always the currently active pane's.
@@ -130,7 +128,6 @@ const pickAnonymous = () => {
   cy.get("[data-cy=anon-checkbox]").click();
 };
 
-Cypress.Commands.add("getState", getState);
 Cypress.Commands.add("nextWidgetPane", nextWidgetPane);
 Cypress.Commands.add("prevWidgetPane", prevWidgetPane);
 Cypress.Commands.add("checkNextIsDisabled", checkNextIsDisabled);

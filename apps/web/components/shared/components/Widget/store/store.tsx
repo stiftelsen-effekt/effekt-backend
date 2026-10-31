@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useSyncExternalStore } from "react
 import { WidgetAction } from "./actions";
 import { createInitialState, widgetReducer } from "./reducer";
 import { State } from "./state";
+import { breakdownOf } from "./flows";
 
 /**
  * The donation widget's state: a reducer (reducer.ts) behind a small store that React reads with
@@ -71,4 +72,14 @@ export const useWidgetSelector = <T,>(selector: (state: State) => T): T => {
   const store = useWidgetStore();
   const snapshot = () => selector(store.getState());
   return useSyncExternalStore(store.subscribe, snapshot, snapshot);
+};
+
+/**
+ * The donation's total with the operations cut, as registered (for the payment panes and the
+ * analytics events). Only for panes shown after the cause areas have loaded.
+ */
+export const useDonationTotal = () => {
+  const donation = useWidgetSelector((state) => state.donation);
+  const causeAreas = useWidgetSelector((state) => state.layout.causeAreas);
+  return breakdownOf(donation, causeAreas ?? []).totalAmount;
 };

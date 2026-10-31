@@ -1,7 +1,7 @@
 import { usePlausible } from "next-plausible";
 import Link from "next/link";
 import React, { useContext } from "react";
-import { useWidgetSelector, useWidgetStore } from "../../../store/store";
+import { useDonationTotal, useWidgetSelector, useWidgetStore } from "../../../store/store";
 import { registerDonation } from "../../../store/flows";
 import { DonorContext } from "../../../../../../profile/layout/donorContext";
 import {
@@ -27,7 +27,6 @@ import { CustomCheckBox } from "./CustomCheckBox";
 import { getEstimatedLtv } from "../../../../../../../util/ltv";
 import { widgetTrpc } from "../../../store/widgetApi";
 import AnimateHeight from "react-animate-height";
-import { calculateDonationBreakdown } from "../../../utils/donationCalculations";
 import { DonationSummary, DonationSummaryText } from "../../shared/DonationSummary/DonationSummary";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
 import { paymentMethodConfigurations } from "../../../config/methods";
@@ -51,25 +50,9 @@ export const DonorPane: React.FC<{
   const store = useWidgetStore();
   const { dispatch } = store;
   const donation = useWidgetSelector((state: State) => state.donation);
-  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
   const { donor: initialDonor } = useContext(DonorContext);
 
-  const breakdown = calculateDonationBreakdown(
-    donation.causeAreaAmounts ?? {},
-    donation.orgAmounts ?? {},
-    donation.causeAreaDistributionType ?? {},
-    donation.operationsPercentageModeByCauseArea ?? {},
-    donation.operationsPercentageByCauseArea ?? {},
-    causeAreas,
-    donation.selectionType ?? "single",
-    donation.selectedCauseAreaId ?? 1,
-    donation.globalOperationsEnabled ?? false,
-    donation.globalOperationsPercentage ?? donation.operationsConfig?.defaultPercentage ?? 10,
-    donation.operationsConfig?.excludedCauseAreaIds ?? [],
-    donation.operationsConfig?.operationsCauseAreaId,
-    donation.smartDistributionTotal,
-  );
-  const totalSumIncludingTip = breakdown.totalAmount;
+  const totalSumIncludingTip = useDonationTotal();
 
   // The carousel unmounts this pane when the donor navigates away: start from what they
   // entered last time, and keep it in the store when the pane goes

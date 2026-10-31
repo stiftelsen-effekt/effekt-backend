@@ -1,6 +1,6 @@
 import React from "react";
-import { useWidgetSelector, useWidgetStore } from "../../../../store/store";
-import { Donation, State } from "../../../../store/state";
+import { useDonationTotal, useWidgetStore } from "../../../../store/store";
+import { Donation } from "../../../../store/state";
 import { draftAvtaleGiro } from "../../../../store/flows";
 import { API_URL } from "../../../../config/api";
 import {
@@ -11,7 +11,6 @@ import {
 } from "../../../../config/avtalegiro";
 import { SubmitButton } from "../../../shared/Buttons/NavigationButtons";
 import { usePlausible } from "next-plausible";
-import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
 
 export const RecurringBankDonationForm: React.FC<{
   donation: Donation;
@@ -20,24 +19,7 @@ export const RecurringBankDonationForm: React.FC<{
   const store = useWidgetStore();
   const plausible = usePlausible();
 
-  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
-
-  const breakdown = calculateDonationBreakdown(
-    donation.causeAreaAmounts ?? {},
-    donation.orgAmounts ?? {},
-    donation.causeAreaDistributionType ?? {},
-    donation.operationsPercentageModeByCauseArea ?? {},
-    donation.operationsPercentageByCauseArea ?? {},
-    causeAreas,
-    donation.selectionType ?? "single",
-    donation.selectedCauseAreaId ?? 1,
-    donation.globalOperationsEnabled ?? false,
-    donation.globalOperationsPercentage ?? 0,
-    donation.operationsConfig?.excludedCauseAreaIds ?? [],
-    donation.operationsConfig?.operationsCauseAreaId,
-    donation.smartDistributionTotal,
-  );
-  const totalSumIncludingTip = breakdown.totalAmount;
+  const totalSumIncludingTip = useDonationTotal();
 
   const onSubmit = (e: React.MouseEvent<Element, MouseEvent>) => {
     plausible("DraftAvtalegiro");
