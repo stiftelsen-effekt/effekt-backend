@@ -78,12 +78,6 @@ export const bankSeUploadInput = formDataInput({
     .transform((value) => value === "true"),
 });
 
-export const fileOnlyUploadInput = formDataInput({
-  report: reportFile,
-  /** Accepted for consistency with the other uploads; validated, see the procedures */
-  metaOwnerID: metaOwnerIDField,
-});
-
 /** Windows browsers send .csv files as application/vnd.ms-excel or application/octet-stream */
 const isCsv = (file: File) =>
   file.type === "text/csv" ||

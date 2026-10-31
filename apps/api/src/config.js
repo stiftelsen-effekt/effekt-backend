@@ -128,9 +128,6 @@ module.exports = {
   giro_sftp_key_passphrase:
     process.env.GIRO_SFTP_PRIVATE_KEY_PASSPHRASE || process.env.NETS_SFTP_PRIVATE_KEY_PASSPHRASE,
 
-  facebook_sync_app_id: process.env.FACBEOOK_SYNC_APP_ID,
-  facebook_sync_app_secret: process.env.FACEBOOK_SYNC_APP_SECRET,
-
   inflation_adjustment_success_slug: process.env.INFLATION_ADJUSTMENT_SUCCESS_SLUG,
   inflation_adjustment_error_slug: process.env.INFLATION_ADJUSTMENT_ERROR_SLUG,
 

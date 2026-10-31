@@ -60,9 +60,6 @@ export const FORBIDDEN_PREVIEW_SETTINGS: Record<string, string> = {
   MCP_DB_NAME: "Analysis MCP",
   // Raw survey export
   SURVEY_EXPORT_SECRET: "Survey export",
-  // Facebook donation sync (the app id variable is misspelled in config.js on purpose)
-  FACBEOOK_SYNC_APP_ID: "Facebook sync",
-  FACEBOOK_SYNC_APP_SECRET: "Facebook sync",
   // Tidbyt display worker
   TIDBYT_WORKER_URL: "Tidbyt",
   TIDBYT_WORKER_AUTH_TOKEN: "Tidbyt",

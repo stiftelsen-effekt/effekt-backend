@@ -218,7 +218,6 @@ DAO.connect(() => {
   const referralsRoute = require("./routes/referrals");
   const scheduledRoute = require("./routes/scheduled");
   const metaRoute = require("./routes/meta");
-  const facebookRoute = require("./routes/facebook");
   const loggingRoute = require("./routes/logging");
   const mailRoute = require("./routes/mail");
   const avtaleGiroRoute = require("./routes/avtalegiro");
@@ -249,7 +248,6 @@ DAO.connect(() => {
   app.use("/referrals", referralsRoute);
   app.use("/scheduled", scheduledRoute);
   app.use("/meta", metaRoute);
-  app.use("/facebook", facebookRoute);
   app.use("/logging", loggingRoute);
   app.use("/mail", mailRoute);
   app.use("/avtalegiro", avtaleGiroRoute);

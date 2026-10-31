@@ -3,7 +3,7 @@
  * routes/reports/* and the tRPC procedures in trpc/routers/reports.ts.
  *
  * The returned objects are serialised as-is by the REST routes, so their shapes are part of the
- * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se,facebook}).
+ * REST contract (`content` of POST /reports/{ocr,vipps,bank/no,bank/se}).
  */
 import { DateTime } from "luxon";
 import type { Moment } from "moment";
@@ -15,10 +15,6 @@ import {
   validateReport as validateBankReport,
 } from "./parsers/bank";
 import { isCamtXml, parseCamtFile } from "./parsers/camtParser";
-import {
-  parseReport as parseFacebookReport,
-  validateReport as validateFacebookReport,
-} from "./parsers/facebook";
 import { parseTotalInFile, RecordType } from "./parsers/sebank";
 import { parseReport as parseVippsReport, VippsTransaction } from "./parsers/vipps";
 import payment from "../enums/paymentMethods";
@@ -663,95 +659,6 @@ export async function processBankSeReport(
     skippedDuplicate,
     validTransactions,
   };
-}
-
-//endregion
-
-//region Facebook
-
-export type FacebookCampaignMissingShares = {
-  ID: string;
-  fundraiserTitle: string;
-  campaignOwnerName: string;
-  permalink: string;
-};
-
-/**
- * Stores a Facebook payout report, registers unknown campaigns and returns the campaigns that
- * have no organization shares registered yet.
- */
-export async function processFacebookReport(
-  report: Buffer,
-  options: ProcessOptions = {},
-): Promise<{ fbCampaigns: FacebookCampaignMissingShares[] }> {
-  if (options.strict) {
-    const problem = validateFacebookReport(report);
-    if (problem) throw new ReportParseError(`Not a Facebook payout report: ${problem}`);
-  }
-  // Parse before removing the stored reports, so a broken file doesn't wipe them
-  const donations = await parseFacebookReport(report);
-  if (!donations) {
-    throw new ReportParseError(
-      "Could not read the Facebook payout report (or fetch exchange rates from Norges Bank)",
-    );
-  }
-  await DAO.facebook.removeAllFacebookReports();
-  await DAO.facebook.registerFacebookReport(JSON.stringify(donations));
-
-  const campaigns = donations.reduce((acc, donation) => {
-    let campaign_ID = donation["Campaign ID"];
-
-    if (!acc.some((e) => e.ID == campaign_ID)) {
-      acc.push({
-        ID: campaign_ID,
-        Fundraiser_title: donation["Fundraiser title"],
-        Campaign_owner_name: donation["Campaign owner name"],
-        Permalink: donation.Permalink,
-        Source_name: donation["Source name"],
-        Fundraiser_type: donation["Fundraiser type"],
-      });
-    }
-    return acc;
-  }, []);
-
-  let registeredCampaignIDs = await DAO.facebook.getAllFacebookCampaignIDs();
-  registeredCampaignIDs = Object.values(registeredCampaignIDs);
-  registeredCampaignIDs = registeredCampaignIDs.reduce((acc, dictID) => {
-    acc.push(dictID.ID);
-    return acc;
-  }, []);
-
-  for (let i = 0; i < campaigns.length; i++) {
-    const campaign = campaigns[i];
-    const campaignID = campaign.ID;
-
-    if (!registeredCampaignIDs.includes(campaignID)) {
-      await DAO.facebook.registerFacebookCampaign(
-        campaignID,
-        campaign.Fundraiser_title,
-        campaign.Source_name,
-        campaign.Permalink,
-        campaign.Campaign_owner_name,
-        campaign.Fundraiser_type,
-      );
-    }
-  }
-
-  // Check if campaign has stored shares and send to admin panel if not
-  const campaignsWithMissingShares: FacebookCampaignMissingShares[] = [];
-  for (let i = 0; i < campaigns.length; i++) {
-    const campaign = campaigns[i];
-    if ((await DAO.facebook.isCampaignRegistered(campaign.ID)) == false) {
-      campaignsWithMissingShares.push({
-        ID: campaign.ID,
-        fundraiserTitle: campaign.Fundraiser_title,
-        campaignOwnerName: campaign.Campaign_owner_name,
-        permalink: campaign.Permalink,
-      });
-    }
-  }
-
-  return { fbCampaigns: campaignsWithMissingShares };
 }
 
 //endregion

@@ -127,19 +127,15 @@ describe("tRPC reports router", () => {
       const bankSe = sinon
         .stub(reportsService, "processBankSeReport")
         .resolves({ valid: 0, invalid: 0, invalidTransactions: [] });
-      sinon.stub(reportsService, "processFacebookReport").resolves({ fbCampaigns: [] });
 
       await admin().uploads.bankSe(uploadForm("camt/camt053_mixed.xml"));
       expect(bankSe.firstCall.args[2]).to.equal(3);
-      await admin().uploads.facebook(uploadForm("bank/sampleReport.CSV"));
 
-      for (const upload of [admin().uploads.bankSe, admin().uploads.facebook]) {
-        await expectTrpcError(
-          upload(uploadForm("bank/sampleReport.CSV", { metaOwnerID: "99" })),
-          "BAD_REQUEST",
-          /Data owner 99/,
-        );
-      }
+      await expectTrpcError(
+        admin().uploads.bankSe(uploadForm("bank/sampleReport.CSV", { metaOwnerID: "99" })),
+        "BAD_REQUEST",
+        /Data owner 99/,
+      );
     });
 
     it("rejects files that are not the expected report type, writing nothing", async () => {
@@ -192,30 +188,9 @@ describe("tRPC reports router", () => {
         "BAD_REQUEST",
         /Not a bank account export/,
       );
-      const fetchRates = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
-      await expectTrpcError(
-        admin().uploads.facebook(uploadForm("bank/sampleReport.CSV", {})),
-        "BAD_REQUEST",
-        /Not a Facebook payout report: missing the columns Charge date/,
-      );
-      expect(fetchRates.called).to.be.false;
       expect(addStub.called).to.be.false;
       expect(logStub.called).to.be.false;
       expect(queueStub.called).to.be.false;
-    });
-
-    it("keeps stored Facebook reports when the file can't be parsed", async () => {
-      sinon.stub(console, "error");
-      const remove = sinon.stub(DAO.facebook, "removeAllFacebookReports").resolves();
-      const register = sinon.stub(DAO.facebook, "registerFacebookReport").resolves();
-
-      await expectTrpcError(
-        admin().uploads.facebook(uploadForm("ocr/TBOC2072.DAT", {})),
-        "BAD_REQUEST",
-        /Facebook payout report/,
-      );
-      expect(remove.called).to.be.false;
-      expect(register.called).to.be.false;
     });
 
     it("ocr registers donations and lists failed ones for review", async () => {
@@ -401,17 +376,6 @@ describe("tRPC reports router", () => {
       });
       expect(logStub.firstCall.args[0]).to.equal("Bank SE - Upload");
     });
-
-    it("facebook returns campaigns missing shares", async () => {
-      const campaigns = [
-        { ID: "1", fundraiserTitle: "Bday", campaignOwnerName: "Ola", permalink: "https://x" },
-      ];
-      sinon.stub(reportsService, "processFacebookReport").resolves({ fbCampaigns: campaigns });
-
-      const result = await admin().uploads.facebook(uploadForm("bank/sampleReport.CSV", {}));
-
-      expect(result).to.deep.equal({ fbCampaigns: campaigns });
-    });
   });
 
   describe("transactions", () => {
@@ -583,7 +547,6 @@ describe("tRPC reports router", () => {
             filename: "konto.csv",
             donations: { valid: 12, invalid: 3 },
             reviewCount: 3,
-            campaignsMissingShares: null,
           },
           {
             ID: 2,
@@ -594,23 +557,11 @@ describe("tRPC reports router", () => {
             filename: "TBOC1.DAT",
             donations: { valid: 1, invalid: 0, ignored: 4 },
             reviewCount: 0,
-            campaignsMissingShares: null,
           },
-          {
-            ID: 3,
-            label: "Facebook - Upload",
-            timestamp,
-            meta: "",
-            uploadSource: "facebook",
-            filename: "payout.csv",
-            donations: null,
-            reviewCount: null,
-            campaignsMissingShares: 2,
-          },
-          { ID: 4, label: "OCR", timestamp, meta: "Donations [...]" },
+          { ID: 3, label: "OCR", timestamp, meta: "Donations [...]" },
         ] as any,
         pages: 1,
-        total: 4,
+        total: 3,
       });
       const { rows } = await admin().logs.list({ page: 0, limit: 10 });
       expect(rows.map((row) => [row.displayLabel, row.source, row.summary])).to.deep.equal([
@@ -620,7 +571,6 @@ describe("tRPC reports router", () => {
           "ocr",
           "TBOC1.DAT: 1 donation registered, 4 already registered, 0 sent to review",
         ],
-        ["Facebook", "facebook", "payout.csv: 2 campaigns without shares"],
         ["OCR", null, null],
       ]);
     });
