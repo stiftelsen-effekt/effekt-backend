@@ -13,6 +13,7 @@ import { EffektButton } from "../../../../../EffektButton/EffektButton";
 import { usePlausible } from "next-plausible";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
 import { swishOrderStatusRequest } from "../../../../store/widgetApi";
+import { swishStatusRefreshInterval } from "./swishStatus";
 
 function isStringEnum<T extends string>(x: any, e: T[]): x is T {
   return e.includes(x);
@@ -23,7 +24,7 @@ function useSwishStatus(orderID?: string) {
     orderID ? ["widget.swishOrderStatus", orderID] : null,
     ([, id]) => swishOrderStatusRequest(id),
     {
-      refreshInterval: 1000,
+      refreshInterval: swishStatusRefreshInterval,
     },
   );
 
