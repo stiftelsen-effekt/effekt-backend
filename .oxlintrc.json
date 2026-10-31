@@ -14,6 +14,8 @@
     "**/dist/**",
     "**/dist-types/**",
     "**/coverage/**",
+    // Semgrep rule test cases (code the rules should and shouldn't flag), not run
+    ".semgrep/**",
     "apps/web/.next/**",
     "apps/web/public/**",
     "apps/web/studio/.sanity/**",
@@ -24,7 +26,19 @@
   "rules": {
     // A warning, not an error, because existing code breaks it. Fix it as you touch the code,
     // then make the rule an error.
-    "no-unused-vars": "warn"
+    "no-unused-vars": [
+      "warn",
+      {
+        // Prefix intentionally unused names with `_`, e.g. `_next` in an Express error handler,
+        // which must keep four parameters
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        // `const { secret, ...rest } = x` to leave out a field
+        "ignoreRestSiblings": true
+      }
+    ]
   },
   "overrides": [
     {

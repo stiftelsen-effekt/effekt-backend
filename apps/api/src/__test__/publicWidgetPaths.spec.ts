@@ -30,7 +30,7 @@ const appWith = (path: string, router: express.Router) => {
     }),
   );
   app.use(path, router);
-  app.use((err, req, res, next) => res.status(err.status ?? 500).end());
+  app.use((err, req, res, _next) => res.status(err.status ?? 500).end());
   return app;
 };
 

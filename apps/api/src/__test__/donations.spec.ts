@@ -9,7 +9,6 @@ import { donationHelpers } from "../custom_modules/donationHelpers";
 import paymentMethods from "../enums/paymentMethods";
 import methods from "../enums/methods";
 import donationsRouter from "../routes/donations";
-import { organizations } from "../custom_modules/DAO_modules/organizations";
 
 describe("donations", () => {
   describe("routes", () => {
@@ -31,8 +30,6 @@ describe("donations", () => {
       let createKIDStub: sinon.SinonStub;
       let distributionsGetStandardDistributionByCauseAreaIDStub: sinon.SinonStub;
       let distributionsGetKIDBySplitStub: sinon.SinonStub;
-      let distributionsAddStub: sinon.SinonStub;
-      let addPaymentIntentStub: sinon.SinonStub;
       let addReferralCodeStub: sinon.SinonStub;
 
       function withDonor(
@@ -75,8 +72,8 @@ describe("donations", () => {
         );
         createKIDStub = sinon.stub(donationHelpers, "createKID");
         distributionsGetKIDBySplitStub = sinon.stub(DAO.distributions, "getKIDbySplit");
-        distributionsAddStub = sinon.stub(DAO.distributions, "add");
-        addPaymentIntentStub = sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
+        sinon.stub(DAO.distributions, "add");
+        sinon.stub(DAO.initialpaymentmethod, "addPaymentIntent");
         taxGetByDonorIdAndSsnStub = sinon.stub(DAO.tax, "getByDonorIdAndSsn");
         addReferralCodeStub = sinon.stub(DAO.donationReferralCodes, "add");
 

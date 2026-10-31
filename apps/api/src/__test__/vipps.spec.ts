@@ -117,7 +117,6 @@ describe("POST /scheduled/vipps", function () {
 
   let server;
 
-  let authStub;
   let getAgreementsStub;
   let getChargesStub;
   let getAgreementStub;
@@ -137,7 +136,7 @@ describe("POST /scheduled/vipps", function () {
   let donationRecieptStub;
 
   beforeAll(function () {
-    authStub = sinon.replace(authMiddleware, "isAdmin", []);
+    sinon.replace(authMiddleware, "isAdmin", []);
 
     getAgreementsStub = sinon.stub(vipps, "getAgreements");
 
@@ -190,7 +189,7 @@ describe("POST /scheduled/vipps", function () {
 
     getChargesStub.withArgs().resolves([]);
 
-    const response = await request(server).post("/scheduled/vipps").expect(200);
+    await request(server).post("/scheduled/vipps").expect(200);
 
     expect(addAgreementStub.called).to.be.false;
     expect(addChargeStub.called).to.be.false;
@@ -229,7 +228,7 @@ describe("POST /scheduled/vipps", function () {
     // Resolve for charge 3 agreement 3
     addDonationStub.resolves(123);
 
-    const response = await request(server).post("/scheduled/vipps").expect(200);
+    await request(server).post("/scheduled/vipps").expect(200);
 
     expect(addAgreementStub.callCount).to.be.equal(3);
     expect(addChargeStub.callCount).to.be.equal(3);
@@ -260,7 +259,7 @@ describe("POST /scheduled/vipps", function () {
     hasChargedDueMonthStub.withArgs("agr_2").resolves(true);
     createChargeStub.resolves("chr-new");
 
-    const response = await request(server).post("/scheduled/vipps").expect(200);
+    await request(server).post("/scheduled/vipps").expect(200);
 
     expect(getActiveAgreementStub.calledOnce).to.be.true;
     expect(getVippsAgreementStub.callCount).to.be.equal(2);

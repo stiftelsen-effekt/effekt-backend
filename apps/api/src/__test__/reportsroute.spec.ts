@@ -8,7 +8,6 @@ import * as mail from "../custom_modules/mail";
 const config = require("../config");
 
 const vippsRoute = require("../routes/reports/vipps");
-const ocrRoute = require("../routes/reports/ocr");
 
 let addStub;
 let mailStub;
@@ -160,29 +159,6 @@ async function runVipps(filename) {
     throw ex;
   });
   return jsonStub;
-}
-
-async function runOCR(filename) {
-  let res = {
-    json: () => {},
-  };
-
-  const jsonStub = sinon.stub(res, "json");
-
-  const query = {
-    body: {
-      metaOwnerID: 3,
-    },
-    files: {
-      report: {
-        data: readReport("ocr", filename, "DAT"),
-      },
-    },
-  };
-
-  await ocrRoute(query, res, (ex) => {
-    throw ex;
-  });
 }
 
 function readReport(type, filename, extension = "CSV") {

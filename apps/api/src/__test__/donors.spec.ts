@@ -14,7 +14,6 @@ import { RequestLocale } from "../middleware/locale";
 let donorUpdateStub: sinon.SinonStub;
 let agreementStub: sinon.SinonStub;
 let donorStub: sinon.SinonStub;
-let checkDonorStub: sinon.SinonStub;
 
 const jack = {
   id: 237,
@@ -120,11 +119,9 @@ describe("donors", () => {
       const donorsRouter = require("../routes/donors");
       server.use("/donors", donorsRouter);
 
-      checkDonorStub = sinon
-        .stub(authMiddleware, "checkAdminOrTheDonor")
-        .callsFake((_, req, res, next) => {
-          next();
-        });
+      sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake((_, req, res, next) => {
+        next();
+      });
     });
 
     describe("GET /donors/:id/donations", function () {
@@ -137,7 +134,7 @@ describe("donors", () => {
       });
 
       it("Should return 200 OK with the dontions by ID", async function () {
-        const response = await request(server).get("/donors/237/donations").expect(200);
+        await request(server).get("/donors/237/donations").expect(200);
       });
 
       it("Should return the donations", async function () {
@@ -156,7 +153,7 @@ describe("donors", () => {
       });
 
       it("Should return 200 OK with the donor by ID", async function () {
-        const response = await request(server).get("/donors/237").expect(200);
+        await request(server).get("/donors/237").expect(200);
       });
 
       it("Should return a donor that matches the provided id", async function () {
@@ -258,7 +255,7 @@ describe("donors", () => {
       });
 
       it("Should return 200 OK", async function () {
-        const response = await request(server).get("/donors/237/recurring/avtalegiro").expect(200);
+        await request(server).get("/donors/237/recurring/avtalegiro").expect(200);
       });
 
       it("Should return the agreements", async function () {
@@ -274,7 +271,7 @@ describe("donors", () => {
       });
 
       it("Should return 200 OK", async function () {
-        const response = await request(server).get("/donors/237/recurring/vipps").expect(200);
+        await request(server).get("/donors/237/recurring/vipps").expect(200);
       });
 
       it("Should return the agreements without their url codes", async function () {
@@ -368,13 +365,11 @@ describe("donors", () => {
 
       it("Donor ID doesn't exist", async function () {
         try {
-          checkDonorStub = sinon
-            .stub(authMiddleware, "checkAdminOrTheDonor")
-            .callsFake((_, req, res, next) => {
-              throw new InvalidTokenError("Unexpected 'https://gieffektivt.no/user-id' value");
-            });
+          sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake(() => {
+            throw new InvalidTokenError("Unexpected 'https://gieffektivt.no/user-id' value");
+          });
 
-          const response = await request(server).get("/donors/1/donations/aggregated").expect(401);
+          await request(server).get("/donors/1/donations/aggregated").expect(401);
         } catch (ex) {
           expect(ex).to.not.be.undefined;
         }
@@ -523,7 +518,7 @@ describe("donors", () => {
       });
 
       it("returns 400 when merging a donor into itself", async function () {
-        const response = await request(server).post("/donors/100/merge/100").expect(400);
+        await request(server).post("/donors/100/merge/100").expect(400);
 
         expect(mergeStub.called).to.equal(false);
         expect(repointStub.called).to.equal(false);

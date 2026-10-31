@@ -42,7 +42,7 @@ describe("POST /vipps/v2/payments/:orderId (eCom v2 callback)", () => {
     const vippsRouter = require("../routes/vipps");
     server = express();
     server.use("/vipps", vippsRouter);
-    server.use((err, req, res, next) => res.status(500).json({ status: 500 }));
+    server.use((err, req, res, _next) => res.status(500).json({ status: 500 }));
   });
 
   afterEach(() => sinon.restore());

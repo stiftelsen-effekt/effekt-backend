@@ -53,13 +53,12 @@ describe("POST /scheduled/avtalegiro", function () {
   let agreementsStub;
   let loggingStub;
   let sendFileStub;
-  let authStub;
   let claimedKIDsStub;
   let addChargesStub;
   let deletionsStub;
 
   beforeAll(function () {
-    authStub = sinon.replace(authMiddleware, "isAdmin", []);
+    sinon.replace(authMiddleware, "isAdmin", []);
 
     deletionsStub = sinon
       .stub(avtalegiroDeletions, "processAvtaleGiroDeletions")
@@ -98,9 +97,7 @@ describe("POST /scheduled/avtalegiro", function () {
   it("Does nothing with no agreements", async function () {
     agreementsStub.resolves([]);
 
-    const response = await request(server)
-      .post("/scheduled/avtalegiro?date=2021-10-04")
-      .expect(200);
+    await request(server).post("/scheduled/avtalegiro?date=2021-10-04").expect(200);
 
     expect(agreementsStub.calledOnce).to.be.true;
     expect(sendNotificationStub.called).to.be.false;
@@ -111,9 +108,7 @@ describe("POST /scheduled/avtalegiro", function () {
   it("Generates claim file when provided a date", async function () {
     agreementsStub.resolves(mockAgreements);
 
-    const response = await request(server)
-      .post("/scheduled/avtalegiro/?date=2021-10-04")
-      .expect(200);
+    await request(server).post("/scheduled/avtalegiro/?date=2021-10-04").expect(200);
 
     expect(sendNotificationStub.called).to.be.false;
     expect(sendFileStub.calledOnce).to.be.true;
@@ -127,9 +122,7 @@ describe("POST /scheduled/avtalegiro", function () {
   it("Generates multiple claims files when provided a tuesday", async function () {
     agreementsStub.resolves(mockAgreements);
 
-    const response = await request(server)
-      .post("/scheduled/avtalegiro/?date=2021-10-05")
-      .expect(200);
+    await request(server).post("/scheduled/avtalegiro/?date=2021-10-05").expect(200);
 
     expect(sendNotificationStub.called).to.be.false;
     expect(sendFileStub.callCount).to.be.eq(3);
@@ -142,9 +135,7 @@ describe("POST /scheduled/avtalegiro", function () {
     let tempEnv = config.env;
     config.env = "production";
 
-    const response = await request(server)
-      .post("/scheduled/avtalegiro/?date=2021-10-04&notify=true")
-      .expect(200);
+    await request(server).post("/scheduled/avtalegiro/?date=2021-10-04&notify=true").expect(200);
 
     config.env = tempEnv;
 
@@ -155,9 +146,7 @@ describe("POST /scheduled/avtalegiro", function () {
   it("Recognizes when claim date is last day of the month", async function () {
     agreementsStub.withArgs(0).resolves(mockAgreements);
 
-    const response = await request(server)
-      .post("/scheduled/avtalegiro/?date=2022-09-26&notify=true")
-      .expect(200);
+    await request(server).post("/scheduled/avtalegiro/?date=2022-09-26&notify=true").expect(200);
 
     sinon.assert.calledWithExactly(agreementsStub, 0);
     sinon.assert.calledWithExactly(shipmentStub, mockAgreements.length);
@@ -174,7 +163,7 @@ describe("POST /scheduled/avtalegiro", function () {
     agreementsStub.withArgs(0).resolves(lastDayAgreements);
     agreementsStub.withArgs(28).resolves(mockAgreements);
 
-    const respnse = await request(server)
+    await request(server)
       .post("/scheduled/avtalegiro/?date=2022-02-22&notify=true")
       .set("Authorization", "Bearer abc")
       .expect(200);

@@ -7,13 +7,11 @@ import * as authMiddleware from "../custom_modules/authorization/authMiddleware"
 import { DAO } from "../custom_modules/DAO";
 
 describe("request validation", () => {
-  let queryStub: sinon.SinonStub;
-
   beforeEach(function () {
     // This must be stubbed before importing the routes
     sinon.stub(authMiddleware, "auth").returns([]);
     sinon.stub(authMiddleware, "checkAdminOrTheDonor").callsFake((_, req, res, next) => next());
-    queryStub = sinon.stub(DAO, "query").rejects(new Error("unexpected query"));
+    sinon.stub(DAO, "query").rejects(new Error("unexpected query"));
   });
 
   afterEach(function () {
