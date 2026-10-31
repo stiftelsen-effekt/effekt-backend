@@ -13,7 +13,8 @@ interface UseSsnValidationParams {
 
 interface UseSsnValidationResult {
   validateSsn: (value: string, isAnonymous: boolean) => boolean;
-  handleSsnChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** What the input shows for what the donor typed: Danish CPR/CVR numbers are formatted */
+  formatSsnInput: (value: string) => string;
   cprSuspicious: boolean;
 }
 
@@ -57,13 +58,10 @@ export function useSsnValidation({
     [locale, taxDeductionChecked],
   );
 
-  const handleSsnChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { value } = e.target;
-
+  const formatSsnInput = useCallback(
+    (value: string) => {
       if (locale === "dk" && taxDeductionChecked) {
         const formattedValue = formatTinInput(value, { allowCvr: true });
-        e.target.value = formattedValue;
 
         const digits = formattedValue.replace(/\D/g, "");
         if (digits.length === 10 || digits.length === 8) {
@@ -72,14 +70,16 @@ export function useSsnValidation({
         } else {
           setCprSuspicious(false);
         }
+        return formattedValue;
       }
+      return value;
     },
     [locale, taxDeductionChecked],
   );
 
   return {
     validateSsn: validateSsnValue,
-    handleSsnChange,
+    formatSsnInput,
     cprSuspicious,
   };
 }
