@@ -1,17 +1,16 @@
 import { groq } from "next-sanity";
 import Link from "next/link";
 import { createContext, useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetSelector, useWidgetStore } from "../store/store";
 import { getClient } from "../../../../../lib/sanity.client";
 import { withStaticProps } from "../../../../../util/withStaticProps";
-import { fetchCauseAreasAction } from "../store/layout/actions";
-import { fetchReferralsAction } from "../store/referrals/actions";
+import { fetchCauseAreas, fetchReferralTypes } from "../store/flows";
 import { setWidgetApiLocale, widgetAsksForReferrals } from "../store/widgetApi";
 import {
   setOperationsConfig,
   setCauseAreaSelection,
   setOperationsPercentageModeByCauseArea,
-} from "../store/donation/actions";
+} from "../store/actions";
 import { State } from "../store/state";
 import { WidgetProps } from "../types/WidgetProps";
 import { Carousel } from "./Carousel";
@@ -28,7 +27,6 @@ import {
   useAvailableRecurringOptions,
   useDefaultPaymentMethodEffect,
   usePrefilledDistribution,
-  usePrefilledSum,
   usePrefilledCauseAreaIds,
   useQueryParamsPrefill,
   useWidgetScaleEffect,
@@ -155,11 +153,12 @@ export const Widget = withStaticProps(
     throw new Error("No payment methods found");
   }
 
-  const dispatch = useDispatch<any>();
+  const store = useWidgetStore();
+  const { dispatch } = store;
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetWrapperRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ text: string; link?: string } | null>(null);
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas);
   const prefilledCauseAreaIds = usePrefilledCauseAreaIds();
 
   const availableRecurringOptions = useAvailableRecurringOptions(methods);
@@ -207,19 +206,15 @@ export const Widget = withStaticProps(
     );
     // The Danish site's backend is REST only (see store/widgetApi.ts)
     setWidgetApiLocale(widget.locale);
-    dispatch(fetchCauseAreasAction.started(undefined));
-    if (widgetAsksForReferrals()) dispatch(fetchReferralsAction.started(undefined));
+    void fetchCauseAreas(store);
+    if (widgetAsksForReferrals()) void fetchReferralTypes(store);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- initialises the store once per widget locale
-  }, [dispatch, widget.locale]);
+  }, [store, widget.locale]);
 
   usePrefilledDistribution({
     inline,
     causeAreas,
     prefilledDistribution: prefilled,
-  });
-
-  usePrefilledSum({
-    inline,
   });
 
   useQueryParamsPrefill({

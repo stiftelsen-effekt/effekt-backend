@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../../store/store";
 import { State } from "../../../../store/state";
 import { PaymentInformation } from "./PaymentInformation";
 import { Referrals } from "../../../shared/Referrals/Referrals";
@@ -17,8 +17,8 @@ export const BankPane: React.FC<{
   referrals: WidgetPane3ReferralsProps;
 }> = ({ config, referrals }) => {
   const plausible = usePlausible();
-  const donation = useSelector((state: State) => state.donation);
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
+  const donation = useWidgetSelector((state: State) => state.donation);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
   const [hasCompletedTransaction, setHasCompletedTransaction] = useState(false);
 
   const breakdown = calculateDonationBreakdown(

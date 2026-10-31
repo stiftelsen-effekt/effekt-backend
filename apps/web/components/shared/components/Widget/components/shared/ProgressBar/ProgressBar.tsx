@@ -1,18 +1,16 @@
 import React, { useContext } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { WidgetContext } from "../../../../../../main/layout/layout";
-import { prevPane } from "../../../store/layout/actions";
+import { prevPane } from "../../../store/actions";
 import { State } from "../../../store/state";
 import styles from "./ProgressBar.module.scss";
-import { Dispatch } from "@reduxjs/toolkit";
-import { LayoutActionTypes } from "../../../store/layout/types";
 
 export const ProgressBar: React.FC<{ inline?: boolean; numberOfPanes?: number }> = ({
   inline,
   numberOfPanes = 4,
 }) => {
-  const dispatch = useDispatch<Dispatch<LayoutActionTypes>>();
-  const paneNumber = useSelector((state: State) => state.layout.paneNumber);
+  const dispatch = useWidgetDispatch();
+  const paneNumber = useWidgetSelector((state: State) => state.layout.paneNumber);
   const [widgetContext, setWidgetContext] = useContext(WidgetContext);
   // The payment pane keeps its back button so donors can correct a mistake. Going back after
   // a bank donation is registered only leaves an unused KID behind.

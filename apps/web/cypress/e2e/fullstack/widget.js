@@ -113,7 +113,7 @@ describe("Donation widget (full stack)", () => {
       const { KID, registrationToken } = trpcData(interception, "widget.registerDonation");
       expect(KID).to.match(/^\d+$/);
 
-      // The saga hands the donor over to Mastercard Payment Services with the form's native
+      // The widget hands the donor over to Mastercard Payment Services with the form's native
       // submit(): stub it, so the test stays on the page
       cy.window().then((win) => {
         cy.stub(win.HTMLFormElement.prototype, "submit").as("formSubmit");

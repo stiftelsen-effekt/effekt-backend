@@ -1,6 +1,7 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Donation } from "../../../../store/state";
+import { useWidgetSelector, useWidgetStore } from "../../../../store/store";
+import { Donation, State } from "../../../../store/state";
+import { draftAvtaleGiro } from "../../../../store/flows";
 import { API_URL } from "../../../../config/api";
 import {
   AVTALEGIRO_COMPANY_ACCOUNT_NO,
@@ -8,21 +9,18 @@ import {
   AVTALEGIRO_FORM_URL,
   AVTALEGIRO_MIN_AMOUNT_LIMIT,
 } from "../../../../config/avtalegiro";
-import { draftAvtaleGiroAction } from "../../../../store/donation/actions";
 import { SubmitButton } from "../../../shared/Buttons/NavigationButtons";
 import { usePlausible } from "next-plausible";
-import { Dispatch } from "@reduxjs/toolkit";
-import { Action } from "typescript-fsa";
 import { calculateDonationBreakdown } from "../../../../utils/donationCalculations";
 
 export const RecurringBankDonationForm: React.FC<{
   donation: Donation;
   buttonText: string;
 }> = ({ donation, buttonText }) => {
-  const dispatch = useDispatch<Dispatch<Action<undefined>>>();
+  const store = useWidgetStore();
   const plausible = usePlausible();
 
-  const causeAreas = useSelector((state: any) => state.layout.causeAreas) || [];
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
 
   const breakdown = calculateDonationBreakdown(
     donation.causeAreaAmounts ?? {},
@@ -44,7 +42,7 @@ export const RecurringBankDonationForm: React.FC<{
   const onSubmit = (e: React.MouseEvent<Element, MouseEvent>) => {
     plausible("DraftAvtalegiro");
     e.preventDefault();
-    dispatch(draftAvtaleGiroAction.started(undefined));
+    void draftAvtaleGiro(store);
   };
 
   return (

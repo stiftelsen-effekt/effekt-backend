@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { NumericFormat } from "react-number-format";
 import { usePlausible } from "next-plausible";
 import AnimateHeight from "react-animate-height";
@@ -7,7 +7,7 @@ import { ChevronDown } from "react-feather";
 import { PortableText } from "@portabletext/react";
 import { CauseArea } from "../../../types/CauseArea";
 import { ShareType } from "../../../types/Enums";
-import { setSmartDistributionTotal } from "../../../store/donation/actions";
+import { setSmartDistributionTotal } from "../../../store/actions";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
 import { thousandize } from "../../../../../../../util/formatting";
 import { State } from "../../../store/state";
@@ -33,7 +33,7 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
   causeAreaDisplayConfig,
   smartDistributionContext,
 }) => {
-  const dispatch = useDispatch<any>();
+  const dispatch = useWidgetDispatch();
   const plausible = usePlausible();
   const [explanationOpen, setExplanationOpen] = useState(false);
   const hasSmartDistributionRollout = Boolean(
@@ -42,9 +42,9 @@ export const SmartDistributionForm: React.FC<SmartDistributionFormProps> = ({
     ),
   );
 
-  // Get smart distribution total from Redux state
+  // Get smart distribution total from the store
   const smartDistributionTotal =
-    useSelector((state: State) => state.donation.smartDistributionTotal) || 0;
+    useWidgetSelector((state: State) => state.donation.smartDistributionTotal) || 0;
 
   const handleSuggestedSumClick = (suggestedAmount: number) => {
     plausible("SelectSuggestedSum", { props: { sum: suggestedAmount } });

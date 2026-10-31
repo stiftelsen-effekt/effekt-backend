@@ -1,8 +1,8 @@
 import React from "react";
-import { useDispatch } from "react-redux";
+import { useWidgetDispatch } from "../../../store/store";
 import { NumericFormat } from "react-number-format";
 
-import { setCauseAreaAmount } from "../../../store/donation/actions";
+import { setCauseAreaAmount } from "../../../store/actions";
 import { usePlausible } from "next-plausible";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
 import { thousandize } from "../../../../../../../util/formatting";
@@ -25,7 +25,7 @@ export const OperationsCauseAreaForm: React.FC<OperationsCauseAreaFormProps> = (
   causeAreaAmounts,
   causeAreaDisplayConfig,
 }) => {
-  const dispatch = useDispatch<any>();
+  const dispatch = useWidgetDispatch();
   const plausible = usePlausible();
 
   return (

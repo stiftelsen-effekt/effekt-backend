@@ -90,9 +90,9 @@ describe("Widget", () => {
 
     // The form's own native submit goes straight to the external
     // avtalegiro.no page (its action is that URL), bypassing the button's
-    // onClick handler that actually dispatches the draftAvtaleGiro saga and
+    // onClick handler that actually starts the draftAvtaleGiro flow and
     // calls widget.draftAvtaleGiro - so the button itself must be clicked, not
-    // the form submitted directly, to exercise that request. But the saga
+    // the form submitted directly, to exercise that request. But the flow
     // itself calls the form's native submit() on success, which would send
     // the browser to that real external page - stub it out so the test only
     // verifies the request, without actually navigating away.

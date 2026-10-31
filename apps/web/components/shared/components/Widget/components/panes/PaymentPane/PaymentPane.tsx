@@ -1,5 +1,5 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../store/store";
 import { State } from "../../../store/state";
 import { PaymentMethod } from "../../../types/Enums";
 import {
@@ -19,7 +19,7 @@ export const PaymentPane: React.FC<{
   referrals: WidgetPane3ReferralsProps;
   paymentMethods: NonNullable<WidgetProps["methods"]>;
 }> = ({ referrals, paymentMethods }) => {
-  const method = useSelector((state: State) => state.donation.method);
+  const method = useWidgetSelector((state: State) => state.donation.method);
 
   switch (method) {
     case PaymentMethod.BANK: {

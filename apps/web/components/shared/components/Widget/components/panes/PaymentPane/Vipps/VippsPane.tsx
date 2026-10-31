@@ -1,17 +1,15 @@
 import React, { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetSelector, useWidgetStore } from "../../../../store/store";
+import { draftVippsAgreement } from "../../../../store/flows";
 import { RadioButtonGroup } from "../../../../../RadioButton/RadioButtonGroup";
 import { Referrals } from "../../../shared/Referrals/Referrals";
-import { draftAgreementAction, setVippsAgreement } from "../../../../store/donation/actions";
+import { setVippsAgreement } from "../../../../store/actions";
 import { State } from "../../../../store/state";
 import { RecurringDonation } from "../../../../types/Enums";
 import { SubmitButton } from "../../../shared/Buttons/NavigationButtons";
 import { VippsDatePicker } from "./VippsDatePicker/VippsDatePicker";
 import { VippsPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
 import { usePlausible } from "next-plausible";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../../store/donation/types";
-import { Action } from "typescript-fsa";
 import panes from "../../Panes.module.scss";
 import payment from "../PaymentPane.module.scss";
 
@@ -19,8 +17,9 @@ export const VippsPane: React.FC<{
   referrals: WidgetPane3ReferralsProps;
   config: VippsPaymentMethod;
 }> = ({ referrals, config }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes | Action<undefined>>>();
-  const donationState = useSelector((state: State) => state.donation);
+  const store = useWidgetStore();
+  const { dispatch } = store;
+  const donationState = useWidgetSelector((state: State) => state.donation);
   const { paymentProviderURL, recurring, vippsAgreement } = donationState;
   const [chooseChargeDay, setChooseChargeDay] = useState(0);
   const plausible = usePlausible();
@@ -62,7 +61,7 @@ export const VippsPane: React.FC<{
                   onClick={async () => {
                     if (recurring === RecurringDonation.RECURRING) {
                       plausible("DraftVippsRecurringAgreement");
-                      dispatch(draftAgreementAction.started(undefined));
+                      void draftVippsAgreement(store);
                     }
                     (document.activeElement as HTMLElement).blur();
                   }}

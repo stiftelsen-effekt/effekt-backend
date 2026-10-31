@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector } from "../../../../store/store";
 import { RadioButtonGroup } from "../../../../../RadioButton/RadioButtonGroup";
-import { setDueDay } from "../../../../store/donation/actions";
+import { setDueDay } from "../../../../store/actions";
 import { State } from "../../../../store/state";
 import { AvtaleGiroDatePicker } from "./AvtaleGiroDatePicker/AvtaleGiroDatePicker";
 import {
@@ -11,8 +11,6 @@ import {
 import { RecurringBankDonationForm } from "./RecurringForm";
 import { Referrals } from "../../../shared/Referrals/Referrals";
 import { AvtaleGiroPaymentMethod, WidgetPane3ReferralsProps } from "../../../../types/WidgetProps";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../../store/donation/types";
 import panes from "../../Panes.module.scss";
 import payment from "../PaymentPane.module.scss";
 
@@ -20,9 +18,9 @@ export const AvtaleGiroPane: React.FC<{
   config: AvtaleGiroPaymentMethod;
   referrals: WidgetPane3ReferralsProps;
 }> = ({ config, referrals }) => {
-  const donation = useSelector((state: State) => state.donation);
+  const donation = useWidgetSelector((state: State) => state.donation);
   const [chooseChargeDay, setChooseChargeDay] = useState(0);
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
+  const dispatch = useWidgetDispatch();
 
   useEffect(() => {
     if (chooseChargeDay === 0) {

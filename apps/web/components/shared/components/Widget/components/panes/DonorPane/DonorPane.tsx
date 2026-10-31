@@ -2,17 +2,16 @@ import { usePlausible } from "next-plausible";
 import Link from "next/link";
 import React, { useContext } from "react";
 import { useForm } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetSelector, useWidgetStore } from "../../../store/store";
+import { registerDonation } from "../../../store/flows";
 import { DonorContext } from "../../../../../../profile/layout/donorContext";
 import { ANONYMOUS_DONOR } from "../../../config/anonymous-donor";
 import {
   selectPaymentMethod,
   submitDonorInfo,
-  registerDonationAction,
-  RegisterDonationActionPayload,
   setReferralCode,
   setDonorFormDraft,
-} from "../../../store/donation/actions";
+} from "../../../store/actions";
 import { DonorFormDraft, State } from "../../../store/state";
 import { PaymentMethod } from "../../../types/Enums";
 import { WidgetPane2Props, WidgetProps } from "../../../types/WidgetProps";
@@ -22,10 +21,6 @@ import { CustomCheckBox } from "./CustomCheckBox";
 import { getEstimatedLtv } from "../../../../../../../util/ltv";
 import { widgetTrpc } from "../../../store/widgetApi";
 import AnimateHeight from "react-animate-height";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../store/donation/types";
-import { Action } from "typescript-fsa";
-import { LayoutActionTypes } from "../../../store/layout/types";
 import { calculateDonationBreakdown } from "../../../utils/donationCalculations";
 import { DonationSummary, DonationSummaryText } from "../../shared/DonationSummary/DonationSummary";
 import { NextButton } from "../../shared/Buttons/NavigationButtons";
@@ -52,13 +47,11 @@ export const DonorPane: React.FC<{
   paymentMethods: NonNullable<WidgetProps["methods"]>;
   isSingleCauseArea?: boolean;
 }> = ({ locale, text, summaryText, paymentMethods, isSingleCauseArea = false }) => {
-  const dispatch =
-    useDispatch<
-      Dispatch<DonationActionTypes | Action<RegisterDonationActionPayload> | LayoutActionTypes>
-    >();
-  const donor = useSelector((state: State) => state.donation.donor);
-  const donation = useSelector((state: State) => state.donation);
-  const causeAreas = useSelector((state: State) => state.layout.causeAreas) || [];
+  const store = useWidgetStore();
+  const { dispatch } = store;
+  const donor = useWidgetSelector((state: State) => state.donation.donor);
+  const donation = useWidgetSelector((state: State) => state.donation);
+  const causeAreas = useWidgetSelector((state: State) => state.layout.causeAreas) || [];
   const { donor: initialDonor } = useContext(DonorContext);
 
   const breakdown = calculateDonationBreakdown(
@@ -273,14 +266,12 @@ export const DonorPane: React.FC<{
 
     dispatch(selectPaymentMethod(paymentMethod));
 
-    // For external payment providers (e.g. Quickpay/MobilePay/DK bank), the saga will open the
+    // For external payment providers (e.g. Quickpay/MobilePay/DK bank), registerDonation opens the
     // provider URL directly on a successful registration.
     const configuration = paymentMethodConfigurations.find((config) => config.id === methodId);
-    dispatch(
-      registerDonationAction.started({
-        openExternalPaymentOnRegisterSuccess: configuration?.openExternalPaymentOnRegisterSuccess,
-      }),
-    );
+    void registerDonation(store, {
+      openExternalPaymentOnRegisterSuccess: configuration?.openExternalPaymentOnRegisterSuccess,
+    });
   };
 
   return (

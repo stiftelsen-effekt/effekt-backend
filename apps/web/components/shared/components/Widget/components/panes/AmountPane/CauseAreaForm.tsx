@@ -1,5 +1,6 @@
 import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { State } from "../../../store/state";
+import { useWidgetDispatch, useWidgetSelector } from "../../../store/store";
 import { NumericFormat } from "react-number-format";
 import Link from "next/link";
 import { usePlausible } from "next-plausible";
@@ -14,7 +15,7 @@ import {
   setOperationsPercentageByCauseArea,
   setShowAllOrganizations,
   setHasManuallyEditedPrefilledOrgAmount,
-} from "../../../store/donation/actions";
+} from "../../../store/actions";
 import { thousandize } from "../../../../../../../util/formatting";
 import { EffektButton, EffektButtonVariant } from "../../../../EffektButton/EffektButton";
 import { RadioButtonGroup } from "../../../../RadioButton/RadioButtonGroup";
@@ -57,7 +58,7 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
   causeAreaDisplayConfig,
   smartDistributionContext,
 }) => {
-  const dispatch = useDispatch<any>();
+  const dispatch = useWidgetDispatch();
   const plausible = usePlausible();
   const isMobile = useIsMobile();
   const hasSingleOrg = causeArea.organizations.length <= 1;
@@ -77,7 +78,7 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
     prefilledShares = null,
     showAllOrganizations = false,
     hasManuallyEditedPrefilledOrgAmount = false,
-  } = useSelector((state: any) => state.donation);
+  } = useWidgetSelector((state: State) => state.donation);
   const activeOrganizations = causeArea.organizations
     .filter((organization) => organization.isActive)
     .sort((first, second) => first.ordering - second.ordering);
@@ -93,20 +94,20 @@ export const CauseAreaForm: React.FC<CauseAreaFormProps> = ({
         )
       : activeOrganizations;
 
-  // Use config from props if available, otherwise from state
-  const config = operationsConfig || stateConfig;
-  const defaultPercentage = config?.defaultPercentage ?? 5;
-
-  // Get percentage from Redux state
+  // The store seeds every cause area's percentage from the configured default when the cause
+  // areas load, so the fallback rarely applies. Sanity's operations_config (the prop) names it
+  // default_percentage, so with the prop set the fallback is 5, as it has been.
+  const defaultPercentage = operationsConfig ? 5 : (stateConfig?.defaultPercentage ?? 5);
   const currentPercentage = operationsPercentageByCauseArea[causeArea.id] ?? defaultPercentage;
+  // Only Sanity's operations_config has the label template
   const { prefix: operationsLabelPrefix, suffix: operationsLabelSuffix } =
-    splitOperationsLabelTemplate(config?.operations_label_template);
+    splitOperationsLabelTemplate(operationsConfig?.operations_label_template);
 
   // Check if operations are enabled for this cause area
   const isOperationsEnabled = operationsPercentageModeByCauseArea[causeArea.id] ?? false;
 
   // The input always shows the full amount the user entered, which is stored verbatim
-  // in Redux - so it's read straight from there rather than mirrored in local state.
+  // in the store - so it's read straight from there rather than mirrored in local state.
   const inputValue = currentCauseAreaAmount;
 
   const handleCutToggle = (checked: boolean) => {

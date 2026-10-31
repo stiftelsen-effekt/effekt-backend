@@ -1,5 +1,5 @@
 import React from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../store/store";
 import { LoadingButtonSpinner } from "../../../../Spinner/LoadingButtonSpinner";
 import { State } from "../../../store/state";
 import { EffektButton } from "../../../../EffektButton/EffektButton";
@@ -10,7 +10,7 @@ import styles from "./NavigationButtons.module.scss";
  * click can't start a second registration or agreement draft.
  */
 const useLoadingGuard = (onClick: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"]) => {
-  const loading = useSelector((state: State) => state.layout.loading);
+  const loading = useWidgetSelector((state: State) => state.layout.loading);
   const guardedOnClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
     if (loading) {
       e.preventDefault();

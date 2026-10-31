@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { setDueDay } from "../../../../../store/donation/actions";
+import { useWidgetDispatch, useWidgetSelector } from "../../../../../store/store";
+import { setDueDay } from "../../../../../store/actions";
 import { State } from "../../../../../store/state";
 import { DatePicker } from "../../../../shared/DatePicker/DatePicker";
 import { ToolTip } from "../../../../shared/ToolTip/ToolTip";
 import { isIrregularChargeDay } from "./avtalegirodates";
 import { DatePickerInputConfiguration } from "../../../../../../DatePicker/DatePickerInput";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../../../store/donation/types";
 import payment from "../../PaymentPane.module.scss";
 
 const tooltipText =
@@ -16,8 +14,8 @@ const tooltipText =
 export const AvtaleGiroDatePicker: React.FC<{ configuration: DatePickerInputConfiguration }> = ({
   configuration,
 }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
-  const dueDay = useSelector((state: State) => state.donation.dueDay);
+  const dispatch = useWidgetDispatch();
+  const dueDay = useWidgetSelector((state: State) => state.donation.dueDay);
   const [selectedDueDay, setSelectedDueDay] = useState<number>(dueDay);
 
   useEffect(() => {

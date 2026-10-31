@@ -7,7 +7,7 @@ import {
 } from "../../../../../lib/trpc/client";
 import { API_URL } from "../config/api";
 import type { IServerResponse } from "../types/Temp";
-import type { RegisterDonationResponse } from "./donation/actions";
+import type { RegisterDonationResponse } from "./actions";
 
 /**
  * The donation widget's calls to the backend. On every site but the Danish one they go to the

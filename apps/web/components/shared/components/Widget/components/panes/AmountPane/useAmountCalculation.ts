@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../../../store/store";
 import { State } from "../../../store/state";
 import { ShareType } from "../../../types/Enums";
 import { CauseArea } from "../../../types/CauseArea";
@@ -15,7 +15,7 @@ export const useAmountCalculation = (
     causeAreaDistributionType = {},
     operationsConfig,
     smartDistributionTotal = 0,
-  } = useSelector((state: State) => state.donation);
+  } = useWidgetSelector((state: State) => state.donation);
 
   const OPERATIONS_CAUSE_AREA_ID = operationsConfig?.operationsCauseAreaId;
 

@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useWidgetSelector, useWidgetDispatch } from "../../../store/store";
 import AnimateHeight from "react-animate-height";
 import { X, AlertCircle } from "react-feather";
 import { State } from "../../../store/state";
-import { clearApiError } from "../../../store/donation/actions";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../../../store/donation/types";
+import { clearApiError } from "../../../store/actions";
 import styles from "./ApiErrorNotification.module.scss";
 
 export const ApiErrorNotification: React.FC<{ genericErrorMessage?: string }> = ({
   genericErrorMessage = "Something went wrong, please try again later.",
 }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
-  const apiError = useSelector((state: State) => state.donation.apiError);
+  const dispatch = useWidgetDispatch();
+  const apiError = useWidgetSelector((state: State) => state.donation.apiError);
   const [isVisible, setIsVisible] = useState(typeof apiError !== "undefined");
   // Kept in state (not derived) so the last message stays on screen during the exit animation
   const [message, setMessage] = useState<string | null>(apiError ?? null);

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, ReactNode } from "react";
-import { useSelector } from "react-redux";
+import { useWidgetSelector } from "../store/store";
 
 import { State } from "../store/state";
 import AnimateHeight from "react-animate-height";
@@ -35,8 +35,8 @@ function smoothScrollTo(element: any, to: number, duration: number) {
 
 export const Carousel: React.FC<ICarouselProps> = ({ children, minHeight, inline }) => {
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [currentPaneNumber, setCurrentPaneNumber] = useState(0); // get from redux global state
-  const reduxPaneNumber = useSelector((state: State) => state.layout.paneNumber);
+  const [currentPaneNumber, setCurrentPaneNumber] = useState(0); // follows the store's pane number
+  const storePaneNumber = useWidgetSelector((state: State) => state.layout.paneNumber);
   const [renderedPanes, setRenderedPanes] = useState([1]);
   const [temporaryHeight, setTemporaryHeight] = useState<number | null>(null);
   const currentPaneNumberRef = useRef(currentPaneNumber);
@@ -93,16 +93,16 @@ export const Carousel: React.FC<ICarouselProps> = ({ children, minHeight, inline
     }, 200);
   };
 
-  // This hook detects when paneNumber changes in the Redux store
+  // This hook detects when paneNumber changes in the store
   useEffect(() => {
-    if (reduxPaneNumber > currentPaneNumber) {
-      // oxlint-disable-next-line react/set-state-in-effect -- follows pane changes in the Redux store
+    if (storePaneNumber > currentPaneNumber) {
+      // oxlint-disable-next-line react/set-state-in-effect -- follows pane changes in the store
       changePaneByOffset(1);
-    } else if (reduxPaneNumber < currentPaneNumber) {
+    } else if (storePaneNumber < currentPaneNumber) {
       changePaneByOffset(-1);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- only a store pane change should move the carousel
-  }, [reduxPaneNumber]);
+  }, [storePaneNumber]);
 
   return (
     <div className="carousel-wrapper" style={{ minHeight: `${minHeight}px` }} ref={carouselRef}>

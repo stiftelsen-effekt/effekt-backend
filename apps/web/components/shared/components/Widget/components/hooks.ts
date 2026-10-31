@@ -1,15 +1,15 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useWidgetDispatch, useWidgetSelector, WidgetStore } from "../store/store";
 import { useRouter } from "next/router";
 import {
-  setSum,
+  setPaneNumber,
   setRecurring,
   setCauseAreaDistributionType,
   setCauseAreaSelection,
   setOrgAmount,
   setPrefilledShares,
   setReferralCode,
-} from "../store/donation/actions";
+} from "../store/actions";
 import { RecurringDonation, ShareType } from "../types/Enums";
 import { WidgetContext } from "../../../../main/layout/layout";
 import { PrefilledDistribution } from "../../../../main/layout/WidgetPane/WidgetPane";
@@ -18,16 +18,14 @@ import { WidgetProps } from "../types/WidgetProps";
 import { paymentMethodConfigurations } from "../config/methods";
 import { useDebouncedCallback } from "use-debounce";
 import { State } from "../store/state";
-import { Dispatch } from "@reduxjs/toolkit";
-import { DonationActionTypes } from "../store/donation/types";
-import { setPaneNumber } from "../store/layout/actions";
-import { LayoutActionTypes } from "../store/layout/types";
 import {
   getReferralCodeFromQuery,
   getStoredReferralCode,
   storeReferralCode,
 } from "../../../../../util/referralCode";
 import { splitAmountByShares } from "../utils/donationCalculations";
+
+type WidgetDispatch = WidgetStore["dispatch"];
 
 /** Designed pane content width, before the reserved scrollbar gutter. */
 export const WIDGET_CONTENT_WIDTH = 576;
@@ -58,9 +56,10 @@ export const usePrefilledDistribution = ({
   causeAreas,
   prefilledDistribution,
 }: UsePrefilledDistributionProps) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes | LayoutActionTypes>>();
+  const dispatch = useWidgetDispatch();
   const [widgetContext] = useContext(WidgetContext);
-  const causeAreaAmounts = useSelector((state: State) => state.donation.causeAreaAmounts ?? {});
+  const causeAreaAmounts =
+    useWidgetSelector((state: State) => state.donation.causeAreaAmounts) ?? {};
   // Add a ref to track if we've already applied the prefilled distribution
   const hasAppliedPrefill = useRef(false);
 
@@ -155,20 +154,6 @@ export const usePrefilledDistribution = ({
 };
 
 /**
- * Hook to handle prefilled sum for the widget
- */
-export const usePrefilledSum = ({ inline }: { inline: boolean }) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
-  const [widgetContext] = useContext(WidgetContext);
-
-  useEffect(() => {
-    if (!inline && widgetContext.prefilledSum !== null) {
-      dispatch(setSum(widgetContext.prefilledSum));
-    }
-  }, [inline, widgetContext.prefilledSum, dispatch]);
-};
-
-/**
  * Hook to handle URL query parameters for prefilling the widget
  */
 export const useQueryParamsPrefill = ({
@@ -181,7 +166,7 @@ export const useQueryParamsPrefill = ({
   defaultPaymentType: RecurringDonation;
 }) => {
   const router = useRouter();
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
+  const dispatch = useWidgetDispatch();
   const [widgetContext, setWidgetContext] = useContext(WidgetContext);
   const hasAppliedQueryParams = useRef(false);
 
@@ -247,7 +232,7 @@ export const useQueryParamsPrefill = ({
 // the applied shares (org ID -> percentage) so the caller can track them for auto-updating
 // as the amount changes later.
 const handlePrefilledCauseArea = (
-  dispatch: any,
+  dispatch: WidgetDispatch,
   causeArea: CauseArea,
   prefilledCauseArea: PrefilledDistribution[number],
   causeAreaAmount: number,
@@ -274,7 +259,7 @@ const handlePrefilledCauseArea = (
   return shareByOrgId;
 };
 
-const resetCauseArea = (dispatch: any, causeArea: CauseArea) => {
+const resetCauseArea = (dispatch: WidgetDispatch, causeArea: CauseArea) => {
   dispatch(setCauseAreaDistributionType(causeArea.id, ShareType.STANDARD));
 
   causeArea.organizations.forEach((organization) => {
@@ -334,7 +319,7 @@ export const useAvailableRecurringOptions = (
  * Determine available payment methods based on the selected recurring option
  */
 export const useAvailablePaymentMethods = (paymentMethods: NonNullable<WidgetProps["methods"]>) => {
-  const recurring = useSelector((state: State) => state.donation.recurring);
+  const recurring = useWidgetSelector((state: State) => state.donation.recurring);
 
   const availablePaymentMethods = useMemo(
     () =>
@@ -356,8 +341,8 @@ export const useAvailablePaymentMethods = (paymentMethods: NonNullable<WidgetPro
 export const useDefaultPaymentMethodEffect = (
   paymentMethods: NonNullable<WidgetProps["methods"]>,
 ) => {
-  const dispatch = useDispatch<Dispatch<DonationActionTypes>>();
-  const recurring = useSelector((state: State) => state.donation.recurring);
+  const dispatch = useWidgetDispatch();
+  const recurring = useWidgetSelector((state: State) => state.donation.recurring);
 
   const availableRecurringOptions = useAvailableRecurringOptions(paymentMethods);
 
