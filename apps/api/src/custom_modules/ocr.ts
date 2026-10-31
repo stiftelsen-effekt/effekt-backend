@@ -143,7 +143,7 @@ module.exports = {
       for (let i = 0; i < donationIDs.length; i++) {
         try {
           await sendDonationReceipt(donationIDs[i]);
-        } catch (ex) {
+        } catch {
           console.error(`Failed to send donation reciept for donation ${donationIDs[i]}`);
         }
       }

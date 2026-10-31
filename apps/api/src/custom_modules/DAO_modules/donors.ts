@@ -125,7 +125,7 @@ async function getAll(
   page: number,
   limit: number = 10,
   filter: DonorFilters | null = null,
-  locale: RequestLocale, // Include if needed for any donor-specific localized data
+  _locale: RequestLocale, // Include if needed for any donor-specific localized data
 ): Promise<{
   rows: Array<DonorRow>;
   statistics: DonorStatistics;
@@ -646,7 +646,7 @@ async function add(
  * @returns {boolean}
  */
 async function updateNewsletter(donorID, newsletter) {
-  let res = await DAO.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID]);
+  await DAO.query(`UPDATE Donors SET newsletter = ? where ID = ?`, [newsletter, donorID]);
   return true;
 }
 

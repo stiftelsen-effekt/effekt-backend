@@ -15,8 +15,6 @@ module.exports = async (req, res, next) => {
     let failed = 0;
 
     for (let i = 0; i < records.length; i++) {
-      const record = records[i];
-
       throw new Error(
         "This endpoint is deprecated and no longer in use. Please use the new mailersend template for sending tax deduction emails.",
       );

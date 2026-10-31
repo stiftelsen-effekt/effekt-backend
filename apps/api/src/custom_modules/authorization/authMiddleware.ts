@@ -91,7 +91,7 @@ export const checkDonorOwnsDistribution = (KID, req, res, next) => {
       const handler = claimCheck((jwtPayload) => userIsAllowedToManageDonor(jwtPayload, donor.id));
       handler(req, res, next);
     })
-    .catch((err) => {
+    .catch(() => {
       {
         next(new Error("Failed to verify ownershop of agreement"));
       }

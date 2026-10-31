@@ -4,7 +4,7 @@ import { isAdmin } from "../custom_modules/authorization/authMiddleware";
 
 export const importRouter = Router();
 
-importRouter.post("/donations/se/legacy", isAdmin, async (req, res, next) => {
+importRouter.post("/donations/se/legacy", isAdmin, async (req, res) => {
   const report = req.files.report;
 
   if (!report) {

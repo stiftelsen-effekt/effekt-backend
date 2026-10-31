@@ -82,7 +82,7 @@ export const parseSwedishDonationsReport = (report): ExtractedDonor[] => {
       relax_column_count: true,
       trim: true,
     }) as SwedishDonationsReportRow[];
-  } catch (ex) {
+  } catch {
     console.error("Using comma delimiter failed, trying semicolon.");
 
     try {

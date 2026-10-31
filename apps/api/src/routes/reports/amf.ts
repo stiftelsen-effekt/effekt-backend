@@ -4,7 +4,7 @@ import { processAmfDonations } from "../../custom_modules/amf";
 
 export const amfReportRouter = Router();
 
-amfReportRouter.post("/", isAdmin, async (req, res, next) => {
+amfReportRouter.post("/", isAdmin, async (req, res) => {
   const report = req.files.report;
 
   if (!report) {

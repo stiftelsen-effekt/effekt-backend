@@ -766,7 +766,7 @@ async function add(
       }
     }
 
-    const [distributionCauseAreaOrganizationInsert] = await transaction.query<ResultSetHeader>(
+    await transaction.query<ResultSetHeader>(
       `INSERT INTO Distribution_cause_area_organizations (Distribution_cause_area_ID, Organization_ID, Percentage_share) VALUES ?;`,
       [distributionCauseAreaOrganizationInsertsRowValues],
     );
@@ -800,7 +800,7 @@ async function setTaxUnit(KID: string, taxUnitId: number) {
  * @param taxUnitId
  */
 async function connectFirstTaxUnit(donorId: number, taxUnitId: number) {
-  const [res] = await DAO.query(
+  await DAO.query(
     `
     UPDATE Distributions
     SET Tax_unit_ID = ?
@@ -817,7 +817,7 @@ async function connectFirstTaxUnit(donorId: number, taxUnitId: number) {
  * @param taxUnitId
  */
 async function addTaxUnitToDistribution(kid: string, taxUnitId: number) {
-  const [res] = await DAO.query(
+  await DAO.query(
     `
     UPDATE Distributions
     SET Tax_unit_ID = ?

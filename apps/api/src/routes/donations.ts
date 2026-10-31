@@ -271,7 +271,7 @@ router.delete("/:id", authMiddleware.isAdmin, async (req, res, next) => {
   }
 });
 
-router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/:id/receipt", authMiddleware.isAdmin, async (req, res) => {
   if (req.body.email && req.body.email.indexOf("@") > -1) {
     var mailStatus = await sendDonationReceipt(req.params.id, req.body.email);
   } else {

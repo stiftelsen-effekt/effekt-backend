@@ -51,7 +51,7 @@ fundraisersRouter.get("/list", async (req, res, next) => {
   }
 });
 
-fundraisersRouter.get("/dashboard/:secret", async (req, res, next) => {
+fundraisersRouter.get("/dashboard/:secret", async (req, res) => {
   if (!req.params.secret) {
     res.status(400).json({ error: "No secret provided" });
     return;
@@ -344,7 +344,6 @@ function generateTransactionsTable(
 
   // Rows
   transactions.forEach((t) => {
-    const id = t.id.toString().padEnd(8);
     const date = DateTime.fromJSDate(new Date(t.date)).toFormat("dd.MM yyyy").padEnd(12);
     const amount = formatCurrency(t.amount).padStart(14);
     const name = (t.name || "Anonymous").slice(0, 29).padEnd(30);

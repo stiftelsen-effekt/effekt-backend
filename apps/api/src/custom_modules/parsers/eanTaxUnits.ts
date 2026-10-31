@@ -28,7 +28,7 @@ export const parseEanTaxUnits = (report): EANTaxUnitsRow[] => {
       relax_column_count: true,
       trim: true,
     });
-  } catch (ex) {
+  } catch {
     console.error("Using comma delimiter failed, trying semicolon.");
 
     try {

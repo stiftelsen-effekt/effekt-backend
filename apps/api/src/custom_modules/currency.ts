@@ -124,7 +124,7 @@ export const getBestExchangeRate = (exchangeRates: ExchangeRateResponse, date: s
     return parseFloat(
       exchangeRates.data.dataSets[0].series["0:0:0:0"].observations[dateAsPeriod][0],
     );
-  } catch (ex) {
+  } catch {
     // Take the last available exchange rate
     return parseFloat(
       exchangeRates.data.dataSets[0].series["0:0:0:0"].observations[

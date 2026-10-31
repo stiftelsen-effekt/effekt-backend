@@ -1,6 +1,4 @@
 const config = require("../../config");
-const luxon = require("luxon");
-const { DateTime } = require("luxon");
 
 module.exports = {
   startRecordTransmission: function (shipmentID) {

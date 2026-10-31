@@ -42,7 +42,7 @@ export const inflationadjustments = {
     const currentAmountOre = input.currentAmount;
     const proposedAmountOre = input.proposedAmount;
 
-    const [result] = await DAO.query(
+    await DAO.query(
       `INSERT INTO Agreement_inflation_adjustments 
         (agreement_ID, agreement_type, current_amount, proposed_amount, 
          inflation_percentage, token, status, expires)
