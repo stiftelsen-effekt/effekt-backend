@@ -37,7 +37,6 @@
 /apps/web/components/main/layout/WidgetPane/              @fellmirr
 /apps/web/components/shared/layout/Layout/                @fellmirr
 /apps/web/components/shared/layout/CookieBanner/          @fellmirr
-/apps/web/components/shared/layout/GoogleAnalytics.tsx    @fellmirr
 /apps/web/components/shared/layout/GoogleTagManager.tsx   @fellmirr
 /apps/web/components/shared/layout/HotJar.tsx             @fellmirr
 /apps/web/components/shared/layout/MetaPixel.tsx          @fellmirr
