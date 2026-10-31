@@ -9,7 +9,6 @@ export type Donation = Minside["donations"][number];
 /** One entry of a Danish donation's precomputed impact */
 export type DonationImpactEntry = NonNullable<Donation["impact"]>[number];
 export type AvtaleGiroAgreement = Minside["avtaleGiroAgreements"][number];
-export type AutoGiroAgreement = Minside["autoGiroAgreements"][number];
 export type VippsAgreement = Minside["vippsAgreements"][number];
 export type Distribution = Minside["distributions"][number];
 export type DistributionCauseArea = Distribution["causeAreas"][number];

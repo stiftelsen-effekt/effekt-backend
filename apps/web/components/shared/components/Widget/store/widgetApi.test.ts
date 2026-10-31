@@ -5,10 +5,8 @@ import {
   registerBankPendingRequest,
   registerDonationRequest,
   resetWidgetApi,
-  setAutoGiroDraftPaymentDateRequest,
   setWidgetApiLocale,
   submitReferralRequest,
-  swishOrderStatusRequest,
   widgetApiFlavor,
   widgetAsksForReferrals,
   widgetTrpc,
@@ -29,8 +27,6 @@ const registered = {
   donorID: 42,
   hasAnsweredReferral: false,
   paymentProviderUrl: "",
-  swishOrderID: null,
-  swishPaymentRequestToken: null,
 };
 
 const donation = {
@@ -96,11 +92,11 @@ describe("widget API on our backend (tRPC)", () => {
 
   it("returns the backend's message when it refuses the donation", async () => {
     fetchMock.mockResolvedValueOnce(
-      trpcError(400, "BAD_REQUEST", "Recurring donations not supported with Swish"),
+      trpcError(400, "BAD_REQUEST", "Recurring donations not supported with bank"),
     );
     expect(await registerDonationRequest(donation)).toEqual({
       ok: false,
-      errorMessage: "Recurring donations not supported with Swish",
+      errorMessage: "Recurring donations not supported with bank",
     });
   });
 
@@ -195,22 +191,6 @@ describe("widget payment calls on our backend (tRPC)", () => {
       draftAvtaleGiroRequest({ KID: "x", amount: 300, registrationToken: "token" }),
     ).rejects.toThrow();
   });
-
-  it("polls the Swish status with a GET", async () => {
-    fetchMock.mockResolvedValueOnce(trpcData({ status: "PAID" }));
-    expect(await swishOrderStatusRequest("42")).toEqual({ status: "PAID" });
-    expect(call().url).toBe(
-      `${API}/trpc/widget.swishOrderStatus?input=${encodeURIComponent('{"orderId":"42"}')}`,
-    );
-    expect(call().init.method).toBe("GET");
-  });
-
-  it("sets the drafted AutoGiro payment date", async () => {
-    fetchMock.mockResolvedValueOnce(trpcData(true));
-    await setAutoGiroDraftPaymentDateRequest("12345678", 27, "token");
-    expect(call().url).toBe(`${API}/trpc/widget.setAutoGiroDraftPaymentDate`);
-    expect(bodyOf()).toEqual({ KID: "12345678", paymentDate: 27, registrationToken: "token" });
-  });
 });
 
 describe("widget API on the Danish site (REST)", () => {
@@ -284,7 +264,7 @@ describe("widget API on the Danish site (REST)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("doesn't send the Norwegian and Swedish payment calls anywhere", async () => {
+  it("doesn't send the Norwegian payment calls anywhere", async () => {
     await expect(
       draftVippsAgreementRequest({
         KID: "1",
@@ -297,10 +277,6 @@ describe("widget API on the Danish site (REST)", () => {
     await expect(
       draftAvtaleGiroRequest({ KID: "1", amount: 1, registrationToken: "t" }),
     ).rejects.toThrow("not available on this site");
-    await expect(swishOrderStatusRequest("1")).rejects.toThrow("not available on this site");
-    await expect(setAutoGiroDraftPaymentDateRequest("1", 27, "t")).rejects.toThrow(
-      "not available on this site",
-    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

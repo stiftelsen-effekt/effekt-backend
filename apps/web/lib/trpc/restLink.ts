@@ -45,8 +45,8 @@ type RestRoute = {
  * saving the profile, deleting a tax unit and the Vipps/AvtaleGiro agreement changes are unmapped
  * (the Danish site edits its agreements through its own REST routes, see DKAgreementDetails). Of
  * the widget procedures, it only has the two public reads; the Danish widget registers donations
- * through its own REST code path (see Widget/store/widgetApi.ts), and has none of the Vipps,
- * AvtaleGiro, Swish or AutoGiro widget routes. Of the site procedures, it has the results routes and
+ * through its own REST code path (see Widget/store/widgetApi.ts), and has none of the Vipps or
+ * AvtaleGiro widget routes. Of the site procedures, it has the results routes and
  * GET /fundraisers/:id (with UUID ids), but no LTV estimate.
  */
 export const restRoutes: Record<string, RestRoute> = {

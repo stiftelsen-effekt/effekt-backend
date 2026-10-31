@@ -211,7 +211,6 @@ export const DonorPane: React.FC<{
       if (donation.recurring) {
         if (paymentMethod === PaymentMethod.VIPPS) plausible("SelectVippsRecurring");
         if (paymentMethod === PaymentMethod.AVTALEGIRO) plausible("SelectAvtaleGiro");
-        if (paymentMethod === PaymentMethod.AUTOGIRO) plausible("SelectAutoGiro");
 
         if (totalSumIncludingTip) {
           if (
@@ -238,9 +237,6 @@ export const DonorPane: React.FC<{
       }
       if (!donation.recurring) {
         if (paymentMethod === PaymentMethod.VIPPS) plausible("SelectSingleVippsPayment");
-        if (paymentMethod === PaymentMethod.SWISH) {
-          plausible("SelectSwishSingle");
-        }
         if (paymentMethod === PaymentMethod.BANK) {
           plausible("SelectBankSingle");
         }
@@ -570,8 +566,6 @@ export const DonorPane: React.FC<{
 export const paymentMethodMap: Record<string, PaymentMethod> = {
   vipps: PaymentMethod.VIPPS,
   bank: PaymentMethod.BANK,
-  swish: PaymentMethod.SWISH,
-  autogiro: PaymentMethod.AUTOGIRO,
   avtalegiro: PaymentMethod.AVTALEGIRO,
   quickpay_card: PaymentMethod.QUICKPAY_CARD,
   quickpay_mobilepay: PaymentMethod.QUICKPACK_MOBILEPAY,

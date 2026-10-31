@@ -40,10 +40,6 @@ describe("Agreements page", () => {
       cy.interceptTrpc("minside.avtaleGiroAgreements", avtalegiro).as("getAvtalegiro");
     });
 
-    cy.fixture("autogiro").then((vipps) => {
-      cy.interceptTrpc("minside.autoGiroAgreements", vipps).as("getAutogiro");
-    });
-
     cy.fixture("kids_agreements").then((kids) => {
       cy.interceptTrpc("minside.distributions", kids).as("getDistribution");
 
@@ -62,19 +58,9 @@ describe("Agreements page", () => {
     /**
      * Wait for initial data load
      */
-    cy.wait(
-      [
-        "@getDonor",
-        "@getCauseAreas",
-        "@getVipps",
-        "@getAvtalegiro",
-        "@getAutogiro",
-        "@getDistribution",
-      ],
-      {
-        timeout: 30000,
-      },
-    );
+    cy.wait(["@getDonor", "@getCauseAreas", "@getVipps", "@getAvtalegiro", "@getDistribution"], {
+      timeout: 30000,
+    });
   });
 
   it("Should display a list of active and inactive agreements", () => {

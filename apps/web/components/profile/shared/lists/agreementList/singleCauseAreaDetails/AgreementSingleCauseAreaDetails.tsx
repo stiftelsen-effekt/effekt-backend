@@ -24,7 +24,6 @@ export const AgreementSingleCauseAreaDetails: React.FC<{
   onSumChange: (sum: number) => void;
   taxUnits: TaxUnit[];
   dateSelectorConfig: DatePickerInputConfiguration;
-  dateDisabled?: boolean;
 }> = ({
   distribution,
   savedDistribution,
@@ -36,7 +35,6 @@ export const AgreementSingleCauseAreaDetails: React.FC<{
   onSumChange,
   taxUnits,
   dateSelectorConfig,
-  dateDisabled,
 }) => {
   const [addTaxUnitOpen, setAddTaxUnitOpen] = useState(false);
 
@@ -51,7 +49,6 @@ export const AgreementSingleCauseAreaDetails: React.FC<{
             selected={day}
             onChange={(date) => setDay(date)}
             configuration={dateSelectorConfig}
-            disabled={dateDisabled}
           />
         </div>
         <div className={style.valuesAmountContainer}>

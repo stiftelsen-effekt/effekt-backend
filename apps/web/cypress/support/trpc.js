@@ -20,8 +20,6 @@ const TRPC_URLS = {
   "minside.vippsAgreements": /\/trpc\/(?:[^/?]*,)?minside\.vippsAgreements(?:,[^/?]*)?(?:\?|$)/,
   "minside.avtaleGiroAgreements":
     /\/trpc\/(?:[^/?]*,)?minside\.avtaleGiroAgreements(?:,[^/?]*)?(?:\?|$)/,
-  "minside.autoGiroAgreements":
-    /\/trpc\/(?:[^/?]*,)?minside\.autoGiroAgreements(?:,[^/?]*)?(?:\?|$)/,
   "minside.taxReports": /\/trpc\/(?:[^/?]*,)?minside\.taxReports(?:,[^/?]*)?(?:\?|$)/,
   // The donation widget (httpLink, never batched)
   "widget.causeAreas": /\/trpc\/widget\.causeAreas(?:\?|$)/,
@@ -31,8 +29,6 @@ const TRPC_URLS = {
   "widget.submitReferral": /\/trpc\/widget\.submitReferral(?:\?|$)/,
   "widget.draftVippsAgreement": /\/trpc\/widget\.draftVippsAgreement(?:\?|$)/,
   "widget.draftAvtaleGiro": /\/trpc\/widget\.draftAvtaleGiro(?:\?|$)/,
-  "widget.swishOrderStatus": /\/trpc\/widget\.swishOrderStatus(?:\?|$)/,
-  "widget.setAutoGiroDraftPaymentDate": /\/trpc\/widget\.setAutoGiroDraftPaymentDate(?:\?|$)/,
   // Public site reads (httpLink, never batched)
   "site.resultsHeadline": /\/trpc\/site\.resultsHeadline(?:\?|$)/,
   "site.fundraiser": /\/trpc\/site\.fundraiser(?:\?|$)/,

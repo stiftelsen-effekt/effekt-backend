@@ -58,7 +58,6 @@
     "personnummer": "^3.3.1",
     "react": "catalog:",
     "react-animate-height": "^3.2.4",
-    "react-device-detect": "^2.2.3",
     "react-dom": "catalog:",
     "react-draggable": "^4.7.2",
     "react-feather": "catalog:",

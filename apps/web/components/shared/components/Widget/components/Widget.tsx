@@ -49,7 +49,7 @@ export const widgetContentQuery = groq`
   "locale": *[ _type == "site_settings"][0].main_locale,
   "donate_label": *[ _type == "site_settings"][0].donate_label,
   "accentColor": *[ _type == "site_settings"][0].accent_color,
-  methods[] { 
+  methods[@->_type in ["bank", "vipps", "avtalegiro", "quickpay_card", "quickpay_mobilepay", "dkbank"]] {
     _type == 'reference' => @->{
       _type == 'bank' => {
         ...,
@@ -70,18 +70,6 @@ export const widgetContentQuery = groq`
         single_title,
         single_button_text,
         transaction_cost,
-      },
-      _type == 'swish' => {
-        ...,
-        transaction_cost,
-      },
-      _type == 'autogiro' => {
-        ...,
-        transaction_cost,
-        recurring_manual_option_config {
-          ...,
-          date_selector_config->
-        }
       },
       _type == 'avtalegiro' => {
         ...,

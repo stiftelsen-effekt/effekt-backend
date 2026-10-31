@@ -1,11 +1,5 @@
 import { PortableText } from "@portabletext/react";
-import {
-  AutoGiroAgreement,
-  AvtaleGiroAgreement,
-  Distribution,
-  TaxUnit,
-  VippsAgreement,
-} from "../../../../../models";
+import { AvtaleGiroAgreement, Distribution, TaxUnit, VippsAgreement } from "../../../../../models";
 import { GenericList } from "../GenericList";
 import { ErrorMessage } from "../../ErrorMessage/ErrorMessage";
 import { ListRow } from "../GenericListRow";
@@ -16,10 +10,10 @@ import { Lightbox } from "../../../../shared/components/Lightbox/Lightbox";
 import { thousandize } from "../../../../../util/formatting";
 import { toNumber } from "../../../../../util/decimal";
 
-export type AgreementTypes = "Vipps" | "AvtaleGiro" | "AutoGiro";
+export type AgreementTypes = "Vipps" | "AvtaleGiro";
 
 type AgreementRow = {
-  // Vipps agreement ids are strings ("agr_…"), AvtaleGiro and AutoGiro ids numbers
+  // Vipps agreement ids are strings ("agr_…"), AvtaleGiro ids numbers
   ID: number | string;
   status: string | boolean | null;
   KID: string;
@@ -50,12 +44,11 @@ type AgreementListConfiguration = {
 export const AgreementList: React.FC<{
   avtalegiro: AvtaleGiroAgreement[];
   vipps: VippsAgreement[];
-  autogiro: AutoGiroAgreement[];
   distributions: Map<string, Distribution>;
   taxUnits: TaxUnit[];
   expandable?: boolean;
   configuration: AgreementListConfiguration;
-}> = ({ avtalegiro, vipps, autogiro, distributions, taxUnits, expandable, configuration }) => {
+}> = ({ avtalegiro, vipps, distributions, taxUnits, expandable, configuration }) => {
   const [agreementCancelled, setAgreementCancelled] = useState<{
     agreementType: AgreementTypes;
     agreementId: string;
@@ -91,17 +84,7 @@ export const AgreementList: React.FC<{
     endpoint: entry.KID,
   }));
 
-  let autoGiroType = autogiro.map((entry: AutoGiroAgreement): AgreementRow => ({
-    ID: entry.ID,
-    status: entry.active,
-    KID: entry.KID,
-    date: entry.payment_date,
-    amount: toNumber(entry.amount),
-    type: "AutoGiro",
-    endpoint: entry.KID,
-  }));
-
-  let rowData: AgreementRow[] = [...vippsType, ...giroType, ...autoGiroType];
+  let rowData: AgreementRow[] = [...vippsType, ...giroType];
 
   /**
    * Maps agreements into rows in the agreement table.
