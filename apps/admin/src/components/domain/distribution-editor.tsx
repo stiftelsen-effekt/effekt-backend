@@ -64,6 +64,7 @@ export function PercentInput({
 }) {
   const [text, setText] = useState(formatNumber(value, { decimals: value % 1 ? 2 : 0 }));
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes unless the text already says the value
     setText((current) =>
       parse(current) === value ? current : formatNumber(value, { decimals: value % 1 ? 2 : 0 }),
     );

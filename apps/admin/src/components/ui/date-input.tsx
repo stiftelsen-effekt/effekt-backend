@@ -37,6 +37,7 @@ export function DayTextInput({
   const [invalid, setInvalid] = useState(false);
   // Follow outside changes (calendar picks, presets, resets) unless the text already says it.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes unless the text already says the value
     setText((current) => (parseDayText(current) === value ? current : formatDayText(value)));
     if (value) setInvalid(false);
   }, [value]);

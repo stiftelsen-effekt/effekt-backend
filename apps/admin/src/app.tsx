@@ -1,6 +1,6 @@
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { AuthProvider, useAuth } from "@/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,7 @@ function ApiProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
   // Signed in but no token (e.g. the session ended): fail the call rather than send it
   // without one. The auth provider takes the user to the login.
+  // oxlint-disable-next-line react/refs -- the client reads the refs when a request is sent, not during render
   const [trpcClient] = useState(() =>
     createApiClient(async () => (isAuthenticatedRef.current ? getAccessTokenRef.current() : null)),
   );
@@ -33,7 +34,9 @@ function ApiProvider({ children }: { children: ReactNode }) {
 
 function useLatest<T>(value: T) {
   const [ref] = useState(() => ({ current: value }));
-  ref.current = value;
+  useLayoutEffect(() => {
+    ref.current = value;
+  });
   return ref;
 }
 

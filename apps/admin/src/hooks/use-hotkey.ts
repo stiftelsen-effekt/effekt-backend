@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 /**
  * Whether the hotkeys below are live. Panels (components/panels) turn off the page under
@@ -46,7 +46,9 @@ export function useHotkey(
   { enabled = true }: { enabled?: boolean } = {},
 ) {
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
   const scopeActive = useContext(HotkeyScope);
   enabled = enabled && scopeActive;
 

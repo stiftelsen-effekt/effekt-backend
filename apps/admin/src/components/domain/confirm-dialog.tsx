@@ -83,6 +83,7 @@ export function ConfirmDialog({
   // Start clean every time it opens, however it was opened.
   useEffect(() => {
     if (open) {
+      // oxlint-disable-next-line react/set-state-in-effect -- resets the dialog every time it opens, however it was opened
       setTyped("");
       setError(null);
     }

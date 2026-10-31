@@ -58,6 +58,7 @@ export function usePageQuery<
   const neighboursKey = JSON.stringify(neighbours.map((neighbour) => neighbour.queryKey));
   useEffect(() => {
     for (const neighbour of neighbours) void queryClient.prefetchQuery(neighbour);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- neighboursKey stands for neighbours, which is rebuilt every render
   }, [neighboursKey, queryClient]);
 
   return query;

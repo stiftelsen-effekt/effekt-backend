@@ -180,6 +180,7 @@ function SearchBox({
   const [draft, setDraft] = useState(value ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
   const commit = useDebouncedCallback((next: string) => onChange(next.trim() || undefined), 250);
+  // oxlint-disable-next-line react/set-state-in-effect -- follows outside changes to the filter
   useEffect(() => setDraft(value ?? ""), [value]);
   useHotkey("/", () => inputRef.current?.focus());
 
@@ -574,6 +575,7 @@ export function TextFilter({
 }) {
   const slot = useFilterSlot<string>(field);
   const [draft, setDraft] = useState(slot.value ?? "");
+  // oxlint-disable-next-line react/set-state-in-effect -- resets the draft when the value changes or the popover opens
   useEffect(() => setDraft(slot.value ?? ""), [slot.value, slot.open]);
   const apply = () => {
     slot.setValue(draft.trim() || undefined);

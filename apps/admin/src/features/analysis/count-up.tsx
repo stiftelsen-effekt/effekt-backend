@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { formatMoney } from "@/lib/format";
 import { moneyToNumber } from "@/lib/money";
@@ -19,7 +19,9 @@ export function CountUpMoney({ value, className }: { value: string; className?: 
   const [shown, setShown] = useState(() => (reduced ? target : 0));
   // What is on screen, so a new value counts on from there (also from mid-count)
   const current = useRef(shown);
-  current.current = shown;
+  useLayoutEffect(() => {
+    current.current = shown;
+  });
 
   useEffect(() => {
     const from = current.current;

@@ -282,6 +282,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
 
   // Panels already in the URL when the page loads appear without sliding in.
   const [animate, setAnimate] = useState(false);
+  // oxlint-disable-next-line react/set-state-in-effect -- tracks panels leaving to play their exit animation
   useEffect(() => setAnimate(true), []);
 
   const root = useRef<HTMLDivElement>(null);
@@ -335,6 +336,7 @@ export function PanelHost({ kinds, children }: { kinds: PanelRoute[]; children: 
                 count === 0 ? "animate-fade-out" : animate && "animate-fade-in",
               )}
             />
+            {/* oxlint-disable-next-line react/refs -- a j/k swap (swapped.current) skips the slide-in; state would cost an extra render */}
             {rendered.map((item) => {
               const kind = kinds.find((k) => k.kind === item.entry.kind)!;
               const isClosing = !live.some((l) => l.key === item.key);
