@@ -83,18 +83,22 @@ steps:
 
   # Hashed assets are immutable; index.html must always be revalidated so a deploy takes effect
   # immediately. Assets are uploaded first so a new index.html never points at missing files.
+  # The bucket keeps every past build's assets (thousands), which `gsutil rsync` took about a
+  # minute to compare; `gcloud storage rsync --no-clobber` skips existing names (the names are
+  # content hashes) and takes seconds. It only works below the bucket root: at the root it also
+  # reads the bucket, which the build's service account may not.
   - id: publish-assets
-    name: "gcr.io/cloud-builders/gsutil"
+    name: "gcr.io/cloud-builders/gcloud"
     waitFor: ["guard-before-publish"]
     entrypoint: bash
     args:
       - "scripts/deploy/unless-skipped.sh"
-      - "gsutil"
-      - "-m"
-      - "-h"
-      - "Cache-Control:public, max-age=31536000, immutable"
+      - "gcloud"
+      - "storage"
       - "rsync"
-      - "-r"
+      - "--recursive"
+      - "--no-clobber"
+      - "--cache-control=public, max-age=31536000, immutable"
       - "apps/admin/dist/assets"
       - "gs://${_BUCKET}/assets"
 
