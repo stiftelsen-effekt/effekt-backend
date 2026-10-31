@@ -193,6 +193,9 @@ catalogs:
     '@trpc/tanstack-react-query':
       specifier: 11.19.0
       version: 11.19.0
+    '@types/luxon':
+      specifier: 3.7.6
+      version: 3.7.6
     '@types/node':
       specifier: 24.19.2
       version: 24.19.2
@@ -208,6 +211,12 @@ catalogs:
     katex:
       specifier: 0.19.0
       version: 0.19.0
+    luxon:
+      specifier: 3.7.2
+      version: 3.7.2
+    norwegian-workdays:
+      specifier: github:stiftelsen-effekt/norwegian-workdays#v1.1.0
+      version: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417
     oxlint:
       specifier: 1.90.0
       version: 1.90.0
@@ -407,8 +416,8 @@ importers:
         specifier: 'catalog:'
         version: 11.19.0(typescript@5.9.3)
       '@types/luxon':
-        specifier: ^3.3.0
-        version: 3.4.2
+        specifier: 'catalog:'
+        version: 3.7.6
       '@types/ssh2-sftp-client':
         specifier: ^9.0.0
         version: 9.0.4
@@ -464,8 +473,8 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2(supports-color@5.5.0)
       luxon:
-        specifier: ^1.25.0
-        version: 1.28.1
+        specifier: 'catalog:'
+        version: 3.7.2
       mailersend:
         specifier: ^2.2.0
         version: 2.3.0(supports-color@5.5.0)
@@ -482,8 +491,8 @@ importers:
         specifier: ^2.6.1
         version: 2.7.0
       norwegian-workdays:
-        specifier: ^1.0.1
-        version: 1.0.2
+        specifier: 'catalog:'
+        version: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417
       object-hash:
         specifier: ^2.1.1
         version: 2.2.0
@@ -651,7 +660,7 @@ importers:
         specifier: 'catalog:'
         version: 0.19.0
       luxon:
-        specifier: ^3.7.2
+        specifier: 'catalog:'
         version: 3.7.2
       next:
         specifier: ^16.4.2
@@ -666,7 +675,7 @@ importers:
         specifier: ^7.3.0
         version: 7.3.0(next@16.4.2(@babel/core@7.29.7(supports-color@8.1.1))(@playwright/test@1.63.0)(@types/node@24.19.2)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(sass@1.106.1))(react@19.3.1)
       norwegian-workdays:
-        specifier: github:stiftelsen-effekt/norwegian-workdays#v1.1.0
+        specifier: 'catalog:'
         version: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417
       organisationsnummer:
         specifier: ^1.2.0
@@ -742,7 +751,7 @@ importers:
         specifier: ^7.4.3
         version: 7.4.3
       '@types/luxon':
-        specifier: ^3.7.6
+        specifier: 'catalog:'
         version: 3.7.6
       '@types/node':
         specifier: 'catalog:'
@@ -5946,9 +5955,6 @@ packages:
   '@types/lodash@4.17.27':
     resolution: {integrity: sha512-VenMRv/eKNrspX9v3H4dbmjsrnCOYdYBG3kxXKk3dG6X+urBGcj2Prww3xw1U5K4FV/mE4h5GbWd0szEKf+9ew==}
 
-  '@types/luxon@3.4.2':
-    resolution: {integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==}
-
   '@types/luxon@3.7.6':
     resolution: {integrity: sha512-6KSjliQAXK8ZLgFQO4B7iE4Rpf/B3rItzCFuXezBY/XIAGxOdLd7vRNK9/StRPwiS/yJsVbB7HKpW46B8tcEuQ==}
 
@@ -9044,9 +9050,6 @@ packages:
       '@types/react':
         optional: true
 
-  luxon@1.28.1:
-    resolution: {integrity: sha512-gYHAa180mKrNIUJCbwpmD0aTu9kV0dREDrwNnuyFAsO1Wt0EVYSZelPnJlbj9HplzXX/YWXHFTL45kvZ53M0pw==}
-
   luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
     engines: {node: '>=12'}
@@ -9451,11 +9454,8 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
-  norwegian-workdays@1.0.2:
-    resolution: {integrity: sha512-8nUNTvJ0ntY0MuJiJ7ZZjH5HLwVW30FIzpZMJ/QBIjKORyRBbDK+AcUoMtaeQvbPRolO28OPUArSu8IIalrBFQ==}
-
   norwegian-workdays@https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417:
-    resolution: {gitHosted: true, tarball: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417}
+    resolution: {gitHosted: true, integrity: sha512-1nKMJgF8u7wfevcBj9DRFUSQCMirayHWvnBJoQswc1DmHhsUXk45hdLCNNqjH1KtVeJFkowH8dHV/sftD1EZgA==, tarball: https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417}
     version: 1.1.0
 
   npm-run-path@4.0.1:
@@ -17771,8 +17771,6 @@ snapshots:
 
   '@types/lodash@4.17.27': {}
 
-  '@types/luxon@3.4.2': {}
-
   '@types/luxon@3.7.6': {}
 
   '@types/mdast@4.0.4':
@@ -21064,8 +21062,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
-  luxon@1.28.1: {}
-
   luxon@3.7.2: {}
 
   lz-string@1.5.0: {}
@@ -21443,10 +21439,6 @@ snapshots:
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
-
-  norwegian-workdays@1.0.2:
-    dependencies:
-      luxon: 1.28.1
 
   norwegian-workdays@https://codeload.github.com/stiftelsen-effekt/norwegian-workdays/tar.gz/f1d4ad8529ce383bc7876c528a0f557c1a445417: {}
 

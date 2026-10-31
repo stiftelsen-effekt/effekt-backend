@@ -108,7 +108,8 @@ export async function processAvtaleGiroDeletions(
   );
   const file = await avtalegiro.generateAvtaleGiroDeletionFile(shipmentID, deletions);
 
-  const earliestDueDate = DateTime.min(...deletions.map((deletion) => deletion.dueDate));
+  // Not empty, see the early return above
+  const earliestDueDate = DateTime.min(...deletions.map((deletion) => deletion.dueDate))!;
   const filename =
     "DIRREM" +
     osloNow.toFormat("ddLLyy") +
