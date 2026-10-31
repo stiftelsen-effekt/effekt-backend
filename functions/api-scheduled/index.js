@@ -56,6 +56,22 @@ exports.default = async (req, res) => {
         if (vippsresponse.status !== 200) throw new Error("Failed to process vipps");
         res.send("OK");
         break;
+      case "vipps_sync":
+        let vippssyncresponse = await fetch("https://data.gieffektivt.no/scheduled/vipps/sync", {
+          method: "POST",
+          headers: { authorization: "Bearer " + token },
+        });
+        if (vippssyncresponse.status !== 200) throw new Error("Failed to process vipps sync");
+        res.send("OK");
+        break;
+      case "vipps_charges":
+        let vippschargesresponse = await fetch(
+          "https://data.gieffektivt.no/scheduled/vipps/charges",
+          { method: "POST", headers: { authorization: "Bearer " + token } },
+        );
+        if (vippschargesresponse.status !== 200) throw new Error("Failed to process vipps charges");
+        res.send("OK");
+        break;
       case "auth0check":
         let auth0checkresponse = await fetch(
           "https://data.gieffektivt.no/scheduled/auth0/validateusers",
@@ -84,7 +100,7 @@ exports.default = async (req, res) => {
         res
           .status(400)
           .send(
-            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, auth0check, followup, mailchimp are allowed values)",
+            "Missing query parameter {type}, or invalid value (ocr, avtalegiro, avtalegiro_retry, vipps, vipps_sync, vipps_charges, auth0check, followup, mailchimp are allowed values)",
           );
     }
     return;
