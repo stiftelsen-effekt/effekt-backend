@@ -18,9 +18,24 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/web-e2e-fullstack.yml"
+  # Also on main: GitHub Actions caches made on main are the ones every PR can restore (the
+  # backend image layers, the Next.js build cache, the Cypress binary).
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "apps/api/**"
+      - "compose.dev.yml"
+      - "compose.e2e.yml"
+      - ".env.docker"
+      - "scripts/e2e-fullstack.sh"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/web-e2e-fullstack.yml"
 concurrency:
   group: web-e2e-fullstack-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   e2e:
     name: Full-stack e2e (web)
@@ -40,14 +55,50 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+      - name: Restore the Cypress binary
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: cypress-${{ runner.os }}-
+      # Next.js's build cache: an older one only means less is reused.
+      - name: Restore the Next.js build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/web/.next/cache
+          key: web-next-e2e-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            web-next-e2e-${{ hashFiles('pnpm-lock.yaml') }}-
+            web-next-e2e-
       # The website (and Cypress), plus the API package for mysql2, which the Cypress
       # resetE2EData task uses to rewrite the seed data (apps/api/prisma/e2e/seed.mjs), and for
       # the tRPC type build (pnpm build:types).
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+        run: |
+          pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+          pnpm --filter main-site exec cypress cache prune
+      # The backend dev image (compose.dev.yml, used by migrate, seed-e2e and api), built from the
+      # compose file with its layers cached in GitHub Actions. Without the cache its dependency
+      # install alone takes about a minute.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the backend dev image
+        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
+        with:
+          source: .
+          files: |
+            compose.dev.yml
+            compose.e2e.yml
+          targets: migrate
+          load: true
+          set: |
+            migrate.cache-from=type=gha,scope=e2e-backend-dev
+            migrate.cache-to=type=gha,scope=e2e-backend-dev,mode=max
       # Brings the stack up, builds and serves the web app, runs Cypress and tears down.
       - name: Run full-stack e2e
         run: pnpm e2e:fullstack
+        env:
+          E2E_SKIP_STACK_BUILD: "1"
       - name: Upload screenshots and logs
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
