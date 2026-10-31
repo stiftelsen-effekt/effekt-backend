@@ -40,6 +40,7 @@ import { notify } from "@/lib/notify";
 import { taxUnitStatus } from "@/lib/status";
 import { strings } from "@/lib/strings";
 import { useTRPC } from "@/lib/trpc";
+import { invalidateDonationQueries } from "@/features/donations/invalidate";
 import { ssnHint } from "./create-donor-dialog";
 import { ssnMessage, toFormErrors, type FormErrors } from "./form-errors";
 import { isArchived, maskSsn, type TaxUnit } from "./model";
@@ -239,7 +240,8 @@ function useInvalidateTaxUnits(donorId: number) {
       queryClient.invalidateQueries({
         queryKey: trpc.donors.taxUnits.list.queryKey({ donorId }),
       }),
-      queryClient.invalidateQueries({ queryKey: trpc.donors.donations.queryKey({ donorId }) }),
+      // Archiving can move this year's donations to another tax unit
+      invalidateDonationQueries(queryClient, trpc, [donorId]),
     ]);
 }
 

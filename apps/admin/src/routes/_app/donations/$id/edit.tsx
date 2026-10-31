@@ -26,6 +26,7 @@ import {
 } from "@/features/donations/edit-model";
 import { DonationFields } from "@/features/donations/donation-fields";
 import { parseMoneyInput, serverErrors } from "@/features/donations/form";
+import { invalidateDonationQueries } from "@/features/donations/invalidate";
 import { notify } from "@/lib/notify";
 import { strings } from "@/lib/strings";
 import { loadPage } from "@/lib/route-data";
@@ -121,7 +122,10 @@ function EditDonationForm({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const update = useMutation(trpc.donations.update.mutationOptions());
-  const [initial] = useState(() => editDraftFromDonation(donation, config));
+  // The form and its changes are against this snapshot: a background refetch must not turn
+  // fields the user didn't touch into "changes" that send a colleague's edit back.
+  const [base] = useState(donation);
+  const [initial] = useState(() => editDraftFromDonation(base, config));
   const [draft, setDraft] = useState(initial);
   const [touched, setTouched] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -129,10 +133,10 @@ function EditDonationForm({
   const [saved, setSaved] = useState(false);
 
   const dirty = !saved && JSON.stringify(draft) !== JSON.stringify(initial);
-  const errors = validateEdit(draft, donation);
+  const errors = validateEdit(draft, base);
   const valid = Object.keys(errors).length === 0;
   const { input, changes } = valid
-    ? editChanges(donation, draft, {
+    ? editChanges(base, draft, {
         config,
         paymentMethodName: (methodId) => paymentMethods.find((m) => m.id === methodId)?.name,
         ownerName: (ownerId) => owners.find((o) => o.id === ownerId)?.name,
@@ -172,7 +176,8 @@ function EditDonationForm({
       }
       throw err;
     }
-    await queryClient.invalidateQueries({ queryKey: trpc.donations.pathKey() });
+    // The donation can move to another donor (a new distribution): both donors' pages change
+    await invalidateDonationQueries(queryClient, trpc, [base.donorId, input.distribution?.donorId]);
     notify.success("Donation updated", `#${donation.id}`);
     setSaved(true);
   }

@@ -269,11 +269,14 @@ function Donor({ donorId }: { donorId: number }) {
     message: string,
     undo?: typeof patch,
   ) {
-    if (!donor) return;
+    // The cached donor, not this render's: an undo runs later, after other edits (a rename)
+    // may have landed, and mustn't send them back.
     const previous = queryClient.getQueryData(getKey);
-    queryClient.setQueryData(getKey, { ...donor, ...patch });
+    const current = previous ?? donor;
+    if (!current) return;
+    queryClient.setQueryData(getKey, { ...current, ...patch });
     update.mutate(
-      { donorId, name: donor.name, ...patch },
+      { donorId, name: current.name, ...patch },
       {
         onSuccess: () =>
           undo
