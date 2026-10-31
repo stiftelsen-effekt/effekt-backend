@@ -1,7 +1,7 @@
-const { test } = require("node:test");
-const assert = require("node:assert/strict");
-const { gzipSync, zipSync, strToU8 } = require("fflate");
-const { extractXml, parseReport, classify, gateway, authSummary, summarize } = require("./report");
+import assert from "node:assert/strict";
+import { gzipSync, zipSync, strToU8 } from "fflate";
+import { test } from "vitest";
+import { extractXml, parseReport, classify, gateway, authSummary, summarize } from "./report";
 
 // nosemgrep: javascript.lang.security.html-in-template-string.html-in-template-string -- test fixture building DMARC XML from literal test values, never rendered in a browser
 const record = (ip, count, dkim, spf, selector, spfDomain) => `

@@ -2,6 +2,8 @@
 
 Small functions under [`functions/`](../functions), each deployed on its own. Run the commands below in the function's folder.
 
+Each function is a package of the pnpm workspace, with `lint`, `format` and (where there are tests) `test` like the apps. `./deploy.sh` copies the function with `pnpm deploy --prod` into a temporary folder that has a lockfile for just its production dependencies, and deploys that folder; Cloud Build installs the dependencies from it with pnpm.
+
 ## api-scheduled
 
 Dispatcher that Cloud Scheduler calls (as `api-scheduled@`, OIDC) with `?type=ocr|avtalegiro|avtalegiroretry|vippsrecurring|auth0check|followup|mailchimp`.
@@ -20,7 +22,7 @@ The DMARC record's `rua` must point at `mailto:dmarc@gieffektivt.no`. Known send
 
 Runs as `sa-dmarc-report`, which can only read the `dmarc-mailbox-password` and `dmarc-slack-webhook` secrets. Cloud Scheduler jobs `dmarc-report-daily` and `dmarc-report-weekly` call it with OIDC as `api-scheduled@`.
 
-Deploy with `./deploy.sh`. Test with `npm test`.
+Deploy with `./deploy.sh`. Test with `pnpm test`.
 
 ## The old Min Side redirect (not a function)
 

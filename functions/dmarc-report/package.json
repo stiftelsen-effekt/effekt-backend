@@ -5,15 +5,23 @@
   "description": "Reads DMARC aggregate reports from dmarc@gieffektivt.no and posts failures and a weekly summary to Slack",
   "main": "index.js",
   "engines": {
-    "node": "24"
+    "node": "24.x"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "vitest run",
+    "lint": "oxlint",
+    "format": "prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
   },
   "dependencies": {
     "fast-xml-parser": "5.11.2",
     "fflate": "0.8.3",
     "imapflow": "2.3.0",
     "mailparser": "3.12.4"
+  },
+  "devDependencies": {
+    "oxlint": "catalog:",
+    "prettier": "catalog:",
+    "vitest": "catalog:"
   }
 }
