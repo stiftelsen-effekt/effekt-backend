@@ -33,6 +33,8 @@ type AggregatedOrgResult = {
 
 export async function getMonthlyDonationsPerOutput(): Promise<MonthlyDonationsPerOrgResult> {
   let donationSums = await DAO.results.getMonthlyDonationsPerOrg();
+  // No figures (the Swedish API can't read the analysis database): skip the impact API and rates
+  if (donationSums.length === 0) return [];
 
   const evaluations = await getEvaluations();
   const exchangeRates = await getExchangeRates();

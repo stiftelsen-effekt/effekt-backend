@@ -180,6 +180,43 @@ describe("tRPC site router", () => {
     });
   });
 
+  describe("without access to the analysis database (the Swedish API)", () => {
+    const denyAnalysisDb = () => {
+      sinon.stub(console, "error");
+      sinon.stub(console, "warn");
+      sinon
+        .stub(DAO, "query")
+        .rejects(
+          Object.assign(
+            new Error(
+              "SELECT command denied to user 'geeffektivt_api'@'x' for table 'OP_ref_data'",
+            ),
+            { code: "ER_TABLEACCESS_DENIED_ERROR", errno: 1142 },
+          ),
+        );
+    };
+
+    for (const [procedure, path] of [
+      ["dailyDonations", "/results/donations/daily"],
+      ["referralSums", "/results/referrals/sums"],
+      ["monthlyOutputs", "/results/donations/monthly/outputs"],
+    ] as const) {
+      it(`answers ${procedure} and GET ${path} with no rows`, async () => {
+        denyAnalysisDb();
+        expect(await anonymous()[procedure]()).to.deep.equal([]);
+        const rest = await request(restApp()).get(path).expect(200);
+        expect(rest.body.content).to.deep.equal([]);
+      });
+    }
+
+    it("still fails on other database errors", async () => {
+      sinon.stub(console, "error");
+      sinon.stub(DAO, "query").rejects(Object.assign(new Error("gone"), { code: "ECONNREFUSED" }));
+      await expectTrpcError(anonymous().referralSums(), "INTERNAL_SERVER_ERROR");
+      await request(restApp()).get("/results/referrals/sums").expect(500);
+    });
+  });
+
   describe("dailyDonations", () => {
     it("returns the sum per day as REST does", async () => {
       const rows = [

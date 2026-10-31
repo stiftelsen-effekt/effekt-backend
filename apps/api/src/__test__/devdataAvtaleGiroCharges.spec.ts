@@ -12,10 +12,12 @@ describe("dev data: AvtaleGiro charges", { timeout: 30000 }, function () {
   let data: Dataset;
   let charges: Row[];
 
+  // Generating the dataset takes about a second alone, but several times that when the whole suite
+  // runs in parallel: give the hook the same budget as the tests (the default hook timeout is 5 s)
   beforeAll(() => {
     data = generate({ seed: "effekt-dev", start, end, anchor: end, scale: 1 });
     charges = data.Avtalegiro_agreement_charges;
-  });
+  }, 30000);
 
   const withStatus = (status: string) => charges.filter((c) => c.status === status);
   const today = isoDate(end);
