@@ -58,7 +58,7 @@ router.post("/avtalegiro/notice", authMiddleware.isAdmin, async (req, res, next)
   }
 });
 
-router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res, next) => {
+router.post("/taxreport/notice", authMiddleware.isAdmin, async (req, res) => {
   return res.status(501).json({
     status: 501,
     content: "Not implemented",

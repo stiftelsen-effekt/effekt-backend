@@ -657,7 +657,7 @@ function unsentDeprecatedEmail(emailName: string): false {
  * @param {"PAUSED" | "UNPAUSED" | "STOPPED" | "AMOUNT" | "CHARGEDAY" | "SHARES"} change What change was done
  * @param {string} newValue New value of what was changed (if applicable)
  */
-export async function sendVippsAgreementChange(agreementId, change, newValue: any = null) {
+export async function sendVippsAgreementChange(_agreementId, _change, _newValue: any = null) {
   return unsentDeprecatedEmail("sendVippsAgreementChange");
 }
 
@@ -723,9 +723,9 @@ export async function sendVippsProblemReport(senderUrl, senderEmail, donorMessag
  * @param {string} newValue New value of what was changed (if applicable)
  */
 export async function sendAvtaleGiroChange(
-  KID: string,
-  change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
-  newValue: string | number = "",
+  _KID: string,
+  _change: "CANCELLED" | "AMOUNT" | "CHARGEDAY" | "SHARES",
+  _newValue: string | number = "",
 ) {
   return unsentDeprecatedEmail("sendAvtaleGiroChange");
 }
@@ -792,7 +792,7 @@ export async function sendAvtalegiroNotification(
  * @param {import('./parsers/avtalegiro.js').AvtalegiroAgreement} agreement
  * @returns {false} Always false: this email has no MailerSend template yet
  */
-export async function sendAvtalegiroRegistered(agreement: AvtaleGiroAgreement) {
+export async function sendAvtalegiroRegistered(_agreement: AvtaleGiroAgreement) {
   return unsentDeprecatedEmail("sendAvtalegiroRegistered");
 }
 
@@ -1050,7 +1050,7 @@ export async function sendMissingTaxUnitNotice(
     console.log(`Organizations data: ${JSON.stringify(organizationsData)}`);
 
     // Format organizations for template (similar to formatOrganizationsFromSplit but for aggregated data)
-    const organizations = Object.entries(organizationsData).map(([orgId, orgData]) => {
+    const organizations = Object.entries(organizationsData).map(([, orgData]) => {
       const outputs =
         orgData.impactEstimate?.outputs.map((o) => {
           // Round outputs similar to how formatOrganizationsFromSplit does it

@@ -239,10 +239,7 @@ async function claimRegisteredMail(KID: string): Promise<boolean> {
 }
 
 async function updateNotification(KID, notice) {
-  let res = await DAO.query(`UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`, [
-    notice,
-    KID,
-  ]);
+  await DAO.query(`UPDATE Avtalegiro_agreements SET notice = ? where KID = ?`, [notice, KID]);
 
   return true;
 }
@@ -463,7 +460,7 @@ async function getAgreements(
   page: number,
   limit: number = 10,
   filter: AvtaleGiroFilters | null = null,
-  locale: RequestLocale, // Include if needed for any agreement-specific localized data
+  _locale: RequestLocale, // Include if needed for any agreement-specific localized data
 ): Promise<{
   rows: Array<AvtaleGiroRow>;
   statistics: AvtaleGiroStatistics;

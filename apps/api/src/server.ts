@@ -267,7 +267,7 @@ DAO.connect(() => {
   //Error handling
   app.use(errorHandler);
 
-  app.use((req, res, next) => {
+  app.use((req, res) => {
     res.status(404).json({
       status: 404,
       content: "Not found",

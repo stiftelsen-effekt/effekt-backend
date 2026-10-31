@@ -20,7 +20,7 @@ const rightAlign = (title: string, value: string): { title: string; value: strin
   return { title, value: `${spaces}${value}` };
 };
 
-tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
+tidbytRouter.get("/agreements/avtalegiro", async (req, res) => {
   try {
     const report = await DAO.avtalegiroagreements.getAgreementReport();
 
@@ -64,7 +64,7 @@ tidbytRouter.get("/agreements/avtalegiro", async (req, res, next) => {
   }
 });
 
-tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
+tidbytRouter.get("/agreements/vipps", async (req, res) => {
   try {
     const report = await DAO.vipps.getAgreementReport();
 
@@ -108,7 +108,7 @@ tidbytRouter.get("/agreements/vipps", async (req, res, next) => {
   }
 });
 
-tidbytRouter.get("/donations/month", async (req, res, next) => {
+tidbytRouter.get("/donations/month", async (req, res) => {
   try {
     const report = await DAO.donations.getAll(
       {
@@ -181,7 +181,7 @@ tidbytRouter.get("/donations/month", async (req, res, next) => {
   }
 });
 
-tidbytRouter.get("/donations/week", async (req, res, next) => {
+tidbytRouter.get("/donations/week", async (req, res) => {
   try {
     const report = await DAO.donations.getAll(
       {
@@ -254,7 +254,7 @@ tidbytRouter.get("/donations/week", async (req, res, next) => {
   }
 });
 
-tidbytRouter.get("/donations/total", async (req, res, next) => {
+tidbytRouter.get("/donations/total", async (req, res) => {
   try {
     const report = await DAO.donations.getAll(
       {

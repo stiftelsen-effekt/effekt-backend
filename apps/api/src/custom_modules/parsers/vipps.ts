@@ -123,7 +123,7 @@ const parseCsvRows = (report): string[][] => {
     if (data.length == 0 || data[0].length == 1) {
       throw new Error("Parsing failed, probably wrong delimiter.");
     }
-  } catch (ex) {
+  } catch {
     try {
       var data = parse(reportText, {
         delimiter: ",",

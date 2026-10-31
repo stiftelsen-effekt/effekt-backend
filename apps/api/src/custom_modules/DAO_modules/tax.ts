@@ -310,7 +310,7 @@ async function updateTaxUnit(id: number, taxUnit: TaxUnit): Promise<number> {
  * @param {number?} transferId The id of the tax unit to transfer donations to
  * @returns {number} The number of rows affected
  */
-async function deleteById(id: number, donorId: number, transferId?: number): Promise<number> {
+async function deleteById(_id: number, _donorId: number, _transferId?: number): Promise<number> {
   throw new Error("Not implemented");
   /*
   try {

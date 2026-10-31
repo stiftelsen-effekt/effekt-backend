@@ -22,7 +22,6 @@ import { WIDGET_MAX_AMOUNT } from "../trpc/shared/widget";
  * @returns {Buffer} The file buffer
  */
 export async function generateAvtaleGiroFile(shipmentID, agreements, dueDate) {
-  const today = DateTime.fromJSDate(new Date());
   let fileContents = "";
 
   fileContents += writer.startRecordTransmission(shipmentID);
@@ -127,7 +126,7 @@ export async function notifyAgreements(agreements: AvtaleGiroAgreement[], claimD
         } else {
           result.failed++;
         }
-      } catch (ex) {
+      } catch {
         result.failed++;
       }
     }

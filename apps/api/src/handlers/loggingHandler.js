@@ -1,5 +1,4 @@
 const morgan = require("morgan");
-const chalk = require("chalk");
 const process = require("process");
 
 module.exports = function (app) {
@@ -10,7 +9,3 @@ module.exports = function (app) {
 
   app.use(morgan(mode));
 };
-
-function padRight(str, len) {
-  return len > str.length ? str.padEnd(len, " ") : str;
-}

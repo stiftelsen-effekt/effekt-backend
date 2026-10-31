@@ -22,7 +22,7 @@ export const parseReport = (report) => {
       bom: true,
       skip_empty_lines: true,
     });
-  } catch (ex) {
+  } catch {
     try {
       var data = parse(reportText, {
         delimiter: ",",

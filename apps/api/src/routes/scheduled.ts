@@ -471,7 +471,7 @@ router.post("/mailchimp/newsletter/sync", authMiddleware.isAdmin, async (req, re
 /**
  * Check that the user metadata value for donor id matches the email address for the donor in database
  */
-router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res, next) => {
+router.get("/auth0/validateusers", authMiddleware.isAdmin, async (req, res) => {
   /**
    * Fetch Auth0 managment token
    */

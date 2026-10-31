@@ -233,7 +233,7 @@ export async function getAgreements(
   page: number,
   limit: number = 10,
   filter: VippsAgreementFilters | null = null,
-  locale?: string,
+  _locale?: string,
 ): Promise<{
   rows: Array<VippsAgreementRow>;
   statistics: VippsAgreementStatistics;

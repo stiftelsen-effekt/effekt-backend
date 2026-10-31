@@ -612,7 +612,7 @@ module.exports = {
         },
       };
 
-      var refundRequest = await request.post({
+      await request.post({
         uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/refund`,
         headers: this.getVippsHeaders(token),
         json: data,
@@ -647,7 +647,7 @@ module.exports = {
         },
       };
 
-      var cancelRequest = await request.put({
+      await request.put({
         uri: `https://${config.vipps_api_url}/ecomm/v2/payments/${orderId}/cancel`,
         headers: this.getVippsHeaders(token),
         json: data,
@@ -681,13 +681,13 @@ module.exports = {
     };
 
     try {
-      let approveRequest = await request.post({
+      await request.post({
         uri: `https://${config.vipps_api_url}/ecomm/v2/integration-test/payments/${orderId}/approve`,
         headers: this.getVippsHeaders(token),
         json: data,
       });
       return true;
-    } catch (ex) {
+    } catch {
       return false;
     }
   },
@@ -1225,7 +1225,7 @@ module.exports = {
     };
 
     try {
-      const response = await request.post({
+      await request.post({
         uri: `https://${config.vipps_api_url}/recurring/v3/agreements/${agreementId}/charges/${chargeId}/refund`,
         headers: this.getVippsHeaders(token),
         body: JSON.stringify(body),

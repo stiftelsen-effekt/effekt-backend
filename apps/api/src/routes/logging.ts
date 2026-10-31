@@ -36,7 +36,7 @@ const requireAuth0LogStreamToken = requireAuthorizationSecret(
   "AUTH0_LOG_STREAM_TOKEN",
 );
 
-router.post("/auth0", requireAuth0LogStreamToken, async (req, res, next) => {
+router.post("/auth0", requireAuth0LogStreamToken, async (req, res) => {
   // Send an email to the user with the error message if the error is a user does not exist error (fcpr)
   if (Array.isArray(req.body?.logs)) {
     for (const log of req.body.logs) {

@@ -9,7 +9,7 @@ module.exports = async (req, res, next) => {
     if (req.body.paymentMethodIDs) {
       try {
         var paymentMethodIDs = req.body.paymentMethodIDs.split("|").map((n) => parseInt(n));
-      } catch (ex) {
+      } catch {
         res.json({
           status: 400,
           content:
@@ -17,14 +17,12 @@ module.exports = async (req, res, next) => {
         });
       }
 
-      var paymentMethods = await DAO.payment.getPaymentMethodsByIDs(paymentMethodIDs);
       var donationsFromRange = await DAO.donations.getFromRange(
         dates.fromDate,
         dates.toDate,
         paymentMethodIDs,
       );
     } else {
-      var paymentMethods = await DAO.payment.getMethods();
       var donationsFromRange = await DAO.donations.getFromRange(dates.fromDate, dates.toDate);
     }
 
