@@ -52,12 +52,23 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      # The Cypress binary lives outside the pnpm store (~/.cache/Cypress). Its install script
+      # skips the download when the right version is already there.
+      - name: Restore the Cypress binary
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: cypress-${{ runner.os }}-
       # The lockfile is at the repository root, so the Cypress action can't install from
       # apps/web by itself. This also downloads the Cypress binary (allowBuilds: cypress).
+      # Only the website: these tests run against a deployment, nothing is built here.
       - name: Install dependencies
-        # Same as the Vercel projects' install command: the web build compiles the tRPC types
-        # with the API package's dependencies (docs/web-trpc.md). Keep the two in sync.
-        run: pnpm install --frozen-lockfile --filter main-site --filter stiftelsen-effekt-backend
+        run: |
+          pnpm install --frozen-lockfile --filter main-site
+          pnpm exec cypress cache prune
       - name: Run Cypress 🌲
         uses: cypress-io/github-action@c541a95ea92d9239347a2355f2e895cd4b3f8060 # v7.4.6
         with:
