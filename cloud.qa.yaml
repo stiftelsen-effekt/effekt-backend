@@ -9,10 +9,13 @@ steps:
         "-c",
         "corepack enable && pnpm install --frozen-lockfile --filter effekt-platform --filter stiftelsen-effekt-backend",
       ]
+  # With every spec file starting at once on 32 vCPUs, a heavy beforeAll (the dev data specs
+  # generate five years of data) can exceed Vitest's 5s hook timeout
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
-    args: ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend test"]
+    args:
+      ["-c", "corepack enable && pnpm --filter stiftelsen-effekt-backend test --hookTimeout=30000"]
   - name: "node:24.22.1"
     entrypoint: bash
     waitFor: ["install"]
