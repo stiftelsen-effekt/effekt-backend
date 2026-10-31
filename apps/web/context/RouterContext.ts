@@ -39,14 +39,8 @@ type AwaitedPromises<T extends Record<string, Promise<unknown>>> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : never;
 };
 
-// Used for caching the router context when building static pages in CI
-let cachedRouterContext: RouterContextValue | null = null;
-
+// Each path is fetched once per build by the client's build cache (lib/sanity.client.ts)
 export const fetchRouterContext = async (): Promise<RouterContextValue> => {
-  if (cachedRouterContext) {
-    return cachedRouterContext;
-  }
-
   const promises = {
     articlesPagePath: getArticlesPagePath(),
     resultsPagePath: getResultsPagePath(),
@@ -60,13 +54,11 @@ export const fetchRouterContext = async (): Promise<RouterContextValue> => {
     fundraisersPath: getFundraisersPath(),
   };
 
-  cachedRouterContext = (await Promise.all(Object.values(promises))).reduce(
+  return (await Promise.all(Object.values(promises))).reduce(
     (acc, value, index) => {
       const key = Object.keys(promises)[index] as keyof typeof promises;
       return { ...acc, [key]: value };
     },
     {} as AwaitedPromises<typeof promises>,
   );
-
-  return cachedRouterContext;
 };
