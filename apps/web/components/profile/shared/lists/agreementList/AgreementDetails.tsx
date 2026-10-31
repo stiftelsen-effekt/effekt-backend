@@ -383,6 +383,7 @@ export const AgreementDetails: React.FC<{
           <div className={style.textWrapper}>
             <h5>{configuration.agreement_cancel_lightbox.title}</h5>
             <p>{configuration.agreement_cancel_lightbox.text}</p>
+            {/* oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended */}
             {checkPaymentDate(new Date(), day) && type === "AvtaleGiro" ? (
               <p>{configuration.agreement_cancel_lightbox.withdrawal_warning_text}</p>
             ) : null}

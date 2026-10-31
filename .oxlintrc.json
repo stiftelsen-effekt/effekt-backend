@@ -45,11 +45,11 @@
       "env": { "browser": true },
       "rules": {
         "react-hooks/rules-of-hooks": "error",
-        "react-hooks/exhaustive-deps": "warn",
-        // React Compiler rules, warnings as under eslint-config-next
-        "react/set-state-in-effect": "warn",
-        "react/refs": "warn",
-        "react/purity": "warn",
+        "react-hooks/exhaustive-deps": "error",
+        // React Compiler rules
+        "react/set-state-in-effect": "error",
+        "react/refs": "error",
+        "react/purity": "error",
         "react/incompatible-library": "error",
         "react/jsx-key": "error",
         "react/no-children-prop": "error",

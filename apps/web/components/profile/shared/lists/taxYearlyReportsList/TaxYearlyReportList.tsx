@@ -26,6 +26,7 @@ export const TaxYearlyReportList: React.FC<{
     { label: "Sum donasjoner", width: "25%", align: "right" as const },
   ];
 
+  // oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended
   const currentYear = new Date().getFullYear();
 
   const rowMissingTaxUnits = {

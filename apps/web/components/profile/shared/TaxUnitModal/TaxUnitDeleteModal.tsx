@@ -74,6 +74,7 @@ export const TaxUnitDeleteModal: React.FC<{
             Du er i ferd med å slette skatteenheten <strong>{taxUnit.name}</strong>.
           </p>
 
+          {/* oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended */}
           {taxUnit.taxDeductions?.find((d) => d.year === new Date().getFullYear()) ? (
             <>
               <p>

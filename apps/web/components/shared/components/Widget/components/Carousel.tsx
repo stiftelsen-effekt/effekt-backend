@@ -96,10 +96,12 @@ export const Carousel: React.FC<ICarouselProps> = ({ children, minHeight, inline
   // This hook detects when paneNumber changes in the Redux store
   useEffect(() => {
     if (reduxPaneNumber > currentPaneNumber) {
+      // oxlint-disable-next-line react/set-state-in-effect -- follows pane changes in the Redux store
       changePaneByOffset(1);
     } else if (reduxPaneNumber < currentPaneNumber) {
       changePaneByOffset(-1);
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- only a store pane change should move the carousel
   }, [reduxPaneNumber]);
 
   return (

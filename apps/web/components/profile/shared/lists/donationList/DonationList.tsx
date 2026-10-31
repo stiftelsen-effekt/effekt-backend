@@ -81,6 +81,7 @@ export const DonationList: React.FC<{
       </span>
     );
 
+    // oxlint-disable-next-line react/purity -- reads today's date for a label; recomputing it each render is intended
     if (year === new Date().getFullYear().toString()) {
       taxDeductionTextSplit =
         configuration.tax_deduction_current_year_template.split("{{deduction}}");

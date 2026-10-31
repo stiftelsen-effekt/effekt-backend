@@ -61,6 +61,7 @@ export const FundraiserInput = React.forwardRef<HTMLDivElement, FundraiserInputP
     };
 
     useEffect(() => {
+      // oxlint-disable-next-line react/set-state-in-effect -- fetches on mount and filters on search
       fetchFundraisers();
     }, []);
 
@@ -69,11 +70,13 @@ export const FundraiserInput = React.forwardRef<HTMLDivElement, FundraiserInputP
       if (selectedId !== props.value) {
         props.onChange(PatchEvent.from(selectedId ? set(selectedId) : unset()));
       }
+      // oxlint-disable-next-line react-hooks/exhaustive-deps -- syncs to the parent only when the selection changes
     }, [selectedId]);
 
     // Filter fundraisers based on search term
     useEffect(() => {
       if (searchTerm.trim() === "") {
+        // oxlint-disable-next-line react/set-state-in-effect -- fetches on mount and filters on search
         setFilteredFundraisers(fundraisers);
       } else {
         const filtered = fundraisers.filter((fundraiser) =>

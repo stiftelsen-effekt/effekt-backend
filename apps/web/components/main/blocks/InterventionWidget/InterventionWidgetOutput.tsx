@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import AnimateHeight from "react-animate-height";
 import styles from "./InterventionWidget.module.scss";
 import { LinkType, Links } from "../Links/Links";
@@ -59,7 +59,7 @@ export const InterventionWidgetOutput: React.FC<{
   );
   const [, setWidgetContext] = useContext(WidgetContext);
   const plausible = usePlausible();
-  const currentDate = useMemo(() => new Date(), []);
+  const [currentDate] = useState(() => new Date());
 
   useEffect(() => {
     if (interventions && interventions.length > 0) {

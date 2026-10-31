@@ -53,6 +53,7 @@ export const ApiErrorNotification: React.FC<{ genericErrorMessage?: string }> = 
 
       return () => clearTimeout(timer);
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- the timer restarts only when the notification shows
   }, [isVisible]);
 
   return (

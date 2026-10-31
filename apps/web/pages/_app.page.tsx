@@ -86,6 +86,7 @@ function MyApp({
       document.addEventListener("visibilitychange", handleVisibilityChange);
       return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- registers the listener once
   }, []);
 
   if (!appStaticProps) {
