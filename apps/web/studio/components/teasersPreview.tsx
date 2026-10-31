@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Stack, Text, Flex, Box, Card } from "@sanity/ui";
+import { Grid, Stack, Text, Flex, Card } from "@sanity/ui";
 import { Layers, Image } from "react-feather";
 import { PreviewProps } from "sanity";
 import { Teasers, Teasersitem } from "../sanity.types";

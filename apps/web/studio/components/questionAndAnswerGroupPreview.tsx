@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
-import { Text, Grid, Flex, Stack } from "@sanity/ui";
-import { PreviewProps, useFormValue } from "sanity";
+import React from "react";
+import { Text, Flex, Stack } from "@sanity/ui";
+import { PreviewProps } from "sanity";
 import { Questionandanswergroup } from "../sanity.types";
 // These are react components
 

@@ -163,7 +163,7 @@ export default defineType({
                   name: "min_length",
                   title: "Minimum Length",
                   type: "number",
-                  hidden: ({ parent, document }) => {
+                  hidden: ({ parent }) => {
                     const fieldType = parent?.parent?.field_type;
                     return fieldType !== "text" && fieldType !== "textarea";
                   },
@@ -172,7 +172,7 @@ export default defineType({
                   name: "max_length",
                   title: "Maximum Length",
                   type: "number",
-                  hidden: ({ parent, document }) => {
+                  hidden: ({ parent }) => {
                     const fieldType = parent?.parent?.field_type;
                     return fieldType !== "text" && fieldType !== "textarea";
                   },
@@ -181,7 +181,7 @@ export default defineType({
                   name: "min_value",
                   title: "Minimum Value",
                   type: "number",
-                  hidden: ({ parent, document }) => {
+                  hidden: ({ parent }) => {
                     const fieldType = parent?.parent?.field_type;
                     return fieldType !== "number";
                   },
@@ -190,7 +190,7 @@ export default defineType({
                   name: "max_value",
                   title: "Maximum Value",
                   type: "number",
-                  hidden: ({ parent, document }) => {
+                  hidden: ({ parent }) => {
                     const fieldType = parent?.parent?.field_type;
                     return fieldType !== "number";
                   },
@@ -200,7 +200,7 @@ export default defineType({
                   title: "Pattern (Regex)",
                   type: "string",
                   description: "Regular expression pattern for validation",
-                  hidden: ({ parent, document }) => {
+                  hidden: ({ parent }) => {
                     const fieldType = parent?.parent?.field_type;
                     return (
                       fieldType === "checkbox" || fieldType === "radio" || fieldType === "select"

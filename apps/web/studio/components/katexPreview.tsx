@@ -14,7 +14,7 @@ export const KatexPreview = (props: PreviewProps & Partial<Latex>) => {
     if (!latex) return null;
     try {
       return katex.renderToString(latex, { throwOnError: false });
-    } catch (e) {
+    } catch {
       return null;
     }
   }, [latex]);

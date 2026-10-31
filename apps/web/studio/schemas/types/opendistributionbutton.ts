@@ -1,4 +1,4 @@
-import { defineType, defineField, Rule } from "sanity";
+import { defineType, defineField } from "sanity";
 import { MousePointer } from "react-feather";
 
 export default defineType({
@@ -85,7 +85,7 @@ export default defineType({
                 },
               ],
               validation: (Rule) =>
-                Rule.custom((value, context) => {
+                Rule.custom((value) => {
                   const sum = (value as any[]).reduce(
                     (acc, item) => acc + item.organization_percentage,
                     0,
@@ -100,7 +100,7 @@ export default defineType({
         },
       ],
       validation: (Rule) =>
-        Rule.custom((value, context) => {
+        Rule.custom((value) => {
           const sum = (value as any[]).reduce((acc, item) => acc + item.cause_area_percentage, 0);
           if (sum !== 100) {
             return "The sum of the cause area percentages must be 100";

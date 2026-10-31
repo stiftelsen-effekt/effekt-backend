@@ -1,5 +1,5 @@
-import { Card, Stack, ThemeProvider, Text, BoundaryElementProvider } from "@sanity/ui";
-import React, { useEffect, useMemo } from "react";
+import { Card, Stack, ThemeProvider, Text } from "@sanity/ui";
+import React, { useEffect } from "react";
 import { EyeOff } from "react-feather";
 import { DefaultPreview, Preview, PreviewProps, Reference, useClient } from "sanity";
 import { schemas } from "../schemas/schema";

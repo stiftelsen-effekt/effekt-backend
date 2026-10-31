@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, Flex, Grid, Box, Stack, Card } from "@sanity/ui";
+import { Text, Flex, Grid, Stack, Card } from "@sanity/ui";
 import { MessageCircle } from "react-feather";
 import { PreviewProps } from "sanity";
 import { Testimonial, Testimonials } from "../sanity.types";

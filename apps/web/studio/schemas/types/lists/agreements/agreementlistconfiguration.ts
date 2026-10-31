@@ -142,7 +142,7 @@ export default defineType({
               width: "width",
             },
             prepare(selection) {
-              const { title, value, type, width } = selection;
+              const { title, type, width } = selection;
               return {
                 title: `${title}`,
                 subtitle: `${type} ${width ? `(width ${width}%)` : ""}`,

@@ -28,7 +28,7 @@ export default defineConfig({
   dataset: requireEnv(process.env.SANITY_STUDIO_API_DATASET, "SANITY_STUDIO_API_DATASET"),
   document: {
     productionUrl: async (prev, context) => {
-      const { dataset, document } = context;
+      const { document } = context;
 
       const client = context.getClient({
         apiVersion: "2024-07-25",
