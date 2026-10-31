@@ -4,7 +4,8 @@ import { DAO } from "../custom_modules/DAO";
 import { getDueDates } from "../custom_modules/avtalegiro";
 import { excludeAgreementsClaimedThisMonth } from "../custom_modules/avtalegiro/charges";
 import * as avtalegiroDeletions from "../custom_modules/avtalegiro/deletions";
-import { checkIfAcceptedReciept, getLatestOCRFile, sendFile } from "../custom_modules/nets";
+import { checkIfAcceptedReciept, getOCRFiles, sendFile } from "../custom_modules/nets";
+import { selectOCRFilesToImport, type OCRFile } from "../custom_modules/ocrFiles";
 import { DateTime } from "luxon";
 import mailchimp from "@mailchimp/mailchimp_marketing";
 
@@ -33,55 +34,67 @@ const config = require("../config");
 const META_OWNER_ID = 3;
 
 /**
+ * Imports one OCR file. It contains transactions to our account with KID, both with normal giro
+ * and avtalegiro, and information about created, updated and deleted avtalegiro agreements.
+ * The import log records the file name and modification time, so it is not imported again.
+ */
+async function importOCRFile(ocrFile: OCRFile) {
+  const contents = ocrFile.contents.toString();
+
+  /**
+   * Parse incomming transactions and add them to the database
+   */
+  const parsedTransactions = ocrParser.parse(contents);
+  // Receipts are sent as each donation is added
+  const addedDonations = await ocr.addDonations(parsedTransactions, META_OWNER_ID);
+
+  /**
+   * Parse avtalegiro agreement updates from file and update database
+   */
+  const parsedAgreements = avtalegiroParser.parse(contents);
+  const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements);
+
+  const result = {
+    filename: ocrFile.name,
+    fileModifyTime: ocrFile.modifyTime,
+    addedDonations,
+    updatedAgreements,
+    file: contents,
+  };
+
+  const importLogId = await DAO.logging.add("OCR", result);
+  await enqueueInvalidTransactions(
+    "ocr",
+    addedDonations.invalidTransactions,
+    typeof importLogId === "number" ? importLogId : null,
+  );
+  return result;
+}
+
+/**
  * Triggered every day by a google cloud scheduler webhook at 20:00
+ * Imports every OCR file on the Nets server that has not been imported yet, oldest first, so a
+ * day the job did not run is caught up. Stops at the first file that fails.
  */
 router.post("/ocr", authMiddleware.isAdmin, async (req, res, next) => {
   try {
-    /**
-     * Fetch the latest OCR file
-     * This file contains transactions to our account with KID, both with normal
-     * giro and avtalegiro.
-     * It also contains information about created, updated and deleted avtalegiro
-     * agreements.
-     */
-    const latestOcrFile = await getLatestOCRFile();
+    const importState = await DAO.logging.getOcrImportState();
+    const ocrFiles = await getOCRFiles((files) => selectOCRFilesToImport(files, importState));
 
-    if (latestOcrFile === null) {
-      //No files found in SFTP folder
+    if (ocrFiles.length === 0) {
+      //No new files in SFTP folder
       //Most likely because it's a holiday or weekend
       await DAO.logging.add("OCR", { nofile: true });
       res.send("No file");
       return true;
     }
 
-    /**
-     * Parse incomming transactions and add them to the database
-     */
-    const parsedTransactions = ocrParser.parse(latestOcrFile.toString());
+    const files: Awaited<ReturnType<typeof importOCRFile>>[] = [];
+    for (const ocrFile of ocrFiles) {
+      files.push(await importOCRFile(ocrFile));
+    }
 
-    // Results are added in paralell to the database
-    // Alongside sending donation reciepts
-    const addedDonations = await ocr.addDonations(parsedTransactions, META_OWNER_ID);
-
-    /**
-     * Parse avtalegiro agreement updates from file and update database
-     */
-    const parsedAgreements = avtalegiroParser.parse(latestOcrFile.toString());
-    const updatedAgreements = await avtalegiro.updateAgreements(parsedAgreements);
-
-    const result = {
-      addedDonations,
-      updatedAgreements,
-      file: latestOcrFile.toString(),
-    };
-
-    const importLogId = await DAO.logging.add("OCR", result);
-    await enqueueInvalidTransactions(
-      "ocr",
-      addedDonations.invalidTransactions,
-      typeof importLogId === "number" ? importLogId : null,
-    );
-    res.json(result);
+    res.json({ files });
   } catch (ex) {
     next({ ex });
   }
