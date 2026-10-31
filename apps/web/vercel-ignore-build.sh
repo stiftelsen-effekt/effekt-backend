@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # "Ignored Build Step" of the three website projects on Vercel (main-site, giv-effektivt,
-# ge-effektivt), run in apps/web as `bash vercel-ignore-build.sh`. Exit 1 builds, exit 0 skips.
-# Anything unexpected builds.
+# ge-effektivt), run in apps/web by the command
+#   if [ -f vercel-ignore-build.sh ]; then bash vercel-ignore-build.sh; else exit 1; fi
+# Exit 1 builds, exit 0 skips; Vercel fails the deployment on any other code. Anything unexpected
+# builds.
 #
 # Production always builds: the Sanity deploy hooks and the daily scheduler rebuild main's
 # current commit to publish new content, and nothing tells such a deployment apart from a push.
