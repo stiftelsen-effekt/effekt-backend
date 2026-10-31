@@ -104,8 +104,10 @@ steps:
 
   # The files at the root (index.html), each copied to its own name: an rsync of the root would
   # list every past asset in the bucket first (~30s). `$$` is a literal `$` in Cloud Build.
+  # The gcloud image (it includes gsutil), already pulled for publish-assets: pulling the gsutil
+  # image took ~20s.
   - id: publish-index
-    name: "gcr.io/cloud-builders/gsutil"
+    name: "gcr.io/cloud-builders/gcloud"
     waitFor: ["publish-assets"]
     entrypoint: bash
     args:
