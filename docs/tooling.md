@@ -44,6 +44,7 @@ pinned by `packageManager` in the root `package.json`.
 | Concern         | Tool                                                                                                |
 | --------------- | --------------------------------------------------------------------------------------------------- |
 | Package manager | pnpm (one workspace, one lockfile)                                                                  |
+| Lint            | Oxlint, one config ([`.oxlintrc.json`](../.oxlintrc.json))                                          |
 | Format          | Prettier 3, one config ([`.prettierrc`](../.prettierrc))                                            |
 | Test            | Vitest                                                                                              |
 | TypeScript      | [`@effekt/config/tsconfig.base.json`](../packages/config/tsconfig.base.json), extended by every app |
@@ -65,8 +66,31 @@ September 2026. We don't adopt it yet:
 - 1.0 is a month old and VoidZero calls it "far from feature-complete"; the migration rewrites
   dependencies, imports and config across the repository.
 
-We use its parts that stand on their own instead, where they are mature: Vitest everywhere.
-Revisit Vite+ if the website ever moves off Next.js, or once it has been stable for a while.
+We use its parts that stand on their own instead, where they are mature: Vitest everywhere and
+Oxlint. Revisit Vite+ if the website ever moves off Next.js, or once it has been stable for a
+while.
+
+### Lint: Oxlint
+
+[Oxlint](https://oxc.rs/docs/guide/usage/linter) (1.x, stable since 2025) replaced ESLint, which
+only the website ran. It lints the whole repository in about a second, needs no TypeScript or
+plugin packages, and has the rules we used from `eslint-config-next` built in: React, the React
+Compiler rules (`purity`, `refs`, `set-state-in-effect`), hooks, Next.js and the
+accessibility rules Next enabled. `eslint-disable` comments still work.
+
+All of Oxlint's correctness rules are errors, except those listed as warnings in
+`.oxlintrc.json`, which existing code breaks. Make one an error once its warnings are fixed.
+Lint-staged runs Oxlint on staged files before each commit, and Cloud Build QA runs `pnpm lint`.
+
+Not yet: type-aware rules (`oxlint --type-aware`, stable since July 2026). They need every
+package on TypeScript 7 and its tsconfig rules (no `target: es5`, for one), which the API and
+the website can't take yet (see Versions).
+
+### Format: Prettier, not Oxfmt
+
+Oxfmt, Oxc's formatter, is still 0.x (beta) and has no plugin support. Prettier is fast enough
+here (a few seconds for the repository). Revisit at Oxfmt 1.0; since Oxfmt aims at Prettier's
+output, switching should not reformat much.
 
 ## Before (October 2026)
 

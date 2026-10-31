@@ -18,7 +18,8 @@
     "debug": "cross-env NODEMON=true nodemon --exec 'node --inspect=0.0.0.0:9229 --require ts-node/register src/server.ts'",
     "postinstall": "prisma generate",
     "format": "prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
-    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
+    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+    "lint": "oxlint"
   },
   "repository": {
     "type": "git",
@@ -107,6 +108,7 @@
     "copyfiles": "^2.4.1",
     "cross-env": "catalog:",
     "nodemon": "^2.0.15",
+    "oxlint": "catalog:",
     "sinon": "^15.0.4",
     "ssh2": "1.16.0",
     "supertest": "^6.1.6",

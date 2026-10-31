@@ -14,7 +14,6 @@ apps/web/studio/.sanity/
 apps/admin/src/routeTree.gen.ts
 apps/web/studio/schema.json
 apps/web/studio/sanity.types.ts
-apps/web/eslint-suppressions.json
 apps/web/next-env.d.ts
 
 # Lockfiles

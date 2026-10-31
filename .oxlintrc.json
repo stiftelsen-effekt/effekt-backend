@@ -1,0 +1,91 @@
+{
+  // One lint config for the whole repository (docs/tooling.md). Oxlint finds this file from
+  // any package, so `pnpm lint` at the root and in a package use the same rules.
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/dist-types/**",
+    "**/coverage/**",
+    "apps/web/.next/**",
+    "apps/web/public/**",
+    "apps/web/studio/.sanity/**",
+    "apps/web/studio/sanity.types.ts",
+    "apps/admin/src/routeTree.gen.ts",
+    "apps/web/next-env.d.ts"
+  ],
+  "rules": {
+    // Warnings, not errors, because existing code breaks them (hundreds of unused variables;
+    // a few hits for the rest). Fix them as you touch the code, then make the rule an error.
+    "no-unused-vars": "warn",
+    "no-useless-escape": "warn",
+    "no-unused-expressions": "warn",
+    "no-unsafe-optional-chaining": "warn",
+    "no-useless-catch": "warn",
+    "no-unreachable": "warn",
+    "no-irregular-whitespace": "warn",
+    "no-loss-of-precision": "warn",
+    "no-empty-pattern": "warn",
+    "typescript/prefer-as-const": "warn",
+    "typescript/no-useless-empty-export": "warn",
+    "unicorn/no-new-array": "warn",
+    "unicorn/no-useless-spread": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "unicorn/prefer-string-starts-ends-with": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/**", "apps/admin/**"],
+      "plugins": ["react", "jsx-a11y"],
+      "env": { "browser": true },
+      "rules": {
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn",
+        // React Compiler rules, warnings as under eslint-config-next
+        "react/set-state-in-effect": "warn",
+        "react/refs": "warn",
+        "react/purity": "warn",
+        "react/incompatible-library": "warn",
+        "react/jsx-key": "warn",
+        "react/no-children-prop": "warn",
+        "jsx-a11y/alt-text": "warn",
+        "jsx-a11y/anchor-is-valid": "warn",
+        "jsx-a11y/media-has-caption": "warn",
+        "jsx-a11y/role-has-required-aria-props": "warn",
+        "jsx-a11y/role-supports-aria-props": "warn",
+        // Only the accessibility rules eslint-config-next had; the admin also runs axe
+        // (pnpm test:a11y)
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-static-element-interactions": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/control-has-associated-label": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/no-noninteractive-tabindex": "off",
+        "jsx-a11y/no-autofocus": "off"
+      }
+    },
+    {
+      "files": ["apps/web/**"],
+      "plugins": ["nextjs"],
+      "rules": {
+        "nextjs/no-img-element": "warn",
+        "nextjs/no-duplicate-head": "warn"
+      }
+    },
+    {
+      // Specs use chai's property assertions (`expect(x).to.be.true`)
+      "files": ["**/*.spec.ts", "**/*.test.ts", "**/*.test.tsx", "apps/web/cypress/**"],
+      "rules": {
+        "no-unused-expressions": "off"
+      }
+    }
+  ]
+}

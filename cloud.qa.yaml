@@ -2,7 +2,7 @@ steps:
   - name: "node:24.22.1"
     entrypoint: bash
     id: install
-    # The API (apps/api) and the workspace root (Prettier): admin and apps/web have their own
+    # The API (apps/api) and the workspace root (Prettier, Oxlint): admin and apps/web have their own
     # checks.
     args:
       [
@@ -21,6 +21,11 @@ steps:
     entrypoint: bash
     waitFor: ["install"]
     args: ["-c", "corepack enable && pnpm run format:check"]
+  - name: "node:24.22.1"
+    entrypoint: bash
+    waitFor: ["install"]
+    # Oxlint on the whole repository (about a second)
+    args: ["-c", "corepack enable && pnpm run lint"]
 
 options:
   logging: CLOUD_LOGGING_ONLY

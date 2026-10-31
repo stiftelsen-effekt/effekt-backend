@@ -7,14 +7,11 @@ import "katex/dist/katex.min.css";
 export const MathRenderer = (props: BlockDecoratorProps) => {
   const [showPreview, setShowPreview] = useState(false);
 
-  if (!props || !props.children) {
-    return null;
-  }
-
   /* Get the text content of the children */
-  const text = props.children.props.text.text;
+  const text = props?.children?.props.text.text;
 
   const html = useMemo(() => {
+    if (text === undefined) return "";
     try {
       return katex.renderToString(text, { throwOnError: false });
     } catch (e) {
@@ -22,6 +19,10 @@ export const MathRenderer = (props: BlockDecoratorProps) => {
       return `<span class="katex-error">${(e as Error).message}</span>`;
     }
   }, [text]);
+
+  if (!props || !props.children) {
+    return null;
+  }
 
   return (
     <span style={{ display: "inline-block", position: "relative", fontFamily: "monospace" }}>
