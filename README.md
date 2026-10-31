@@ -29,7 +29,7 @@ One repository, one [pnpm](https://pnpm.io) workspace.
 | [`apps/api`](apps/api)               | The API: Express + tRPC, payments, recurring agreements, receipts, scheduled jobs.           | Cloud Run behind a load balancer                     |
 | [`apps/api/prisma`](apps/api/prisma) | MySQL schema and migrations, plus the generated dev and e2e data.                            | Cloud SQL                                            |
 | [`packages/api`](packages/api)       | `@effekt/api`: the API's tRPC types and shared schemas for the website.                      | –                                                    |
-| [`functions`](functions)             | Small Cloud Functions: the scheduler dispatcher, DMARC reports, the old Min Side redirect.   | Cloud Functions                                      |
+| [`functions`](functions)             | Small Cloud Functions: the scheduler dispatcher and DMARC reports.                           | Cloud Functions                                      |
 
 ```mermaid
 flowchart LR

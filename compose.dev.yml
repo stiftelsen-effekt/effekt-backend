@@ -8,7 +8,6 @@
 #   pnpm dev:data:topup   bring generated data up to today (also done by every `up`)
 #
 # Host ports can be overridden: DEV_DB_PORT (3307), DEV_AUTH_PORT (8090), DEV_API_PORT (5050).
-# Independent of docker-compose.yml (the plain-MySQL setup described further down in the README).
 
 name: effekt-dev
 
