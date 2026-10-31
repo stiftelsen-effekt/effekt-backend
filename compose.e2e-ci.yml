@@ -1,0 +1,39 @@
+# CI override for the full-stack e2e (web-e2e-fullstack.yml, on top of compose.dev.yml and
+# compose.e2e.yml): migrate, seed-e2e and api run from the plain Node image with the runner's own
+# install mounted at /app, instead of from the effekt-backend-dev:local image. Getting that image
+# from the GitHub Actions layer cache and loading it into Docker took ~45s of every run, even with
+# every layer cached.
+#
+# Only for a Linux x64 host whose `pnpm install` included the API package (the workflow's install
+# does): node_modules then hold the same native builds as the image, Prisma's engines included
+# (debian-openssl-3.0.x for both the runner and node:24.22.1). On macOS keep using the image.
+#
+#   docker compose -f compose.dev.yml -f compose.e2e.yml -f compose.e2e-ci.yml ...
+#   (scripts/e2e-fullstack.sh adds it with E2E_BACKEND_FROM_HOST=1)
+
+x-from-host: &from-host
+  image: node:24.22.1
+  pull_policy: missing
+  # The commands run `pnpm exec`; the image has corepack, but no pnpm on the PATH
+  entrypoint: ["sh", "-c", 'corepack enable && exec "$$@"', "--"]
+  environment:
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    COREPACK_HOME: /corepack
+  volumes:
+    - .:/app
+    - corepack:/corepack
+
+services:
+  migrate:
+    <<: *from-host
+    build: !reset null
+
+  seed-e2e:
+    <<: *from-host
+
+  api:
+    <<: *from-host
+    build: !reset null
+
+volumes:
+  corepack:

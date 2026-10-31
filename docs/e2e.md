@@ -47,8 +47,18 @@ from `pnpm dev:env:up`, so both stacks can run at once.
 
 The web app is built and served on the host (`next build` + `next start`), not in a container:
 Cypress needs the host `node_modules` anyway, and CI reuses the pnpm cache instead of installing
-and building a second time inside Docker. `next build` prerenders ~600 pages and calls the API
-for some of them, so it runs after the stack is up.
+and building a second time inside Docker. `next build` prerenders ~600 pages while the stack
+starts. The fundraiser pages read the API, so the e2e build leaves them out
+(`E2E_DEFER_API_PAGES=1`, `pages/[state]/[[...slug]].page.tsx`) and `next start` renders them on
+first request (`fallback: "blocking"`), when the API is up. The results page's API reads already
+fall back to rendering without the figures.
+
+In CI (`web-e2e-fullstack.yml`) the backend services run from the plain `node:24.22.1` image with
+the runner's own install mounted (`E2E_BACKEND_FROM_HOST=1`, `compose.e2e-ci.yml`) instead of from
+the `effekt-backend-dev:local` image: the runner's `pnpm install` already includes the API
+package, and getting the image from a layer cache and loading it into Docker took ~45s. That only
+works on Linux x64 (native builds such as Prisma's engines); locally the script builds the image
+as before. The stack's images are pulled in the background while the job sets up Node.
 
 ### Content (Sanity)
 

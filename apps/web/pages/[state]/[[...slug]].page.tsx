@@ -399,7 +399,12 @@ export async function getStaticPaths() {
   const basePaths = await Promise.all([
     getGenericPagePaths(),
     getArticlePaths(routerContext.articlesPagePath),
-    getFundraiserPagePaths(routerContext.fundraisersPath),
+    // The full-stack e2e builds the site while its API is still starting (scripts/e2e-fullstack.sh).
+    // Fundraiser pages read the API, so there they are rendered on first request instead
+    // (fallback: "blocking"). Production builds never set this.
+    process.env.E2E_DEFER_API_PAGES === "1"
+      ? Promise.resolve([])
+      : getFundraiserPagePaths(routerContext.fundraisersPath),
     getDonationsPageSubpaths(),
     getTaxPageSubPaths(),
   ]).then(
